@@ -7,272 +7,255 @@
     <title>Dashboard | Pedidos ML</title>
 
     <style>
-      /* (mantive seu CSS inteiro — igual ao que você já tem) */
-      :root{
-        --bg: #000000;
-        --panel: rgba(10, 10, 14, .72);
-        --panel2: rgba(14, 14, 20, .62);
-        --text: rgba(255,255,255,.92);
-        --muted: rgba(255,255,255,.62);
-
-        --ml-yellow: #ffe600;
-        --cyan: #00f6ff;
-        --magenta: #ff2bd6;
-        --green: #38ff8b;
-        --red: #ff3b3b;
-        --orange:#ff9f1a;
-
-        --glow-yellow: 0 0 14px rgba(255,230,0,.45), 0 0 36px rgba(255,230,0,.18);
-        --glow-cyan:   0 0 14px rgba(0,246,255,.42), 0 0 34px rgba(0,246,255,.16);
-        --glow-mag:    0 0 14px rgba(255,43,214,.35), 0 0 34px rgba(255,43,214,.14);
-
-        --radius: 16px;
-        --radius2: 22px;
+      :root {
+        --bg: #F4F6F9; --surface: #FFFFFF; --surface2: #F8F9FB;
+        --navy: #1E2D4E; --navy-light: #2C3E6B; --blue: #3B5BDB;
+        --yellow: #F5C518; --yellow-light: #FFF8DC; --yellow-dark: #E0A800;
+        --gray-50: #F8F9FA; --gray-100: #F1F3F5; --gray-200: #E9ECEF;
+        --gray-300: #DEE2E6; --gray-400: #CED4DA; --gray-500: #ADB5BD;
+        --gray-600: #6C757D; --gray-700: #495057; --gray-800: #343A40;
+        --text: #1A2236; --text-muted: #6C757D;
+        --badge-pending-bg: #FFF3CD; --badge-pending-text: #7D5200;
+        --badge-confirm-bg: #D1FAE5; --badge-confirm-text: #065F46;
+        --badge-cancel-bg:  #FFE4E4; --badge-cancel-text:  #7D0000;
+        --badge-pronto-bg:  #DBEAFE; --badge-pronto-text:  #1E3A8A;
+        --badge-naofin-bg:  #FEF3C7; --badge-naofin-text:  #78350F;
+        --badge-outro-bg:   #F1F3F5; --badge-outro-text:   #495057;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);
+        --radius: 10px; --radius2: 8px;
       }
 
       * { box-sizing: border-box; }
       html, body { height: 100%; }
-      body{
-        margin:0;
+      body {
+        margin: 0;
         background: var(--bg);
         color: var(--text);
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-        overflow-x:hidden;
+        overflow-x: hidden;
       }
 
-      .bgfx{
-        position: fixed; inset: 0; pointer-events:none;
-        background:
-          radial-gradient(1200px 800px at 15% 20%, rgba(0,246,255,.08), transparent 55%),
-          radial-gradient(900px 700px at 85% 25%, rgba(255,43,214,.07), transparent 55%),
-          radial-gradient(900px 900px at 50% 90%, rgba(255,230,0,.08), transparent 60%),
-          linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
-        background-size: auto, auto, auto, 46px 46px, 46px 46px;
-        mix-blend-mode: screen;
-        opacity: .9;
-      }
-      .scanlines{
-        position: fixed; inset:0; pointer-events:none;
-        background: repeating-linear-gradient(
-          to bottom,
-          rgba(255,255,255,.02),
-          rgba(255,255,255,.02) 1px,
-          transparent 1px,
-          transparent 4px
-        );
-        opacity:.20;
+      .wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px 48px; }
+
+      header {
+        display: flex; gap: 14px; align-items: center; justify-content: space-between;
+        padding: 14px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-sm);
+        position: sticky; top: 0; z-index: 10;
       }
 
-      .wrap{ max-width: 1200px; margin: 0 auto; padding: 18px 14px 40px; }
-
-      header{
-        display:flex; gap:14px; align-items:center; justify-content:space-between;
-        padding: 14px 14px;
-        border-radius: var(--radius2);
-        background: linear-gradient(180deg, rgba(18,18,24,.75), rgba(10,10,14,.55));
-        border: 1px solid rgba(255,230,0,.18);
-        box-shadow: 0 18px 60px rgba(0,0,0,.55), var(--glow-yellow);
-        position: sticky; top: 10px; z-index: 10;
-        backdrop-filter: blur(10px);
+      .brand { display: flex; gap: 12px; align-items: center; min-width: 240px; }
+      .badgeLogo {
+        width: 44px; height: 44px;
+        background: var(--navy);
+        border-left: 4px solid var(--yellow);
+        border-radius: 8px;
+        box-shadow: none;
       }
+      .brand h1 { margin: 0; font-size: 14px; font-weight: 700; color: var(--navy); letter-spacing: 0; text-transform: none; }
+      .brand .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-      .brand{ display:flex; gap:12px; align-items:center; min-width:240px; }
-      .badgeLogo{
-        width:44px;height:44px;border-radius:14px;position:relative;overflow:hidden;
-        background:
-          radial-gradient(circle at 30% 30%, rgba(255,230,0,.95), rgba(255,230,0,.45) 40%, rgba(0,0,0,0) 70%),
-          radial-gradient(circle at 70% 70%, rgba(0,246,255,.55), rgba(0,0,0,0) 55%),
-          linear-gradient(135deg, rgba(255,43,214,.22), rgba(0,0,0,0));
-        box-shadow: var(--glow-yellow), var(--glow-cyan);
-        border: 1px solid rgba(255,230,0,.25);
-      }
-      .brand h1{ margin:0; font-size:14px; letter-spacing:.12em; text-transform:uppercase; }
-      .brand .sub{ font-size:12px; color: var(--muted); margin-top:4px; }
-
-      .controls{ display:flex; gap:10px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
-      .chip{
-        display:flex; gap:10px; align-items:center;
+      .controls { display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+      .chip {
+        display: flex; gap: 10px; align-items: center;
         padding: 10px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(0,246,255,.18);
-        background: rgba(10,10,14,.55);
-        box-shadow: 0 12px 30px rgba(0,0,0,.35), var(--glow-cyan);
+        border-radius: var(--radius);
+        border: 1px solid var(--gray-300);
+        background: var(--gray-50);
+        box-shadow: none;
       }
-      .chip input{
-        background: transparent; border:none; outline:none;
+      .chip input {
+        background: transparent; border: none; outline: none;
         color: var(--text);
         width: 220px;
         font-size: 13px;
       }
 
-      .btn{
-        cursor:pointer;
-        border: 1px solid rgba(255,230,0,.24);
-        background: linear-gradient(180deg, rgba(255,230,0,.14), rgba(255,230,0,.06));
-        color: rgba(255,255,255,.92);
-        padding: 10px 12px;
-        border-radius: 999px;
-        letter-spacing:.08em;
-        text-transform: uppercase;
-        font-size: 12px;
-        box-shadow: 0 14px 30px rgba(0,0,0,.4), var(--glow-yellow);
+      .btn {
+        cursor: pointer;
+        border: none;
+        background: var(--navy);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: var(--radius);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+        box-shadow: none;
+        transition: background .15s;
       }
+      .btn:hover { background: var(--navy-light); }
 
-      .row{ display:grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      .row { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
 
-      .sourceBar{
-        display:flex; align-items:center; justify-content:space-between;
+      .sourceBar {
+        display: flex; align-items: center; justify-content: space-between;
         gap: 12px;
         padding: 10px 12px;
         border-radius: var(--radius);
-        background: rgba(10,10,14,.50);
-        border: 1px solid rgba(255,255,255,.08);
-        box-shadow: 0 18px 60px rgba(0,0,0,.45);
+        background: var(--surface);
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-sm);
       }
-      .sourceLeft{ display:flex; flex-direction:column; gap:4px; }
-      .sourceTitle{
+      .sourceLeft { display: flex; flex-direction: column; gap: 4px; }
+      .sourceTitle {
         font-size: 11px;
-        letter-spacing:.16em;
+        letter-spacing: .06em;
         text-transform: uppercase;
-        color: rgba(255,255,255,.78);
+        color: var(--text-muted);
+        font-weight: 600;
       }
-      .sourceHint{ font-size: 12px; color: rgba(255,255,255,.55); }
-      .seg{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-      .segBtn{
-        cursor:pointer;
-        border-radius: 999px;
+      .sourceHint { font-size: 12px; color: var(--text-muted); }
+      .seg { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      .segBtn {
+        cursor: pointer;
+        border-radius: 6px;
         padding: 9px 12px;
-        font-size: 12px;
-        letter-spacing:.10em;
-        text-transform: uppercase;
-        border: 1px solid rgba(255,255,255,.10);
-        background: rgba(0,0,0,.30);
-        color: rgba(255,255,255,.86);
-        user-select:none;
+        font-size: 13px;
+        letter-spacing: 0;
+        text-transform: none;
+        border: 1px solid var(--gray-300);
+        background: var(--gray-100);
+        color: var(--gray-700);
+        user-select: none;
+        box-shadow: none;
       }
-      .segBtn.active{
-        border-color: rgba(255,230,0,.25);
-        box-shadow: var(--glow-yellow);
-        background: rgba(255,230,0,.08);
+      .segBtn.active {
+        background: var(--navy);
+        color: #fff;
+        border-color: var(--navy);
+        box-shadow: none;
       }
 
-      .kpis{
-        display:grid;
-        grid-template-columns: repeat(7, 1fr);
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
         gap: 12px;
       }
 
-      .card{
+      .card {
         position: relative;
         border-radius: var(--radius);
-        background: linear-gradient(180deg, rgba(10,10,14,.72), rgba(14,14,20,.62));
-        border: 1px solid rgba(255,255,255,.08);
-        box-shadow: 0 20px 60px rgba(0,0,0,.55);
+        background: var(--surface);
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-sm);
         overflow: hidden;
       }
 
-      .kpi{ padding: 14px 14px 12px; min-height: 86px; display:flex; flex-direction:column; justify-content:space-between; }
-      .kpi .label{ font-size: 12px; letter-spacing:.12em; text-transform:uppercase; color: rgba(255,255,255,.75); }
-      .kpi .value{ font-size: 26px; font-weight: 800; }
-      .kpi .hint{ font-size: 12px; color: rgba(255,255,255,.6); }
+      .kpi { padding: 14px 14px 12px; min-height: 86px; display: flex; flex-direction: column; justify-content: space-between; }
+      .kpi .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+      .kpi .value { font-size: 30px; font-weight: 700; color: var(--text); }
+      .kpi .hint { font-size: 11px; color: var(--gray-500); }
+      .kpi-active { border-left: 3px solid var(--yellow) !important; box-shadow: var(--shadow-md) !important; }
 
-      .tableWrap{ padding: 14px; }
-      .tableHeader{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom: 12px; }
-      .tableHeader h2{ margin:0; font-size: 12px; letter-spacing:.16em; text-transform:uppercase; color: rgba(255,255,255,.84); }
-      .meta{ font-size: 12px; color: rgba(255,255,255,.55); }
+      .tableWrap { padding: 14px; }
+      .tableHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+      .tableHeader h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--navy); letter-spacing: 0; text-transform: none; }
+      .meta { font-size: 12px; color: var(--text-muted); }
 
-      table{
-        width:100%;
+      table {
+        width: 100%;
         border-collapse: collapse;
         border-radius: 14px;
-        overflow:hidden;
-        border: 1px solid rgba(255,230,0,.12);
+        overflow: hidden;
+        border: 1px solid var(--gray-200);
       }
-      thead th{
-        text-align:left;
+      thead th {
+        text-align: left;
         font-size: 12px;
-        letter-spacing:.14em;
+        letter-spacing: .08em;
         text-transform: uppercase;
-        color: rgba(255,255,255,.78);
-        background: rgba(255,230,0,.08);
-        border-bottom: 1px solid rgba(255,230,0,.14);
-        padding: 12px 12px;
+        color: rgba(255,255,255,.9);
+        background: var(--navy);
+        border-bottom: 1px solid var(--navy-light);
+        padding: 11px 14px;
         white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
       }
-      tbody td{
-        padding: 12px 12px;
-        border-bottom: 1px solid rgba(255,255,255,.06);
+      thead th:hover { background: var(--navy-light); }
+      tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--gray-100);
         font-size: 13px;
-        color: rgba(255,255,255,.88);
+        color: var(--text);
         vertical-align: middle;
         white-space: nowrap;
       }
-      tbody tr{
-        background: rgba(10,10,14,.35);
-      }
-      tbody tr:hover{
-        background: rgba(0,246,255,.06);
-      }
+      tbody tr { background: var(--surface); }
+      tbody tr:hover { background: #EEF2FF; }
+      tbody tr.row-multi { background: var(--gray-50) !important; }
+      tbody tr.row-multi:hover { background: var(--gray-100) !important; }
 
-      /* multi-item cinza (para pedidos) */
-      tbody tr.row-multi{
-        background: rgba(255,255,255,.06) !important;
-      }
-      tbody tr.row-multi:hover{
-        background: rgba(255,255,255,.10) !important;
-      }
-
-      .badge{
-        display:inline-flex; align-items:center; gap:8px;
-        padding: 7px 10px;
+      .badge {
+        display: inline-flex;
+        padding: 3px 10px;
         border-radius: 999px;
-        font-size: 12px;
-        letter-spacing:.10em;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .04em;
         text-transform: uppercase;
-        border: 1px solid rgba(255,255,255,.10);
-        background: rgba(0,0,0,.35);
+        border: none;
         white-space: nowrap;
       }
-      .dot{
-        width: 8px; height: 8px; border-radius: 999px;
-        background: rgba(255,255,255,.35);
-      }
 
-      .b-pendente{ border-color: rgba(255,230,0,.28); }
-      .b-pendente .dot{ background: var(--ml-yellow); }
-      .b-pago{ border-color: rgba(0,246,255,.28); }
-      .b-pago .dot{ background: var(--cyan); }
-      .b-enviado{ border-color: rgba(255,43,214,.26); }
-      .b-enviado .dot{ background: var(--magenta); }
-      .b-entregue{ border-color: rgba(56,255,139,.22); }
-      .b-entregue .dot{ background: var(--green); }
-      .b-cancelado{ border-color: rgba(255,59,59,.22); }
-      .b-cancelado .dot{ background: var(--red); }
-      .b-outro{ border-color: rgba(255,159,26,.22); }
-      .b-outro .dot{ background: var(--orange); }
+      .b-pendente  { background: var(--badge-pending-bg); color: var(--badge-pending-text); }
+      .b-pago      { background: var(--badge-confirm-bg); color: var(--badge-confirm-text); }
+      .b-entregue  { background: var(--badge-pronto-bg);  color: var(--badge-pronto-text);  }
+      .b-enviado   { background: var(--badge-naofin-bg);  color: var(--badge-naofin-text);  }
+      .b-cancelado { background: var(--badge-cancel-bg);  color: var(--badge-cancel-text);  }
+      .b-outro     { background: var(--badge-outro-bg);   color: var(--badge-outro-text);   }
 
-      .statusline{
+      .statusline {
         margin-top: 10px;
         font-size: 12px;
-        color: rgba(255,255,255,.58);
-        display:flex;
-        gap:12px;
+        color: var(--text-muted);
+        display: flex;
+        gap: 12px;
         flex-wrap: wrap;
       }
-      .pill{
+      .pill {
         padding: 6px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,.10);
-        background: rgba(10,10,14,.45);
+        border-radius: 6px;
+        border: 1px solid var(--gray-200);
+        background: var(--gray-100);
+        color: var(--gray-700);
       }
-      .pill strong{ color: rgba(255,255,255,.85); font-weight: 700; }
+      .pill strong { color: var(--navy); }
+
+      .toast {
+        position: fixed; bottom: 24px; right: 24px; z-index: 999;
+        background: #C92A2A; color: #fff; padding: 12px 18px; border-radius: 8px;
+        font-size: 13px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,.18);
+        opacity: 0; pointer-events: none; transition: opacity .25s; max-width: 360px;
+      }
+      .toast.show { opacity: 1; pointer-events: auto; }
+
+      .loading-overlay {
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; padding: 48px 16px;
+        color: var(--text-muted); font-size: 13px;
+      }
+      .spinner {
+        width: 20px; height: 20px;
+        border: 2px solid var(--gray-200);
+        border-top-color: var(--navy);
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .sort-icon { opacity: .4; font-size: 10px; margin-left: 4px; }
+      th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity: 1; }
     </style>
   </head>
 
   <body>
-    <div class="bgfx"></div>
-    <div class="scanlines"></div>
+    <div id="toast" class="toast" aria-live="polite"></div>
 
     <div class="wrap">
       <header>
@@ -286,7 +269,7 @@
 
         <div class="controls">
           <div class="chip" title="Buscar...">
-            <span style="color:rgba(0,246,255,.85);">⌕</span>
+            <span style="color: var(--gray-500);">⌕</span>
             <input id="q" placeholder="Buscar..." autocomplete="off" />
           </div>
           <button class="btn" id="btnReload">Atualizar</button>
@@ -315,6 +298,10 @@
             <div class="meta" id="meta">—</div>
           </div>
 
+          <div id="loadingOverlay" class="loading-overlay" style="display:none">
+            <div class="spinner"></div><span>Carregando dados...</span>
+          </div>
+
           <div style="width:100%; overflow:auto;">
             <table>
               <thead id="thead"></thead>
@@ -335,17 +322,23 @@
       let KPIS = null;
       let META = null;
 
-      // IDs repetidos (multi-item) só para pedidos
       let MULTI_IDS = new Set();
-
       let ACTIVE_SOURCE = "ML Coleta";
+      let SORT = { col: null, dir: 1 };
 
-      // view: STATUS | BIPADO | ETIQUETAS | FALTAM_VIEW
       let ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
       const isActive = (type) => ACTIVE && ACTIVE.type === type;
 
       const safe = (v) => String(v ?? "")
         .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+
+      const showToast = (msg, duration = 4500) => {
+        const t = $("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), duration);
+      };
 
       const badgeClassStatus = (v) => {
         const s = (v || "").toUpperCase();
@@ -381,12 +374,12 @@
         ];
 
         return defs.map(d => `
-          <div class="card"
+          <div class="card${isActive(d.type) ? ' kpi-active' : ''}"
                role="button"
                tabindex="0"
                data-filter="${d.type}"
                data-view="${d.view}"
-               style="cursor:pointer; outline:none; ${isActive(d.type) ? 'filter: brightness(1.10);' : ''}">
+               style="cursor:pointer; outline:none;">
             <div class="kpi">
               <div class="label">${d.label}</div>
               <div class="value">${(k && typeof k[d.key] !== "undefined") ? k[d.key] : 0}</div>
@@ -396,21 +389,32 @@
         `).join("");
       };
 
+      const showTodos = () => ACTIVE_SOURCE === "TODOS" && ACTIVE.view !== "FALTAM_VIEW";
+
       const setThead = () => {
         if (ACTIVE.view === "FALTAM_VIEW") {
           $("thead").innerHTML = `
             <tr>
-              <th>Produtos Pendentes</th>
-              <th style="width:140px;">Quantidade</th>
+              <th data-sort="produtoPendentes">Produtos Pendentes <span class="sort-icon">↕</span></th>
+              <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
             </tr>
           `;
           return;
         }
 
+        const fonteCol = showTodos()
+          ? `<th data-sort="sheet" style="width:110px;">Fonte <span class="sort-icon">↕</span></th>`
+          : "";
+
         if (ACTIVE.view === "STATUS") {
           $("thead").innerHTML = `
             <tr>
-              <th>ID</th><th>Cliente</th><th>Produto</th><th style="width:70px;">Qtd</th><th style="width:180px;">Status</th>
+              <th data-sort="id">ID <span class="sort-icon">↕</span></th>
+              <th data-sort="cliente">Cliente <span class="sort-icon">↕</span></th>
+              <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
+              <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
+              <th data-sort="status" style="width:180px;">Status <span class="sort-icon">↕</span></th>
+              ${fonteCol}
             </tr>
           `;
           return;
@@ -419,7 +423,12 @@
         if (ACTIVE.view === "BIPADO") {
           $("thead").innerHTML = `
             <tr>
-              <th>ID</th><th>Cliente</th><th>Produto</th><th style="width:70px;">Qtd</th><th style="width:220px;">Bipado</th>
+              <th data-sort="id">ID <span class="sort-icon">↕</span></th>
+              <th data-sort="cliente">Cliente <span class="sort-icon">↕</span></th>
+              <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
+              <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
+              <th data-sort="bipado" style="width:220px;">Bipado <span class="sort-icon">↕</span></th>
+              ${fonteCol}
             </tr>
           `;
           return;
@@ -427,13 +436,17 @@
 
         $("thead").innerHTML = `
           <tr>
-            <th>ID</th><th>Cliente</th><th>Produto</th><th style="width:70px;">Qtd</th><th style="width:220px;">Etiquetas</th>
+            <th data-sort="id">ID <span class="sort-icon">↕</span></th>
+            <th data-sort="cliente">Cliente <span class="sort-icon">↕</span></th>
+            <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
+            <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
+            <th data-sort="etiquetas" style="width:220px;">Etiquetas <span class="sort-icon">↕</span></th>
+            ${fonteCol}
           </tr>
         `;
       };
 
       const rowHtml = (p) => {
-        // FALTAM VIEW usa dataset independente (não tem id/cliente)
         if (ACTIVE.view === "FALTAM_VIEW") {
           return `
             <tr>
@@ -443,9 +456,11 @@
           `;
         }
 
-        // Outros views usam pedidos (podem ter cinza multi-item)
         const isMulti = MULTI_IDS.has(String(p.id));
         const trClass = isMulti ? "row-multi" : "";
+        const fonteCell = showTodos()
+          ? `<td><span class="badge b-outro" style="font-size:10px;">${safe(p.sheet ?? "—")}</span></td>`
+          : "";
 
         const base = `
           <td>${safe(p.id)}</td>
@@ -458,7 +473,8 @@
           return `
             <tr class="${trClass}">
               ${base}
-              <td><span class="badge ${badgeClassStatus(p.status)}"><span class="dot"></span>${safe(p.status)}</span></td>
+              <td><span class="badge ${badgeClassStatus(p.status)}">${safe(p.status)}</span></td>
+              ${fonteCell}
             </tr>
           `;
         }
@@ -467,7 +483,8 @@
           return `
             <tr class="${trClass}">
               ${base}
-              <td><span class="badge ${badgeClassBipado(p.bipado)}"><span class="dot"></span>${safe(p.bipado || "—")}</span></td>
+              <td><span class="badge ${badgeClassBipado(p.bipado)}">${safe(p.bipado || "—")}</span></td>
+              ${fonteCell}
             </tr>
           `;
         }
@@ -475,20 +492,48 @@
         return `
           <tr class="${trClass}">
             ${base}
-            <td><span class="badge ${badgeClassEtiquetas(p.etiquetas)}"><span class="dot"></span>${safe(p.etiquetas || "—")}</span></td>
+            <td><span class="badge ${badgeClassEtiquetas(p.etiquetas)}">${safe(p.etiquetas || "—")}</span></td>
+            ${fonteCell}
           </tr>
         `;
       };
 
-      const emptyColspan = () => (ACTIVE.view === "FALTAM_VIEW" ? 2 : 5);
+      const emptyColspan = () => {
+        if (ACTIVE.view === "FALTAM_VIEW") return 2;
+        return 5 + (showTodos() ? 1 : 0);
+      };
+
+      const applySortClasses = () => {
+        if (!SORT.col) return;
+        $("thead").querySelectorAll("th[data-sort]").forEach(th => {
+          th.classList.remove("sort-asc", "sort-desc");
+          if (th.getAttribute("data-sort") === SORT.col) {
+            th.classList.add(SORT.dir === 1 ? "sort-asc" : "sort-desc");
+            th.querySelector(".sort-icon").textContent = SORT.dir === 1 ? "↑" : "↓";
+          }
+        });
+      };
+
+      const bindTheadSort = () => {
+        $("thead").addEventListener("click", (e) => {
+          const th = e.target.closest("th[data-sort]");
+          if (!th) return;
+          const col = th.getAttribute("data-sort");
+          SORT.dir = (SORT.col === col) ? -SORT.dir : 1;
+          SORT.col = col;
+          applyAllFilters();
+        }, { once: true });
+      };
 
       const renderTable = (list) => {
         setThead();
         $("tbody").innerHTML = list.map(rowHtml).join("") || `
-          <tr><td colspan="${emptyColspan()}" style="padding:16px;color:rgba(255,255,255,.65)">
+          <tr><td colspan="${emptyColspan()}" style="padding:16px;color:var(--text-muted)">
             Nenhum registro encontrado.
           </td></tr>
         `;
+        applySortClasses();
+        bindTheadSort();
       };
 
       const renderMeta = () => {
@@ -518,7 +563,6 @@
       const applyAllFilters = () => {
         const q = $("q").value.trim().toLowerCase();
 
-        // ===== FALTAM VIEW: filtra em ALL_FALTAM =====
         if (ACTIVE.view === "FALTAM_VIEW") {
           let list = [...ALL_FALTAM];
 
@@ -529,12 +573,19 @@
             });
           }
 
+          if (SORT.col) {
+            list.sort((a, b) => {
+              const av = String(a[SORT.col] ?? "").toLowerCase();
+              const bv = String(b[SORT.col] ?? "").toLowerCase();
+              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+            });
+          }
+
           renderTable(list);
           renderStatusline(list.length);
           return;
         }
 
-        // ===== OUTROS VIEWS: filtra em ALL_PEDIDOS =====
         let list = [...ALL_PEDIDOS];
         const ft = ACTIVE.type || "ALL";
 
@@ -543,12 +594,18 @@
           list = list.filter(p => (p.status || "").toUpperCase() === wanted);
         }
 
-        // VIEW:BIPADO e VIEW:ETIQUETAS não filtram (só mudam colunas)
-
         if (q) {
           list = list.filter(p => {
-            const hay = `${p.id} ${p.cliente} ${p.produto} ${p.qtd} ${p.status} ${p.bipado} ${p.etiquetas} ${p.andamento}`.toLowerCase();
+            const hay = `${p.id} ${p.cliente} ${p.produto} ${p.qtd} ${p.status} ${p.bipado} ${p.etiquetas} ${p.andamento} ${p.sheet ?? ""}`.toLowerCase();
             return hay.includes(q);
+          });
+        }
+
+        if (SORT.col) {
+          list.sort((a, b) => {
+            const av = String(a[SORT.col] ?? "").toLowerCase();
+            const bv = String(b[SORT.col] ?? "").toLowerCase();
+            return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
           });
         }
 
@@ -574,6 +631,7 @@
             };
 
             ACTIVE = { type, label: labelMap[type] || "Total", view };
+            SORT = { col: null, dir: 1 };
 
             $("kpis").innerHTML = kpiCards(KPIS);
             bindKpiClicks();
@@ -598,6 +656,7 @@
         document.querySelectorAll("#seg .segBtn").forEach(b => {
           b.addEventListener("click", () => {
             ACTIVE_SOURCE = b.getAttribute("data-src") || "ML Coleta";
+            SORT = { col: null, dir: 1 };
             updateSourceUI();
 
             ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
@@ -609,8 +668,14 @@
       };
 
       const fetchPedidos = () => {
+        $("loadingOverlay").style.display = "flex";
+        $("tbody").innerHTML = "";
+        $("thead").innerHTML = "";
+
         google.script.run
           .withSuccessHandler((res) => {
+            $("loadingOverlay").style.display = "none";
+
             if (!res || !res.ok) throw new Error((res && res.error) || "Erro desconhecido.");
 
             ALL_PEDIDOS = res.pedidos || [];
@@ -624,7 +689,10 @@
             renderMeta();
             applyAllFilters();
           })
-          .withFailureHandler((err) => alert("Falha ao carregar: " + (err && err.message ? err.message : err)))
+          .withFailureHandler((err) => {
+            $("loadingOverlay").style.display = "none";
+            showToast("Falha ao carregar: " + (err?.message ?? err));
+          })
           .getPedidos(ACTIVE_SOURCE);
       };
 
