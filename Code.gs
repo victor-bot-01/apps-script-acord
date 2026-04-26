@@ -352,3 +352,39 @@ function enviarHorariosNoChat_() {
   sendTo(spacesColeta, "ML Coleta");
   sendTo(spacesML1,    "ML 1");
 }
+
+function enviarHorarioMLColeta() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const times = getCollectionTimes();
+    const spacesRaw = String(props.getProperty("CHAT_SPACE_ML_COLETA") || "").trim();
+    if (!spacesRaw) return { ok: false, error: "CHAT_SPACE_ML_COLETA não configurado." };
+    const normalize = (s) => (!s ? s : s.startsWith("spaces/") ? s : "spaces/" + s);
+    const time = times["ML Coleta"] || "—";
+    const text = "🚚 *ML Coleta* — Horário da coleta: *" + time + "*";
+    spacesRaw.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(spaceId => {
+      callChatApi_("post", normalize(spaceId) + "/messages", { text });
+    });
+    return { ok: true };
+  } catch(err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+}
+
+function enviarHorarioML1() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const times = getCollectionTimes();
+    const spacesRaw = String(props.getProperty("CHAT_SPACE_ML_1") || "").trim();
+    if (!spacesRaw) return { ok: false, error: "CHAT_SPACE_ML_1 não configurado." };
+    const normalize = (s) => (!s ? s : s.startsWith("spaces/") ? s : "spaces/" + s);
+    const time = times["ML 1"] || "—";
+    const text = "🚚 *ML 1* — Horário da entrega: *" + time + "*";
+    spacesRaw.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(spaceId => {
+      callChatApi_("post", normalize(spaceId) + "/messages", { text });
+    });
+    return { ok: true };
+  } catch(err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+}
