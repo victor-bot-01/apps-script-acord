@@ -71,6 +71,7 @@ function getPedidos(source) {
       pedidos,
       faltamItems,
       kpis,
+      collectionTimes: getCollectionTimes(),
       meta: {
         updatedAt: new Date().toISOString(),
         pedidosRows: pedidos.length,
@@ -230,4 +231,57 @@ function parseNumber_(v) {
   const s = String(v).trim().replace(/\./g, "").replace(",", ".");
   const n = Number(s);
   return isNaN(n) ? 0 : n;
+}
+
+/*******************************
+ * COLLECTION TIMES
+ *******************************/
+function getCollectionTimes() {
+  try {
+    const stored = PropertiesService.getScriptProperties().getProperty("COLLECTION_TIMES");
+    return stored ? JSON.parse(stored) : { "ML Coleta": "", "ML 1": "" };
+  } catch(e) {
+    return { "ML Coleta": "", "ML 1": "" };
+  }
+}
+
+function saveCollectionTime(sheet, time) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const times = getCollectionTimes();
+    times[String(sheet)] = String(time || "").trim();
+    props.setProperty("COLLECTION_TIMES", JSON.stringify(times));
+    return { ok: true, times };
+  } catch(err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+}
+
+/*******************************
+ * SIMPLE TRIGGER: onEdit
+ *******************************/
+function onEdit(e) {
+  const range = e.range;
+  const sheet = range.getSheet();
+  const sheetName = sheet.getName();
+
+  if (!CONFIG.SHEET_NAMES.includes(sheetName)) return;
+
+  const col = range.getColumn();
+  const row = range.getRow();
+
+  if (row < CONFIG.DATA_START_ROW) return;
+  if (range.getNumRows() > 1 || range.getNumColumns() > 1) return;
+
+  const val = String(range.getValue() || "").trim().toUpperCase();
+
+  // Status = "Confirmado" → limpa Andamento (col H)
+  if (col === CONFIG.COLS.STATUS && val === "CONFIRMADO") {
+    sheet.getRange(row, CONFIG.COLS.ANDAMENTO).clearContent();
+  }
+
+  // Etiquetas = "Cancelado" → define Status = "Cancelado" (col E)
+  if (col === CONFIG.COLS.ETIQUETAS && val === "CANCELADO") {
+    sheet.getRange(row, CONFIG.COLS.STATUS).setValue("Cancelado");
+  }
 }

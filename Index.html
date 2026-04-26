@@ -8,23 +8,96 @@
 
     <style>
       :root {
-        --bg: #F4F6F9; --surface: #FFFFFF; --surface2: #F8F9FB;
-        --navy: #1E2D4E; --navy-light: #2C3E6B; --blue: #3B5BDB;
-        --yellow: #F5C518; --yellow-light: #FFF8DC; --yellow-dark: #E0A800;
-        --gray-50: #F8F9FA; --gray-100: #F1F3F5; --gray-200: #E9ECEF;
-        --gray-300: #DEE2E6; --gray-400: #CED4DA; --gray-500: #ADB5BD;
-        --gray-600: #6C757D; --gray-700: #495057; --gray-800: #343A40;
-        --text: #1A2236; --text-muted: #6C757D;
-        --badge-pending-bg: #FFF3CD; --badge-pending-text: #7D5200;
-        --badge-confirm-bg: #D1FAE5; --badge-confirm-text: #065F46;
-        --badge-cancel-bg:  #FFE4E4; --badge-cancel-text:  #7D0000;
-        --badge-pronto-bg:  #DBEAFE; --badge-pronto-text:  #1E3A8A;
-        --badge-naofin-bg:  #FEF3C7; --badge-naofin-text:  #78350F;
-        --badge-outro-bg:   #F1F3F5; --badge-outro-text:   #495057;
-        --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
-        --shadow-md: 0 4px 12px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.06);
-        --radius: 10px; --radius2: 8px;
+        --yellow:       #F5C518;
+        --yellow-dark:  #C9A000;
+        --yellow-deep:  #A88000;
+        --yellow-light: #FFF8DC;
+        --yellow-pale:  #FFFDE7;
+        --yellow-muted: rgba(245,197,24,.15);
+
+        --bg:       #FFFEF5;
+        --surface:  #FFFFFF;
+        --surface2: #FEFCE8;
+
+        --header-bg:     #F5C518;
+        --header-text:   #1A1500;
+        --header-border: #C9A000;
+
+        --dark:  #1A1500;
+        --dark2: #2C2500;
+
+        --text:       #1A1500;
+        --text-muted: #6B5E00;
+
+        --border:  #E5D860;
+        --border2: #F0E890;
+
+        --gray-50:  #FAFAF0;
+        --gray-100: #F5F0D0;
+        --gray-200: #EDE8C0;
+        --gray-300: #E0D890;
+        --gray-500: #B0A050;
+        --gray-700: #665C00;
+
+        --multi-bg:       #FFF3A0;
+        --multi-bg-hover: #FFE870;
+
+        --badge-pending-bg:  #FFF3CD; --badge-pending-text:  #7D5200;
+        --badge-confirm-bg:  #D1FAE5; --badge-confirm-text:  #065F46;
+        --badge-cancel-bg:   #FFE4E4; --badge-cancel-text:   #7D0000;
+        --badge-pronto-bg:   #DBEAFE; --badge-pronto-text:   #1E3A8A;
+        --badge-naofin-bg:   #FEF3C7; --badge-naofin-text:   #78350F;
+        --badge-outro-bg:    #F5F0D0; --badge-outro-text:    #665C00;
+
+        --shadow-sm: 0 1px 3px rgba(160,130,0,.12), 0 1px 2px rgba(160,130,0,.08);
+        --shadow-md: 0 4px 12px rgba(160,130,0,.18), 0 2px 6px rgba(160,130,0,.10);
+        --shadow-hd: 0 4px 24px rgba(200,160,0,.30);
+
+        --radius:  10px;
+        --radius2: 8px;
       }
+
+      [data-theme="dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+
+        --header-bg:     #1A1A1A;
+        --header-text:   #F5C518;
+        --header-border: #F5C518;
+
+        --dark:  #F5C518;
+        --dark2: #E0B000;
+
+        --text:       #F0ECC0;
+        --text-muted: #A09060;
+
+        --border:  #3A3520;
+        --border2: #2A2510;
+
+        --gray-50:  #161610;
+        --gray-100: #1E1E15;
+        --gray-200: #252518;
+        --gray-300: #333320;
+        --gray-500: #666650;
+        --gray-700: #AAAAAA;
+
+        --multi-bg:       rgba(245,197,24,.15);
+        --multi-bg-hover: rgba(245,197,24,.23);
+
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="dark"] .badgeLogo { background: #2A2500; }
+      [data-theme="dark"] .chip { border-color: var(--yellow); background: rgba(30,30,20,.90); }
+      [data-theme="dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #1A1500; }
+      [data-theme="dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="dark"] thead th { background: #2A2510; }
+      [data-theme="dark"] thead th:hover { background: #333220; }
+      [data-theme="dark"] tbody tr:hover { background: rgba(245,197,24,.06); }
+      [data-theme="dark"] .kpi-active { background: rgba(245,197,24,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
 
       * { box-sizing: border-box; }
       html, body { height: 100%; }
@@ -40,31 +113,44 @@
 
       header {
         display: flex; gap: 14px; align-items: center; justify-content: space-between;
-        padding: 14px 16px;
-        background: var(--surface);
-        border-bottom: 1px solid var(--gray-200);
-        box-shadow: var(--shadow-sm);
+        padding: 12px 20px;
+        background: var(--header-bg);
+        border-bottom: 2px solid var(--header-border);
+        box-shadow: var(--shadow-hd);
         position: sticky; top: 0; z-index: 10;
       }
 
       .brand { display: flex; gap: 12px; align-items: center; min-width: 240px; }
       .badgeLogo {
-        width: 44px; height: 44px;
-        background: var(--navy);
+        width: 40px; height: 40px;
+        background: #1A1500;
         border-left: 4px solid var(--yellow);
         border-radius: 8px;
         box-shadow: none;
       }
-      .brand h1 { margin: 0; font-size: 14px; font-weight: 700; color: var(--navy); letter-spacing: 0; text-transform: none; }
-      .brand .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+      .brand h1 { margin: 0; font-size: 14px; font-weight: 700; color: var(--header-text); letter-spacing: 0; text-transform: none; }
+      .brand .sub { font-size: 12px; color: var(--header-text); opacity: .65; margin-top: 4px; }
 
       .controls { display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+
+      .btnDark {
+        cursor: pointer;
+        border: 2px solid var(--dark);
+        background: transparent;
+        color: var(--dark);
+        padding: 8px 10px;
+        border-radius: var(--radius);
+        font-size: 14px; line-height: 1;
+        transition: all .15s;
+      }
+      .btnDark:hover { background: rgba(26,21,0,.1); }
+
       .chip {
         display: flex; gap: 10px; align-items: center;
         padding: 10px 12px;
         border-radius: var(--radius);
-        border: 1px solid var(--gray-300);
-        background: var(--gray-50);
+        border: 2px solid var(--dark);
+        background: rgba(255,255,255,.90);
         box-shadow: none;
       }
       .chip input {
@@ -76,9 +162,9 @@
 
       .btn {
         cursor: pointer;
-        border: none;
-        background: var(--navy);
-        color: #fff;
+        border: 2px solid var(--dark);
+        background: var(--dark);
+        color: var(--yellow);
         padding: 10px 16px;
         border-radius: var(--radius);
         font-size: 13px;
@@ -88,17 +174,16 @@
         box-shadow: none;
         transition: background .15s;
       }
-      .btn:hover { background: var(--navy-light); }
+      .btn:hover { background: var(--dark2); }
 
       .row { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
 
       .sourceBar {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 12px;
+        display: flex; flex-direction: column; gap: 10px;
         padding: 10px 12px;
         border-radius: var(--radius);
         background: var(--surface);
-        border: 1px solid var(--gray-200);
+        border: 1px solid var(--border);
         box-shadow: var(--shadow-sm);
       }
       .sourceLeft { display: flex; flex-direction: column; gap: 4px; }
@@ -118,18 +203,45 @@
         font-size: 13px;
         letter-spacing: 0;
         text-transform: none;
-        border: 1px solid var(--gray-300);
+        border: 1px solid var(--border);
         background: var(--gray-100);
-        color: var(--gray-700);
+        color: var(--text-muted);
         user-select: none;
         box-shadow: none;
       }
       .segBtn.active {
-        background: var(--navy);
-        color: #fff;
-        border-color: var(--navy);
+        background: var(--yellow);
+        color: var(--dark);
+        border-color: var(--yellow-dark);
+        font-weight: 700;
         box-shadow: none;
       }
+
+      .ctBar {
+        display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+        padding-top: 8px;
+        border-top: 1px solid var(--border2);
+        margin-top: 2px;
+      }
+      .ctBarLabel { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+      .ctSheet { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+      .ctSheetName { font-weight: 600; color: var(--text); }
+      .ctTime {
+        background: var(--yellow-muted); color: var(--dark);
+        padding: 3px 8px; border-radius: 4px;
+        font-weight: 600; font-size: 12px;
+        min-width: 40px; text-align: center;
+        border: 1px solid var(--border);
+      }
+      .ctInput { padding: 3px 6px; border-radius: 4px; border: 1px solid var(--yellow-dark); background: var(--surface); color: var(--text); font-size: 12px; }
+      .ctEditBtn, .ctSaveBtn, .ctCancelBtn {
+        cursor: pointer; background: transparent;
+        border: 1px solid var(--border); border-radius: 4px;
+        padding: 3px 7px; font-size: 11px; color: var(--text-muted); transition: all .12s;
+      }
+      .ctSaveBtn { border-color: #065F46; color: #065F46; }
+      .ctSaveBtn:hover { background: #D1FAE5; }
+      .ctCancelBtn:hover, .ctEditBtn:hover { background: var(--gray-100); }
 
       .kpis {
         display: grid;
@@ -141,7 +253,7 @@
         position: relative;
         border-radius: var(--radius);
         background: var(--surface);
-        border: 1px solid var(--gray-200);
+        border: 1px solid var(--border);
         box-shadow: var(--shadow-sm);
         overflow: hidden;
       }
@@ -150,11 +262,11 @@
       .kpi .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
       .kpi .value { font-size: 30px; font-weight: 700; color: var(--text); }
       .kpi .hint { font-size: 11px; color: var(--gray-500); }
-      .kpi-active { border-left: 3px solid var(--yellow) !important; box-shadow: var(--shadow-md) !important; }
+      .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow-dark) !important; border-left: 3px solid var(--yellow-dark) !important; box-shadow: var(--shadow-md) !important; }
 
       .tableWrap { padding: 14px; }
       .tableHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-      .tableHeader h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--navy); letter-spacing: 0; text-transform: none; }
+      .tableHeader h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: 0; text-transform: none; }
       .meta { font-size: 12px; color: var(--text-muted); }
 
       table {
@@ -162,37 +274,38 @@
         border-collapse: collapse;
         border-radius: 14px;
         overflow: hidden;
-        border: 1px solid var(--gray-200);
+        border: 1px solid var(--border);
       }
       thead th {
         text-align: left;
         font-size: 12px;
         letter-spacing: .08em;
         text-transform: uppercase;
-        color: rgba(255,255,255,.9);
-        background: var(--navy);
-        border-bottom: 1px solid var(--navy-light);
+        color: var(--yellow);
+        background: var(--dark);
+        border-bottom: 1px solid var(--dark2);
         padding: 11px 14px;
         white-space: nowrap;
         cursor: pointer;
         user-select: none;
       }
-      thead th:hover { background: var(--navy-light); }
+      thead th:hover { background: var(--dark2); }
       tbody td {
         padding: 10px 14px;
-        border-bottom: 1px solid var(--gray-100);
+        border-bottom: 1px solid var(--border2);
         font-size: 13px;
         color: var(--text);
         vertical-align: middle;
         white-space: nowrap;
       }
       tbody tr { background: var(--surface); }
-      tbody tr:hover { background: #EEF2FF; }
-      tbody tr.row-multi { background: var(--gray-50) !important; }
-      tbody tr.row-multi:hover { background: var(--gray-100) !important; }
+      tbody tr:hover { background: var(--yellow-pale); }
+      tbody tr.row-multi { background: var(--multi-bg) !important; }
+      tbody tr.row-multi:hover { background: var(--multi-bg-hover) !important; }
 
       .badge {
         display: inline-flex;
+        align-items: center;
         padding: 3px 10px;
         border-radius: 999px;
         font-size: 11px;
@@ -221,16 +334,16 @@
       .pill {
         padding: 6px 10px;
         border-radius: 6px;
-        border: 1px solid var(--gray-200);
+        border: 1px solid var(--border);
         background: var(--gray-100);
-        color: var(--gray-700);
+        color: var(--text-muted);
       }
-      .pill strong { color: var(--navy); }
+      .pill strong { color: var(--text); font-weight: 600; }
 
       .toast {
         position: fixed; bottom: 24px; right: 24px; z-index: 999;
         background: #C92A2A; color: #fff; padding: 12px 18px; border-radius: 8px;
-        font-size: 13px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,.18);
+        font-size: 13px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,.25);
         opacity: 0; pointer-events: none; transition: opacity .25s; max-width: 360px;
       }
       .toast.show { opacity: 1; pointer-events: auto; }
@@ -242,8 +355,8 @@
       }
       .spinner {
         width: 20px; height: 20px;
-        border: 2px solid var(--gray-200);
-        border-top-color: var(--navy);
+        border: 2px solid var(--border);
+        border-top-color: var(--yellow-dark);
         border-radius: 50%;
         animation: spin .7s linear infinite;
       }
@@ -268,8 +381,9 @@
         </div>
 
         <div class="controls">
+          <button class="btnDark" id="btnDark" title="Alternar tema">&#x263D;</button>
           <div class="chip" title="Buscar...">
-            <span style="color: var(--gray-500);">⌕</span>
+            <span style="color: var(--gray-500);">&#x2315;</span>
             <input id="q" placeholder="Buscar..." autocomplete="off" />
           </div>
           <button class="btn" id="btnReload">Atualizar</button>
@@ -278,15 +392,37 @@
 
       <div class="row">
         <section class="sourceBar">
-          <div class="sourceLeft">
-            <div class="sourceTitle">Fonte de dados</div>
-            <div class="sourceHint" id="sourceHint">—</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div class="sourceLeft">
+              <div class="sourceTitle">Fonte de dados</div>
+              <div class="sourceHint" id="sourceHint">&#x2014;</div>
+            </div>
+
+            <div class="seg" id="seg">
+              <div class="segBtn" data-src="ML Coleta">ML Coleta</div>
+              <div class="segBtn" data-src="ML 1">ML 1</div>
+              <div class="segBtn" data-src="TODOS">Todos</div>
+            </div>
           </div>
 
-          <div class="seg" id="seg">
-            <div class="segBtn" data-src="ML Coleta">ML Coleta</div>
-            <div class="segBtn" data-src="ML 1">ML 1</div>
-            <div class="segBtn" data-src="TODOS">Todos</div>
+          <div class="ctBar">
+            <span class="ctBarLabel">&#x23F0; Hor&#xe1;rios de coleta</span>
+            <div class="ctSheet">
+              <span class="ctSheetName">ML Coleta:</span>
+              <span class="ctTime" id="ctTime0">&#x2014;</span>
+              <button class="ctEditBtn" data-idx="0" title="Editar">&#x270F;</button>
+              <input type="time" class="ctInput" id="ctInput0" style="display:none" />
+              <button class="ctSaveBtn" data-idx="0" style="display:none">&#x2713;</button>
+              <button class="ctCancelBtn" data-idx="0" style="display:none">&#x2715;</button>
+            </div>
+            <div class="ctSheet">
+              <span class="ctSheetName">ML 1:</span>
+              <span class="ctTime" id="ctTime1">&#x2014;</span>
+              <button class="ctEditBtn" data-idx="1" title="Editar">&#x270F;</button>
+              <input type="time" class="ctInput" id="ctInput1" style="display:none" />
+              <button class="ctSaveBtn" data-idx="1" style="display:none">&#x2713;</button>
+              <button class="ctCancelBtn" data-idx="1" style="display:none">&#x2715;</button>
+            </div>
           </div>
         </section>
 
@@ -295,7 +431,7 @@
         <section class="card tableWrap">
           <div class="tableHeader">
             <h2>Lista de pedidos</h2>
-            <div class="meta" id="meta">—</div>
+            <div class="meta" id="meta">&#x2014;</div>
           </div>
 
           <div id="loadingOverlay" class="loading-overlay" style="display:none">
@@ -317,6 +453,20 @@
     <script>
       const $ = (id) => document.getElementById(id);
 
+      const initTheme = () => {
+        const saved = localStorage.getItem("theme") || "light";
+        document.documentElement.setAttribute("data-theme", saved);
+        $("btnDark").textContent = saved === "dark" ? "☀" : "☽";
+      };
+      const toggleDark = () => {
+        const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+        const next = isDark ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        $("btnDark").textContent = next === "dark" ? "☀" : "☽";
+        localStorage.setItem("theme", next);
+      };
+      $("btnDark").addEventListener("click", toggleDark);
+
       let ALL_PEDIDOS = [];
       let ALL_FALTAM = [];
       let KPIS = null;
@@ -329,7 +479,61 @@
       let ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
       const isActive = (type) => ACTIVE && ACTIVE.type === type;
 
-      const safe = (v) => String(v ?? "")
+      let COLLECTION_TIMES = { "ML Coleta": "", "ML 1": "" };
+      const CT_SHEETS = ["ML Coleta", "ML 1"];
+
+      const updateCtDisplay = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          $("ctTime" + i).textContent = COLLECTION_TIMES[sheet] || "—";
+        });
+      };
+
+      const bindCtEdit = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const timeEl    = $("ctTime" + i);
+          const input     = $("ctInput" + i);
+          const editBtn   = document.querySelector('.ctEditBtn[data-idx="' + i + '"]');
+          const saveBtn   = document.querySelector('.ctSaveBtn[data-idx="' + i + '"]');
+          const cancelBtn = document.querySelector('.ctCancelBtn[data-idx="' + i + '"]');
+
+          const open = () => {
+            timeEl.style.display    = "none";
+            editBtn.style.display   = "none";
+            input.value             = COLLECTION_TIMES[sheet] || "";
+            input.style.display     = "";
+            saveBtn.style.display   = "";
+            cancelBtn.style.display = "";
+            input.focus();
+          };
+          const close = () => {
+            timeEl.style.display    = "";
+            editBtn.style.display   = "";
+            input.style.display     = "none";
+            saveBtn.style.display   = "none";
+            cancelBtn.style.display = "none";
+          };
+          const save = () => {
+            const time = input.value;
+            saveBtn.disabled = true;
+            google.script.run
+              .withSuccessHandler((res) => {
+                saveBtn.disabled = false;
+                if (res && res.ok) { COLLECTION_TIMES[sheet] = time; updateCtDisplay(); close(); }
+                else showToast("Erro ao salvar hor\xe1rio.");
+              })
+              .withFailureHandler((err) => {
+                saveBtn.disabled = false;
+                showToast("Falha ao salvar: " + (err && err.message ? err.message : err));
+              })
+              .saveCollectionTime(sheet, time);
+          };
+          editBtn.addEventListener("click", open);
+          saveBtn.addEventListener("click", save);
+          cancelBtn.addEventListener("click", close);
+        });
+      };
+
+      const safe = (v) => String(v == null ? "" : v)
         .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
 
       const showToast = (msg, duration = 4500) => {
@@ -350,7 +554,7 @@
       const badgeClassBipado = (v) => {
         const s = (v || "").toUpperCase();
         if (s === "PRONTO") return "b-entregue";
-        if (s === "NÃO FINALIZADO" || s === "NAO FINALIZADO") return "b-enviado";
+        if (s === "N\xc3O FINALIZADO" || s === "NAO FINALIZADO") return "b-enviado";
         if (s === "CANCELADO") return "b-cancelado";
         return "b-outro";
       };
@@ -364,7 +568,7 @@
 
       const kpiCards = (k) => {
         const defs = [
-          { type:"ALL",               key:"total",              label:"Total",               hint:"Pedidos (IDs únicos)", view:"STATUS" },
+          { type:"ALL",               key:"total",              label:"Total",               hint:"Pedidos (IDs \xfanicos)", view:"STATUS" },
           { type:"STATUS:PENDENTE",   key:"pendentes",          label:"Pendentes",           hint:"Pedidos pendentes", view:"STATUS" },
           { type:"FALTAM",            key:"faltam",             label:"Faltam",              hint:"Soma de Quantidade", view:"FALTAM_VIEW" },
           { type:"STATUS:CONFIRMADO", key:"confirmados",        label:"Confirmados",         hint:"Pedidos confirmados", view:"STATUS" },
@@ -459,7 +663,7 @@
         const isMulti = MULTI_IDS.has(String(p.id));
         const trClass = isMulti ? "row-multi" : "";
         const fonteCell = showTodos()
-          ? `<td><span class="badge b-outro" style="font-size:10px;">${safe(p.sheet ?? "—")}</span></td>`
+          ? `<td><span class="badge b-outro" style="font-size:10px;">${safe(p.sheet != null ? p.sheet : "—")}</span></td>`
           : "";
 
         const base = `
@@ -546,7 +750,7 @@
         $("statusline").innerHTML = `
           <span class="pill"><strong>Fonte:</strong> ${safe(ACTIVE_SOURCE)}</span>
           <span class="pill"><strong>Filtro:</strong> ${safe(ACTIVE.label || "Total")}</span>
-          <span class="pill"><strong>Visíveis:</strong> ${shownCount}</span>
+          <span class="pill"><strong>Vis\xedveis:</strong> ${shownCount}</span>
           <span class="pill"><strong>Modo:</strong> ${safe(ACTIVE.view)}</span>
         `;
       };
@@ -575,8 +779,8 @@
 
           if (SORT.col) {
             list.sort((a, b) => {
-              const av = String(a[SORT.col] ?? "").toLowerCase();
-              const bv = String(b[SORT.col] ?? "").toLowerCase();
+              const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
+              const bv = String(b[SORT.col] == null ? "" : b[SORT.col]).toLowerCase();
               return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
             });
           }
@@ -596,15 +800,15 @@
 
         if (q) {
           list = list.filter(p => {
-            const hay = `${p.id} ${p.cliente} ${p.produto} ${p.qtd} ${p.status} ${p.bipado} ${p.etiquetas} ${p.andamento} ${p.sheet ?? ""}`.toLowerCase();
+            const hay = `${p.id} ${p.cliente} ${p.produto} ${p.qtd} ${p.status} ${p.bipado} ${p.etiquetas} ${p.andamento} ${p.sheet != null ? p.sheet : ""}`.toLowerCase();
             return hay.includes(q);
           });
         }
 
         if (SORT.col) {
           list.sort((a, b) => {
-            const av = String(a[SORT.col] ?? "").toLowerCase();
-            const bv = String(b[SORT.col] ?? "").toLowerCase();
+            const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
+            const bv = String(b[SORT.col] == null ? "" : b[SORT.col]).toLowerCase();
             return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
           });
         }
@@ -683,6 +887,8 @@
             KPIS = res.kpis || null;
             META = res.meta || null;
 
+            if (res.collectionTimes) { COLLECTION_TIMES = res.collectionTimes; updateCtDisplay(); }
+
             $("kpis").innerHTML = kpiCards(KPIS);
             bindKpiClicks();
 
@@ -691,7 +897,7 @@
           })
           .withFailureHandler((err) => {
             $("loadingOverlay").style.display = "none";
-            showToast("Falha ao carregar: " + (err?.message ?? err));
+            showToast("Falha ao carregar: " + (err && err.message ? err.message : err));
           })
           .getPedidos(ACTIVE_SOURCE);
       };
@@ -704,6 +910,8 @@
       $("btnReload").addEventListener("click", fetchPedidos);
 
       // Boot
+      initTheme();
+      bindCtEdit();
       bindSourceSelector();
       updateSourceUI();
       fetchPedidos();
