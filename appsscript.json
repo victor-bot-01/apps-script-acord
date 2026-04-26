@@ -1,16 +1,30 @@
 {
   "timeZone": "America/Sao_Paulo",
-  "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8",
-  "oauthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/script.external_request"
-  ],
-  "executionApi": {
-    "access": "DOMAIN"
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "DriveApi",
+        "serviceId": "drive",
+        "version": "v2"
+      }
+    ]
   },
   "webapp": {
     "executeAs": "USER_DEPLOYING",
-    "access": "DOMAIN"
+    "access": "ANYONE_ANONYMOUS"
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [
+      {
+        "menuName": "importarDaPlanilhaB_Dezembro",
+        "functionName": "importarDaPlanilhaB_Dezembro"
+      },
+      {
+        "menuName": "importarML_Coleta_e_ML1_v3",
+        "functionName": "importarML_Coleta_e_ML1_v3"
+      }
+    ]
   }
 }
