@@ -459,7 +459,7 @@ function enviarStatusMonitor_(sheetName) {
   }
 }
 
-function monitorMLColeta_tick_() {
+function monitorMLColetaTick() {
   const sheetName = "ML Coleta";
   try {
     const now = new Date();
@@ -483,7 +483,7 @@ function monitorMLColeta_tick_() {
   }
 }
 
-function monitorML1_tick_() {
+function monitorML1Tick() {
   const sheetName = "ML 1";
   try {
     const now = new Date();
