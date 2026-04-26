@@ -459,50 +459,24 @@ function enviarStatusMonitor_(sheetName) {
   }
 }
 
-function iniciarTriggerMonitor_(sheetName, tickFnName, propKey) {
-  try {
-    const props = PropertiesService.getScriptProperties();
-    const existingId = props.getProperty(propKey);
-    if (existingId) {
-      const still = ScriptApp.getProjectTriggers().some(t => t.getUniqueId() === existingId);
-      if (still) return;
-      props.deleteProperty(propKey);
-    }
-    const trigger = ScriptApp.newTrigger(tickFnName).timeBased().everyHours(1).create();
-    props.setProperty(propKey, trigger.getUniqueId());
-    Logger.log("Trigger criado para " + sheetName + ": " + trigger.getUniqueId());
-  } catch (err) {
-    Logger.log("Erro ao criar trigger (" + sheetName + "): " + err.message);
-  }
-}
-
-function deletarTriggerMonitor_(propKey) {
-  try {
-    const props = PropertiesService.getScriptProperties();
-    const id = props.getProperty(propKey);
-    if (!id) return;
-    ScriptApp.getProjectTriggers().forEach(t => {
-      if (t.getUniqueId() === id) ScriptApp.deleteTrigger(t);
-    });
-    props.deleteProperty(propKey);
-  } catch (err) {
-    Logger.log("Erro ao deletar trigger: " + err.message);
-  }
-}
-
 function monitorMLColeta_tick_() {
-  const propKey = "MONITOR_TRIGGER_ML_COLETA";
   const sheetName = "ML Coleta";
   try {
     const now = new Date();
     if (now.getDay() === 0 || now.getDay() === 6) return;
+
+    const props = PropertiesService.getScriptProperties();
+    const today = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    if (props.getProperty("LAST_IMPORT_DATE_ML_COLETA") !== today) return;
+
     const times = getCollectionTimes();
     const ct = times[sheetName] || "";
     if (!ct) return;
     const [h, m] = ct.split(":").map(Number);
     const stop = new Date(now);
     stop.setHours(h + 2, m, 0, 0);
-    if (now > stop) { deletarTriggerMonitor_(propKey); return; }
+    if (now > stop) return;
+
     enviarStatusMonitor_(sheetName);
   } catch (err) {
     Logger.log("Erro em monitorMLColeta_tick_: " + err.message);
@@ -510,18 +484,23 @@ function monitorMLColeta_tick_() {
 }
 
 function monitorML1_tick_() {
-  const propKey = "MONITOR_TRIGGER_ML_1";
   const sheetName = "ML 1";
   try {
     const now = new Date();
     if (now.getDay() === 0 || now.getDay() === 6) return;
+
+    const props = PropertiesService.getScriptProperties();
+    const today = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    if (props.getProperty("LAST_IMPORT_DATE_ML_1") !== today) return;
+
     const times = getCollectionTimes();
     const ct = times[sheetName] || "";
     if (!ct) return;
     const [h, m] = ct.split(":").map(Number);
     const stop = new Date(now);
     stop.setHours(h + 2, m, 0, 0);
-    if (now > stop) { deletarTriggerMonitor_(propKey); return; }
+    if (now > stop) return;
+
     enviarStatusMonitor_(sheetName);
   } catch (err) {
     Logger.log("Erro em monitorML1_tick_: " + err.message);
