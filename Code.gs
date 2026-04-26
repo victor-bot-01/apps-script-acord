@@ -362,7 +362,7 @@ function enviarHorarioMLColeta() {
     const normalize = (s) => (!s ? s : s.startsWith("spaces/") ? s : "spaces/" + s);
     const time = times["ML Coleta"] || "—";
     const text = "🚚 *ML Coleta* — Horário da coleta: *" + time + "*";
-    spacesRaw.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(spaceId => {
+    spacesRaw.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean).forEach(spaceId => {
       callChatApi_("post", normalize(spaceId) + "/messages", { text });
     });
     return { ok: true };
@@ -380,7 +380,7 @@ function enviarHorarioML1() {
     const normalize = (s) => (!s ? s : s.startsWith("spaces/") ? s : "spaces/" + s);
     const time = times["ML 1"] || "—";
     const text = "🚚 *ML 1* — Horário da entrega: *" + time + "*";
-    spacesRaw.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(spaceId => {
+    spacesRaw.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean).forEach(spaceId => {
       callChatApi_("post", normalize(spaceId) + "/messages", { text });
     });
     return { ok: true };
