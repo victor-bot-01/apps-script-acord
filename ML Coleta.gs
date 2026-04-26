@@ -388,14 +388,23 @@ function aplicarStatus_MLColeta_porId_(statusById, hb) {
 
   const n = lastRow - 1;
   const ids = sh.getRange(2, ML_IMPORT_CONFIG.COL_ID, n, 1).getValues();
+  const etiquetas = sh.getRange(2, ML_IMPORT_CONFIG.COL_ETIQUETAS, n, 1).getValues();
 
   const out = ids.map((r, i) => {
     if (i % 900 === 0) hb();
     const id = (r[0] ?? "").toString().trim();
+    const etiqueta = (etiquetas[i][0] ?? "").toString().trim();
+    if (etiqueta === "Cancelado") return ["Cancelado"];
     return [statusById.get(id) || "Pendente"];
   });
 
   sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).setValues(out);
+
+  const andamentoClears = [];
+  out.forEach((r, i) => {
+    if (r[0] === "Confirmado") andamentoClears.push(i + 2);
+  });
+  andamentoClears.forEach(row => sh.getRange(row, ML_IMPORT_CONFIG.COL_ANDAMENTO).clearContent());
 }
 
 /******************* PONTE ML1: (Código A + Cliente D) => idRef (col B) *******************/
@@ -459,12 +468,20 @@ function aplicarStatus_ML1_viaPonte_(ml1BridgeMap, statusById, hb) {
 
   const clientes = sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).getValues(); // B
   const codigos = sh.getRange(2, ML_IMPORT_CONFIG.COL_CODIGO, n, 1).getValues();   // L
+  const etiquetas = sh.getRange(2, ML_IMPORT_CONFIG.COL_ETIQUETAS, n, 1).getValues();
 
   const outStatus = new Array(n);
   const outBgB = new Array(n);
 
   for (let i = 0; i < n; i++) {
     if (i % 900 === 0) hb();
+
+    const etiqueta = (etiquetas[i][0] ?? "").toString().trim();
+    if (etiqueta === "Cancelado") {
+      outStatus[i] = ["Cancelado"];
+      outBgB[i] = outBgB[i] || [null];
+      continue;
+    }
 
     const key = makeKeyCodigoCliente_(codigos[i][0], clientes[i][0]);
     const bridge = ml1BridgeMap.get(key);
@@ -496,6 +513,12 @@ function aplicarStatus_ML1_viaPonte_(ml1BridgeMap, statusById, hb) {
 
   sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).setValues(outStatus);
   sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).setBackgrounds(outBgB);
+
+  const andamentoClears = [];
+  outStatus.forEach((r, i) => {
+    if (r[0] === "Confirmado") andamentoClears.push(i + 2);
+  });
+  andamentoClears.forEach(row => sh.getRange(row, ML_IMPORT_CONFIG.COL_ANDAMENTO).clearContent());
 }
 
 /******************* ANDAMENTO (NOVO) — construir fila por ID (A -> F) *******************/
