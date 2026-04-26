@@ -388,3 +388,142 @@ function enviarHorarioML1() {
     return { ok: false, error: String(err.message || err) };
   }
 }
+
+/*******************************
+ * MONITOR: status horário no Chat
+ *******************************/
+
+function enviarStatusMonitor_(sheetName) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const times = getCollectionTimes();
+    const collectionTime = times[sheetName] || "";
+    if (!collectionTime) return;
+
+    const [h, m] = collectionTime.split(":").map(Number);
+    const now = new Date();
+    const collectionDate = new Date(now);
+    collectionDate.setHours(h, m, 0, 0);
+
+    const closeTime = new Date(collectionDate.getTime() - 3 * 60 * 60 * 1000);
+    const isOpen = now < closeTime;
+
+    const label = sheetName === "ML 1" ? "Horário da entrega" : "Horário da coleta";
+    const closedLabel = sheetName === "ML 1" ? "ML 1 Fechado" : "ML Coleta Fechado";
+    const statusLine = isOpen
+      ? "🟢 Marketplace Ainda em Aberto"
+      : "🔴 " + closedLabel;
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sh = ss.getSheetByName(sheetName);
+    if (!sh) return;
+
+    const lastRow = sh.getLastRow();
+    const seenIds = new Set();
+    const confirmedIds = new Set();
+    const canceledIds = new Set();
+
+    if (lastRow >= 2) {
+      const n = lastRow - 1;
+      const ids = sh.getRange(2, 1, n, 1).getValues();
+      const statusVals = sh.getRange(2, 5, n, 1).getValues();
+      for (let i = 0; i < n; i++) {
+        const id = String(ids[i][0] ?? "").trim();
+        if (!id) continue;
+        seenIds.add(id);
+        const st = String(statusVals[i][0] ?? "").trim().toLowerCase();
+        if (st === "confirmado") confirmedIds.add(id);
+        if (st === "cancelado") canceledIds.add(id);
+      }
+    }
+
+    const text =
+      "📊 *" + sheetName + "* — Atualização\n" +
+      statusLine + "\n" +
+      "• Total: " + seenIds.size +
+      " | Confirmados: " + confirmedIds.size +
+      " | Cancelados: " + canceledIds.size + "\n" +
+      "⏰ " + label + ": *" + collectionTime + "*";
+
+    const spaceKey = sheetName === "ML 1" ? "CHAT_SPACE_ML_1" : "CHAT_SPACE_ML_COLETA";
+    const spacesRaw = String(props.getProperty(spaceKey) || "").trim();
+    if (!spacesRaw) return;
+
+    const normalize = (s) => (!s ? s : s.startsWith("spaces/") ? s : "spaces/" + s);
+    spacesRaw.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean).forEach(spaceId => {
+      try { callChatApi_("post", normalize(spaceId) + "/messages", { text }); }
+      catch (e) { Logger.log("Monitor Chat err (" + sheetName + "): " + e.message); }
+    });
+  } catch (err) {
+    Logger.log("Erro em enviarStatusMonitor_ (" + sheetName + "): " + err.message);
+  }
+}
+
+function iniciarTriggerMonitor_(sheetName, tickFnName, propKey) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const existingId = props.getProperty(propKey);
+    if (existingId) {
+      const still = ScriptApp.getProjectTriggers().some(t => t.getUniqueId() === existingId);
+      if (still) return;
+      props.deleteProperty(propKey);
+    }
+    const trigger = ScriptApp.newTrigger(tickFnName).timeBased().everyHours(1).create();
+    props.setProperty(propKey, trigger.getUniqueId());
+    Logger.log("Trigger criado para " + sheetName + ": " + trigger.getUniqueId());
+  } catch (err) {
+    Logger.log("Erro ao criar trigger (" + sheetName + "): " + err.message);
+  }
+}
+
+function deletarTriggerMonitor_(propKey) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const id = props.getProperty(propKey);
+    if (!id) return;
+    ScriptApp.getProjectTriggers().forEach(t => {
+      if (t.getUniqueId() === id) ScriptApp.deleteTrigger(t);
+    });
+    props.deleteProperty(propKey);
+  } catch (err) {
+    Logger.log("Erro ao deletar trigger: " + err.message);
+  }
+}
+
+function monitorMLColeta_tick_() {
+  const propKey = "MONITOR_TRIGGER_ML_COLETA";
+  const sheetName = "ML Coleta";
+  try {
+    const now = new Date();
+    if (now.getDay() === 0 || now.getDay() === 6) return;
+    const times = getCollectionTimes();
+    const ct = times[sheetName] || "";
+    if (!ct) return;
+    const [h, m] = ct.split(":").map(Number);
+    const stop = new Date(now);
+    stop.setHours(h + 2, m, 0, 0);
+    if (now > stop) { deletarTriggerMonitor_(propKey); return; }
+    enviarStatusMonitor_(sheetName);
+  } catch (err) {
+    Logger.log("Erro em monitorMLColeta_tick_: " + err.message);
+  }
+}
+
+function monitorML1_tick_() {
+  const propKey = "MONITOR_TRIGGER_ML_1";
+  const sheetName = "ML 1";
+  try {
+    const now = new Date();
+    if (now.getDay() === 0 || now.getDay() === 6) return;
+    const times = getCollectionTimes();
+    const ct = times[sheetName] || "";
+    if (!ct) return;
+    const [h, m] = ct.split(":").map(Number);
+    const stop = new Date(now);
+    stop.setHours(h + 2, m, 0, 0);
+    if (now > stop) { deletarTriggerMonitor_(propKey); return; }
+    enviarStatusMonitor_(sheetName);
+  } catch (err) {
+    Logger.log("Erro em monitorML1_tick_: " + err.message);
+  }
+}

@@ -109,6 +109,21 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
 
   hb();
 
+  // ✅ 4) MONITOR: enviar status e iniciar trigger horário por sheet importada
+  if (didImport["ML Coleta"]) {
+    try {
+      enviarStatusMonitor_("ML Coleta");
+      iniciarTriggerMonitor_("ML Coleta", "monitorMLColeta_tick_", "MONITOR_TRIGGER_ML_COLETA");
+    } catch (err) { Logger.log("Aviso: erro no monitor ML Coleta: " + err.message); }
+  }
+  if (didImport["ML 1"]) {
+    try {
+      enviarStatusMonitor_("ML 1");
+      iniciarTriggerMonitor_("ML 1", "monitorML1_tick_", "MONITOR_TRIGGER_ML_1");
+    } catch (err) { Logger.log("Aviso: erro no monitor ML 1: " + err.message); }
+  }
+  hb();
+
   Logger.log("Processo completo: limpeza/import condicional + status + andamento (novo) + pendentes.");
 }
 
