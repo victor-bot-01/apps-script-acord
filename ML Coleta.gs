@@ -736,6 +736,7 @@ function pend_process_MLColeta_(sh, confById, mapSubseq) {
 
   const n = lastRow - 1;
   const idVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_ID, n, 1).getValues();
+  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).getValues();
 
   // limpa I/J
   pend_clearIJ_(sh);
@@ -746,12 +747,14 @@ function pend_process_MLColeta_(sh, confById, mapSubseq) {
   const newBgC = bgC.map(r => [r[0]]);
   let anyBg = false;
 
-  // IDs únicos
+  // IDs únicos (ignora linhas Confirmadas)
   const idsUnique = [];
   const seen = new Set();
   for (let i = 0; i < n; i++) {
     const id = String(idVals[i][0] ?? "").trim();
     if (!id) continue;
+    const status = String(statusVals[i][0] ?? "").trim();
+    if (status === "Confirmado") continue;
     if (!seen.has(id)) { seen.add(id); idsUnique.push(id); }
   }
 
@@ -813,12 +816,16 @@ function pend_process_ML1_(sh, ml1BridgeMap, confById, mapSubseq) {
 
   const clientes = sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).getValues(); // B
   const codigos  = sh.getRange(2, ML_IMPORT_CONFIG.COL_CODIGO,  n, 1).getValues(); // L
+  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).getValues();
 
   // por linha, resolve idRef somente quando ponte é única
   const rowToId = new Map(); // rowIndex0 -> idRef
   const idsUnique = new Set();
 
   for (let i = 0; i < n; i++) {
+    const status = String(statusVals[i][0] ?? "").trim();
+    if (status === "Confirmado") continue;
+
     const key = makeKeyCodigoCliente_(codigos[i][0], clientes[i][0]);
     if (!key) continue;
 
