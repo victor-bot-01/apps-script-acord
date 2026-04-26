@@ -109,6 +109,15 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
 
   hb();
 
+  // ✅ 4) ENVIAR HORÁRIOS NO GOOGLE CHAT
+  try {
+    enviarHorariosNoChat_();
+  } catch (err) {
+    Logger.log("Aviso: falha ao enviar hor\xe1rios no Chat: " + err.message);
+  }
+
+  hb();
+
   Logger.log("Processo completo: limpeza/import condicional + status + andamento (novo) + pendentes.");
 }
 

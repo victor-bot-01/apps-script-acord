@@ -285,3 +285,70 @@ function onEdit(e) {
     sheet.getRange(row, CONFIG.COLS.STATUS).setValue("Cancelado");
   }
 }
+
+/*******************************
+ * GOOGLE CHAT API
+ *******************************/
+function callChatApi_(method, path, payloadObj) {
+  const token = getServiceAccountToken_();
+
+  const options = {
+    method: method,
+    headers: {
+      Authorization: "Bearer " + token
+    },
+    muteHttpExceptions: true
+  };
+
+  if (payloadObj !== undefined && payloadObj !== null) {
+    options.contentType = "application/json";
+    options.payload = JSON.stringify(payloadObj);
+  }
+
+  const url = "https://chat.googleapis.com/v1/" + path;
+  const response = UrlFetchApp.fetch(url, options);
+  const code = response.getResponseCode();
+  const body = response.getContentText();
+
+  if (code < 200 || code >= 300) {
+    throw new Error("Google Chat API HTTP " + code + " - " + body);
+  }
+
+  return body ? JSON.parse(body) : {};
+}
+
+function enviarHorariosNoChat_() {
+  const props = PropertiesService.getScriptProperties();
+
+  const times = getCollectionTimes();
+
+  const spacesColeta = String(props.getProperty("CHAT_SPACE_ML_COLETA") || "").trim();
+  const spacesML1    = String(props.getProperty("CHAT_SPACE_ML_1")      || "").trim();
+
+  const normalize = (s) => {
+    if (!s) return s;
+    return s.startsWith("spaces/") ? s : "spaces/" + s;
+  };
+
+  const splitSpaces = (raw) =>
+    raw.split(/\r?\n/)
+       .map(s => s.trim())
+       .filter(Boolean);
+
+  const sendTo = (spacesRaw, sheetName) => {
+    if (!spacesRaw) return;
+    const time = times[sheetName] || "—";
+    const text = "🚚 *" + sheetName + "* — Hor\xe1rio da coleta: *" + time + "*";
+
+    splitSpaces(spacesRaw).forEach(spaceId => {
+      try {
+        callChatApi_("post", normalize(spaceId) + "/messages", { text: text });
+      } catch (err) {
+        Logger.log("Erro ao enviar hor\xe1rio para " + spaceId + ": " + err.message);
+      }
+    });
+  };
+
+  sendTo(spacesColeta, "ML Coleta");
+  sendTo(spacesML1,    "ML 1");
+}
