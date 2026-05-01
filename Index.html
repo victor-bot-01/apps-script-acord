@@ -398,6 +398,17 @@
       }
       .blueCellsWarning.show { display: block; }
 
+      .review-warning {
+        background: #FFF3CD;
+        color: #7D5200;
+        border: 1px solid #F5C518;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
       .snapshotBar {
         display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
         padding: 6px 0; font-size: 11px; color: var(--text-muted);
@@ -500,6 +511,10 @@
             </div>
           </div>
 
+          <div id="reviewWarning" class="review-warning" style="display:none;">
+            ⚠️ Revisar pedidos na planilha
+          </div>
+
           <div id="blueCellsWarning" class="blueCellsWarning">
             &#x26A0;&#xFE0F; H&#xe1; produtos faltantes que n&#xe3;o entraram nessa lista &#x2014; confirme na aba Pendentes
           </div>
@@ -553,6 +568,7 @@
       const CT_SHEETS = ["ML Coleta", "ML 1"];
 
       let HAS_BLUE_CELLS = false;
+      let HAS_REVIEW_CELLS = false;
       let MONITOR_PAUSED   = { "ML Coleta": false, "ML 1": false };
       let MONITOR_SNAPSHOT = { "ML Coleta": null,  "ML 1": null  };
       let LAST_UPDATE_TIME = null;
@@ -645,7 +661,7 @@
           const col = new Date(now); col.setHours(h, m, 0, 0);
           const close = new Date(col.getTime() - 3 * 60 * 60 * 1000);
           const open = now < close;
-          badge.textContent = open ? "🟢 Aberto" : "🔴 Fechado";
+          badge.textContent = open ? "🟢 Marketplace Aberto" : "🔴 Marketplace Fechado";
           badge.className = "mktBadge " + (open ? "mkt-open" : "mkt-closed");
         });
       };
@@ -996,6 +1012,7 @@
           if (cb) cb.style.display = "";
           const tt = $("tableTitle");
           if (tt) tt.textContent = "Faltam";
+          $("reviewWarning").style.display = "none";
 
           renderTable(list);
           renderStatusline(list.length);
@@ -1032,6 +1049,11 @@
         const tt = $("tableTitle");
         if (tt) tt.textContent = "Lista de pedidos";
         updateBlueCellsWarning();
+
+        const showReview = HAS_REVIEW_CELLS
+          && ACTIVE.view === "STATUS"
+          && (ACTIVE.type === "ALL" || ACTIVE.type === "STATUS:PENDENTE");
+        $("reviewWarning").style.display = showReview ? "block" : "none";
 
         renderTable(list);
         renderStatusline(list.length);
@@ -1109,6 +1131,7 @@
             if (res.collectionTimes) { COLLECTION_TIMES = res.collectionTimes; updateCtDisplay(); }
 
             HAS_BLUE_CELLS   = res.hasBlueCells   || false;
+            HAS_REVIEW_CELLS = res.hasReviewCells  || false;
             MONITOR_PAUSED   = res.monitorPaused   || MONITOR_PAUSED;
             MONITOR_SNAPSHOT = res.monitorSnapshot || MONITOR_SNAPSHOT;
             LAST_UPDATE_TIME = new Date();

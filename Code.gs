@@ -66,6 +66,7 @@ function getPedidos(source) {
     const kpis = buildKpis_(pedidos, faltamItems);
 
     const hasBlueCells = checkBlueCells_(ss, sheetsToRead);
+    const hasReviewCells = checkReviewCells_(ss, sheetsToRead);
     const monitorSnapshot = {
       "ML Coleta": readMonitorSnapshot_("LAST_MONITOR_SNAPSHOT_ML_COLETA"),
       "ML 1": readMonitorSnapshot_("LAST_MONITOR_SNAPSHOT_ML_1")
@@ -84,6 +85,7 @@ function getPedidos(source) {
       kpis,
       collectionTimes: getCollectionTimes(),
       hasBlueCells,
+      hasReviewCells,
       monitorSnapshot,
       monitorPaused,
       meta: {
@@ -256,6 +258,21 @@ function checkBlueCells_(ss, sheetNames) {
     const bgs = sh.getRange(2, CONFIG.COLS.PRODUTO, lastRow - 1, 1).getBackgrounds();
     for (let i = 0; i < bgs.length; i++) {
       if (String(bgs[i][0] || "").toLowerCase() === "#0000ff") return true;
+    }
+  }
+  return false;
+}
+
+function checkReviewCells_(ss, sheetNames) {
+  for (const name of sheetNames) {
+    const sh = ss.getSheetByName(name);
+    if (!sh) continue;
+    const lastRow = sh.getLastRow();
+    if (lastRow < 2) continue;
+    const bgs = sh.getRange(2, CONFIG.COLS.CLIENTE, lastRow - 1, 1).getBackgrounds();
+    for (let i = 0; i < bgs.length; i++) {
+      const c = String(bgs[i][0] || "").toLowerCase();
+      if (c === "#ff0000" || c === "#ffff00") return true;
     }
   }
   return false;
@@ -558,6 +575,17 @@ function monitorMLColetaTick() {
     stop.setHours(h + 2, m, 0, 0);
     if (now > stop) return;
 
+    const snapshot = readMonitorSnapshot_(
+      sheetName === "ML 1" ? "LAST_MONITOR_SNAPSHOT_ML_1" : "LAST_MONITOR_SNAPSHOT_ML_COLETA"
+    );
+    if (snapshot && snapshot.sentAt) {
+      const [sh, sm] = snapshot.sentAt.split(":").map(Number);
+      const sentDate = new Date(now);
+      sentDate.setHours(sh, sm, 0, 0);
+      const diffMin = (now - sentDate) / 60000;
+      if (diffMin >= 0 && diffMin < 30) return;
+    }
+
     enviarStatusMonitor_(sheetName);
   } catch (err) {
     Logger.log("Erro em monitorMLColeta_tick_: " + err.message);
@@ -582,6 +610,17 @@ function monitorML1Tick() {
     const stop = new Date(now);
     stop.setHours(h + 2, m, 0, 0);
     if (now > stop) return;
+
+    const snapshot = readMonitorSnapshot_(
+      sheetName === "ML 1" ? "LAST_MONITOR_SNAPSHOT_ML_1" : "LAST_MONITOR_SNAPSHOT_ML_COLETA"
+    );
+    if (snapshot && snapshot.sentAt) {
+      const [sh, sm] = snapshot.sentAt.split(":").map(Number);
+      const sentDate = new Date(now);
+      sentDate.setHours(sh, sm, 0, 0);
+      const diffMin = (now - sentDate) / 60000;
+      if (diffMin >= 0 && diffMin < 30) return;
+    }
 
     enviarStatusMonitor_(sheetName);
   } catch (err) {
