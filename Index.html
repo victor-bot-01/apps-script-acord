@@ -372,6 +372,53 @@
 
       .sort-icon { opacity: .4; font-size: 10px; margin-left: 4px; }
       th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity: 1; }
+
+      .mktBadge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 8px; border-radius: 999px;
+        font-size: 11px; font-weight: 600; white-space: nowrap;
+      }
+      .mkt-open   { background: #D1FAE5; color: #065F46; }
+      .mkt-closed { background: #FFE4E4; color: #7D0000; }
+
+      .ctPauseBtn {
+        cursor: pointer; background: transparent;
+        border: 1px solid #7D5200; border-radius: 4px;
+        padding: 3px 7px; font-size: 11px; color: #7D5200; transition: all .12s;
+      }
+      .ctPauseBtn.paused { border-color: #065F46; color: #065F46; }
+      .ctPauseBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+      .blueCellsWarning {
+        display: none;
+        background: #FFF3CD; border: 1px solid #F5C518;
+        border-radius: 6px; padding: 8px 12px;
+        font-size: 12px; color: #7D5200; font-weight: 500;
+        margin-bottom: 10px;
+      }
+      .blueCellsWarning.show { display: block; }
+
+      .snapshotBar {
+        display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+        padding: 6px 0; font-size: 11px; color: var(--text-muted);
+        border-top: 1px solid var(--border2); margin-top: 6px; padding-top: 8px;
+      }
+      .snapshotPill {
+        padding: 3px 8px; border-radius: 4px;
+        background: var(--gray-100); border: 1px solid var(--border);
+        font-size: 11px; color: var(--text);
+      }
+
+      .copyFaltamBtn {
+        cursor: pointer; background: var(--dark); color: var(--yellow);
+        border: none; border-radius: var(--radius2);
+        padding: 6px 12px; font-size: 12px; font-weight: 600;
+      }
+      .copyFaltamBtn:hover { opacity: .85; }
+
+      .autoRefreshInfo {
+        font-size: 11px; color: var(--text-muted); padding: 2px 0;
+      }
     </style>
   </head>
 
@@ -418,21 +465,27 @@
             <div class="ctSheet">
               <span class="ctSheetName">ML Coleta:</span>
               <span class="ctTime" id="ctTime0">&#x2014;</span>
+              <span class="mktBadge" id="mktBadge0">&#x2014;</span>
               <button class="ctEditBtn" data-idx="0" title="Editar">&#x270F;</button>
               <input type="time" class="ctInput" id="ctInput0" style="display:none" />
               <button class="ctSaveBtn" data-idx="0" style="display:none">&#x2713;</button>
               <button class="ctCancelBtn" data-idx="0" style="display:none">&#x2715;</button>
-              <button class="ctSendBtn" data-idx="0" title="Enviar horário no Chat">&#x1F4AC;</button>
+              <button class="ctSendBtn" data-idx="0" title="Enviar hor&#xe1;rio no Chat">&#x1F4AC;</button>
+              <button class="ctPauseBtn" data-idx="0" title="Pausar monitor">&#x23F8;</button>
             </div>
             <div class="ctSheet">
               <span class="ctSheetName">ML 1:</span>
               <span class="ctTime" id="ctTime1">&#x2014;</span>
+              <span class="mktBadge" id="mktBadge1">&#x2014;</span>
               <button class="ctEditBtn" data-idx="1" title="Editar">&#x270F;</button>
               <input type="time" class="ctInput" id="ctInput1" style="display:none" />
               <button class="ctSaveBtn" data-idx="1" style="display:none">&#x2713;</button>
               <button class="ctCancelBtn" data-idx="1" style="display:none">&#x2715;</button>
-              <button class="ctSendBtn" data-idx="1" title="Enviar horário no Chat">&#x1F4AC;</button>
+              <button class="ctSendBtn" data-idx="1" title="Enviar hor&#xe1;rio no Chat">&#x1F4AC;</button>
+              <button class="ctPauseBtn" data-idx="1" title="Pausar monitor">&#x23F8;</button>
             </div>
+            <div class="autoRefreshInfo" id="autoRefreshInfo"></div>
+            <div class="snapshotBar" id="snapshotBar"></div>
           </div>
         </section>
 
@@ -440,8 +493,15 @@
 
         <section class="card tableWrap">
           <div class="tableHeader">
-            <h2>Lista de pedidos</h2>
-            <div class="meta" id="meta">&#x2014;</div>
+            <h2 id="tableTitle">Lista de pedidos</h2>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button id="copyFaltamBtn" class="copyFaltamBtn" style="display:none">&#x1F4CB; Copiar lista</button>
+              <div class="meta" id="meta">&#x2014;</div>
+            </div>
+          </div>
+
+          <div id="blueCellsWarning" class="blueCellsWarning">
+            &#x26A0;&#xFE0F; H&#xe1; produtos faltantes que n&#xe3;o entraram nessa lista &#x2014; confirme na aba Pendentes
           </div>
 
           <div id="loadingOverlay" class="loading-overlay" style="display:none">
@@ -491,6 +551,12 @@
 
       let COLLECTION_TIMES = { "ML Coleta": "", "ML 1": "" };
       const CT_SHEETS = ["ML Coleta", "ML 1"];
+
+      let HAS_BLUE_CELLS = false;
+      let MONITOR_PAUSED   = { "ML Coleta": false, "ML 1": false };
+      let MONITOR_SNAPSHOT = { "ML Coleta": null,  "ML 1": null  };
+      let LAST_UPDATE_TIME = null;
+      let AUTO_REFRESH_TIMER = null;
 
       const updateCtDisplay = () => {
         CT_SHEETS.forEach((sheet, i) => {
@@ -566,6 +632,110 @@
               [fns[i]]();
           });
         });
+      };
+
+      const updateMarketStatus = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const badge = $("mktBadge" + i);
+          if (!badge) return;
+          const ct = COLLECTION_TIMES[sheet] || "";
+          if (!ct) { badge.textContent = "—"; badge.className = "mktBadge"; return; }
+          const [h, m] = ct.split(":").map(Number);
+          const now = new Date();
+          const col = new Date(now); col.setHours(h, m, 0, 0);
+          const close = new Date(col.getTime() - 3 * 60 * 60 * 1000);
+          const open = now < close;
+          badge.textContent = open ? "🟢 Aberto" : "🔴 Fechado";
+          badge.className = "mktBadge " + (open ? "mkt-open" : "mkt-closed");
+        });
+      };
+
+      const updatePauseButtons = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const btn = document.querySelector('.ctPauseBtn[data-idx="' + i + '"]');
+          if (!btn) return;
+          const paused = MONITOR_PAUSED[sheet];
+          btn.textContent = paused ? "▶" : "⏸";
+          btn.title = paused ? "Retomar monitor" : "Pausar monitor";
+          btn.classList.toggle("paused", paused);
+        });
+      };
+
+      const updateMonitorSnapshot = () => {
+        const bar = $("snapshotBar");
+        if (!bar) return;
+        const sheet = ACTIVE_SOURCE === "TODOS" ? null : ACTIVE_SOURCE;
+        const snap  = sheet ? MONITOR_SNAPSHOT[sheet] : null;
+        if (!snap) { bar.innerHTML = ""; return; }
+        bar.innerHTML =
+          `<span style="color:var(--text-muted)">Última msg (${safe(snap.sentAt)}):</span>` +
+          `<span class="snapshotPill">Total: <strong>${snap.total}</strong></span>` +
+          `<span class="snapshotPill">Pendentes: <strong>${snap.pendentes}</strong></span>` +
+          `<span class="snapshotPill">Confirmados: <strong>${snap.confirmados}</strong></span>` +
+          `<span class="snapshotPill">Cancelados: <strong>${snap.cancelados}</strong></span>`;
+      };
+
+      const updateBlueCellsWarning = () => {
+        const warn = $("blueCellsWarning");
+        if (!warn) return;
+        warn.classList.toggle("show", HAS_BLUE_CELLS && ACTIVE.view === "FALTAM_VIEW");
+      };
+
+      const updateAutoRefreshIndicator = () => {
+        const el = $("autoRefreshInfo");
+        if (!el || !LAST_UPDATE_TIME) return;
+        const hh = String(LAST_UPDATE_TIME.getHours()).padStart(2, "0");
+        const mm = String(LAST_UPDATE_TIME.getMinutes()).padStart(2, "0");
+        el.textContent = "Atualizado às " + hh + ":" + mm + " • próxima atualização em 10 min";
+      };
+
+      const copyFaltamList = () => {
+        const lines = ALL_FALTAM.map(it => it.produtoPendentes + " - " + it.quantidade).join("\n");
+        if (!lines) { showToast("Lista vazia."); return; }
+        navigator.clipboard.writeText(lines)
+          .then(() => showToast("Lista copiada!", 2500, "success"))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = lines; ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand("copy"); showToast("Lista copiada!", 2500, "success"); }
+            catch(e) { showToast("Erro ao copiar."); }
+            document.body.removeChild(ta);
+          });
+      };
+
+      const bindPauseButtons = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const btn = document.querySelector('.ctPauseBtn[data-idx="' + i + '"]');
+          if (!btn) return;
+          btn.addEventListener("click", () => {
+            const isPaused = MONITOR_PAUSED[sheet];
+            const fn = isPaused
+              ? (i === 0 ? "resumirMonitorMLColeta" : "resumirMonitorML1")
+              : (i === 0 ? "pausarMonitorMLColeta"  : "pausarMonitorML1");
+            btn.disabled = true;
+            google.script.run
+              .withSuccessHandler(() => {
+                btn.disabled = false;
+                MONITOR_PAUSED[sheet] = !isPaused;
+                updatePauseButtons();
+                showToast((isPaused ? "Monitor retomado: " : "Monitor pausado: ") + sheet, 2500, "success");
+              })
+              .withFailureHandler((err) => {
+                btn.disabled = false;
+                showToast("Erro: " + ((err && err.message) || err));
+              })
+              [fn]();
+          });
+        });
+      };
+
+      const startAutoRefresh = () => {
+        clearInterval(AUTO_REFRESH_TIMER);
+        AUTO_REFRESH_TIMER = setInterval(() => {
+          if ($("q") && $("q").value.trim()) return;
+          fetchPedidos();
+        }, 10 * 60 * 1000);
       };
 
       const safe = (v) => String(v == null ? "" : v)
@@ -821,6 +991,12 @@
             });
           }
 
+          updateBlueCellsWarning();
+          const cb = $("copyFaltamBtn");
+          if (cb) cb.style.display = "";
+          const tt = $("tableTitle");
+          if (tt) tt.textContent = "Faltam";
+
           renderTable(list);
           renderStatusline(list.length);
           return;
@@ -850,6 +1026,13 @@
         }
 
         rebuildMultiIds(list);
+
+        const cb = $("copyFaltamBtn");
+        if (cb) cb.style.display = "none";
+        const tt = $("tableTitle");
+        if (tt) tt.textContent = "Lista de pedidos";
+        updateBlueCellsWarning();
+
         renderTable(list);
         renderStatusline(list.length);
       };
@@ -925,6 +1108,16 @@
 
             if (res.collectionTimes) { COLLECTION_TIMES = res.collectionTimes; updateCtDisplay(); }
 
+            HAS_BLUE_CELLS   = res.hasBlueCells   || false;
+            MONITOR_PAUSED   = res.monitorPaused   || MONITOR_PAUSED;
+            MONITOR_SNAPSHOT = res.monitorSnapshot || MONITOR_SNAPSHOT;
+            LAST_UPDATE_TIME = new Date();
+            updateAutoRefreshIndicator();
+            updateMarketStatus();
+            updatePauseButtons();
+            updateMonitorSnapshot();
+            startAutoRefresh();
+
             $("kpis").innerHTML = kpiCards(KPIS);
             bindKpiClicks();
 
@@ -949,6 +1142,9 @@
       initTheme();
       bindCtEdit();
       bindCtSend();
+      bindPauseButtons();
+      $("copyFaltamBtn").addEventListener("click", copyFaltamList);
+      setInterval(updateMarketStatus, 60 * 1000);
       bindSourceSelector();
       updateSourceUI();
       fetchPedidos();
