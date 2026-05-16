@@ -183,6 +183,47 @@
       [data-theme="magalu"] tbody tr:hover { background: var(--yellow-pale); }
       [data-theme="magalu"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
 
+      [data-theme="essencia"] {
+        --yellow:       #2E7D32;
+        --yellow-dark:  #1B5E20;
+        --yellow-deep:  #145214;
+        --yellow-light: #E8F5E9;
+        --yellow-pale:  #F1F8F1;
+        --yellow-muted: rgba(46,125,50,.15);
+
+        --bg:       #F6FAF6;
+        --surface2: #EDF5ED;
+
+        --header-bg:     #1B5E20;
+        --header-text:   #E8F5E9;
+        --header-border: #145214;
+
+        --text:       #001A00;
+        --text-muted: #1A4D1A;
+
+        --border:  #A5D6A7;
+        --border2: #C8E6C9;
+
+        --gray-50:  #F6FAF6;
+        --gray-100: #EDF5ED;
+        --gray-200: #D7EDD7;
+        --gray-300: #B8D8B8;
+        --gray-500: #5A9A5A;
+        --gray-700: #1A4D1A;
+
+        --multi-bg:       #DCEDC8;
+        --multi-bg-hover: #C5E1A5;
+
+        --badge-outro-bg:  #E8F5E9; --badge-outro-text: #1B5E20;
+
+        --shadow-sm: 0 1px 3px rgba(27,94,32,.12), 0 1px 2px rgba(27,94,32,.08);
+        --shadow-md: 0 4px 12px rgba(27,94,32,.18), 0 2px 6px rgba(27,94,32,.10);
+        --shadow-hd: 0 4px 24px rgba(27,94,32,.30);
+      }
+      [data-theme="essencia"] .badgeLogo { background: #001A00; border-left-color: var(--yellow); }
+      [data-theme="essencia"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="essencia"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
       [data-theme="shopee-dark"] {
         --bg:       #111111;
         --surface:  #1E1E1E;
@@ -632,6 +673,7 @@
               <div class="segBtn" data-src="TODOS">Todos</div>
               <div class="segBtn" data-src="Shopee">Shopee</div>
               <div class="segBtn" data-src="Magalu">Magalu</div>
+              <div class="segBtn" data-src="Essência do Brasil">Essência do Brasil</div>
             </div>
           </div>
 
@@ -1333,9 +1375,14 @@
         } else {
           if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee");
           else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu");
+          else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia");
           else document.documentElement.removeAttribute("data-theme");
         }
-        const titleMap = { "Shopee": "Pedidos — HUD Shopee", "Magalu": "Pedidos — HUD Magalu" };
+        const titleMap = {
+          "Shopee":             "Pedidos — HUD Shopee",
+          "Magalu":             "Pedidos — HUD Magalu",
+          "Essência do Brasil": "Pedidos — HUD Essência do Brasil",
+        };
         const h1 = document.querySelector("header h1");
         if (h1) h1.textContent = titleMap[src] || "Pedidos — HUD Mercado Livre";
       };

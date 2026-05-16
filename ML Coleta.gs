@@ -996,19 +996,22 @@ function importarShopeeMagalu() {
   }
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const shShopee = ss.getSheetByName("Shopee");
-    const shMagalu = ss.getSheetByName("Magalu");
-    if (!shShopee || !shMagalu) {
-      Logger.log("importarShopeeMagalu: abas 'Shopee' ou 'Magalu' não encontradas.");
+    const shShopee   = ss.getSheetByName("Shopee");
+    const shMagalu   = ss.getSheetByName("Magalu");
+    const shEssencia = ss.getSheetByName("Essência do Brasil");
+    if (!shShopee || !shMagalu || !shEssencia) {
+      Logger.log("importarShopeeMagalu: abas 'Shopee', 'Magalu' ou 'Essência do Brasil' não encontradas.");
       return;
     }
 
     limparAbaExcetoCabecalho_(shShopee);
     limparAbaExcetoCabecalho_(shMagalu);
+    limparAbaExcetoCabecalho_(shEssencia);
 
     const ssSrc = SpreadsheetApp.openById(ML_IMPORT_CONFIG.STATUS_SOURCE_SPREADSHEET_ID);
-    const rowsShopee = [];
-    const rowsMagalu = [];
+    const rowsShopee   = [];
+    const rowsMagalu   = [];
+    const rowsEssencia = [];
 
     for (const sheetName of ["Maio", "Abril"]) {
       const sh = ssSrc.getSheetByName(sheetName);
@@ -1023,10 +1026,11 @@ function importarShopeeMagalu() {
 
       for (let i = 0; i < n; i++) {
         // Filtro 1 — Coluna C (índice 2): destino
-        const colC = String(values[i][2] ?? "").trim().toLowerCase();
+        const colC = String(values[i][2] ?? "").toLowerCase();
         let dest = null;
         if (colC.includes("shopee"))      dest = "Shopee";
         else if (colC.includes("magalu")) dest = "Magalu";
+        else if (colC.includes("essência do brasil") || colC.includes("essencia do brasil")) dest = "Essência do Brasil";
         else continue;
 
         // Filtro 2 — Coluna G (índice 6): exclusão
@@ -1038,24 +1042,28 @@ function importarShopeeMagalu() {
 
         // B→ID, D→CLIENTE, F→PRODUTO, E→QTD
         const row = [values[i][1], values[i][3], values[i][5], values[i][4]];
-        if (dest === "Shopee") rowsShopee.push(row);
-        else                   rowsMagalu.push(row);
+        if (dest === "Shopee")               rowsShopee.push(row);
+        else if (dest === "Magalu")          rowsMagalu.push(row);
+        else                                 rowsEssencia.push(row);
       }
     }
 
-    if (rowsShopee.length) shShopee.getRange(2, 1, rowsShopee.length, 4).setValues(rowsShopee);
-    if (rowsMagalu.length) shMagalu.getRange(2, 1, rowsMagalu.length, 4).setValues(rowsMagalu);
+    if (rowsShopee.length)   shShopee.getRange(2, 1, rowsShopee.length, 4).setValues(rowsShopee);
+    if (rowsMagalu.length)   shMagalu.getRange(2, 1, rowsMagalu.length, 4).setValues(rowsMagalu);
+    if (rowsEssencia.length) shEssencia.getRange(2, 1, rowsEssencia.length, 4).setValues(rowsEssencia);
 
     const noop = () => {};
     const statusById = construirStatusById_(noop);
     aplicarStatus_porAba_(statusById, "Shopee");
     aplicarStatus_porAba_(statusById, "Magalu");
+    aplicarStatus_porAba_(statusById, "Essência do Brasil");
 
     const andamentoByIdQueue = construirFilaAndamentoPorId_(noop);
     aplicarAndamento_porAba_(andamentoByIdQueue, "Shopee");
     aplicarAndamento_porAba_(andamentoByIdQueue, "Magalu");
+    aplicarAndamento_porAba_(andamentoByIdQueue, "Essência do Brasil");
 
-    Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length);
+    Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length + " | Essência do Brasil=" + rowsEssencia.length);
   } finally {
     lock.releaseLock();
   }
