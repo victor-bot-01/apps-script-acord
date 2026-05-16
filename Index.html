@@ -99,6 +99,68 @@
       [data-theme="dark"] tbody tr:hover { background: rgba(245,197,24,.06); }
       [data-theme="dark"] .kpi-active { background: rgba(245,197,24,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
 
+      /* Tema Shopee */
+      [data-theme="shopee"] {
+        --bg:          #FFF5F5;
+        --surface:     #FFFFFF;
+        --surface2:    #FFF0F0;
+        --navy:        #C0392B;
+        --navy-light:  #E74C3C;
+        --yellow:      #FF6B6B;
+        --yellow-light:#FFE5E5;
+        --yellow-dark: #C0392B;
+        --yellow-muted:rgba(231,76,60,.15);
+        --text:        #2C0A0A;
+        --text-muted:  #7D3C3C;
+        --gray-200:    #FCCACA;
+        --gray-100:    #FDE8E8;
+        --header-bg:     #FF6B6B;
+        --header-text:   #2C0A0A;
+        --header-border: #C0392B;
+        --dark:  #C0392B;
+        --dark2: #922B21;
+        --border:  #F5AAAA;
+        --border2: #FAC8C8;
+        --yellow-pale: #FFF0F0;
+        --multi-bg:       #FFE5E5;
+        --multi-bg-hover: #FFD5D5;
+        --badge-outro-bg:  #FDE8E8; --badge-outro-text: #7D3C3C;
+        --shadow-sm: 0 1px 3px rgba(192,57,43,.12), 0 1px 2px rgba(192,57,43,.08);
+        --shadow-md: 0 4px 12px rgba(192,57,43,.18), 0 2px 6px rgba(192,57,43,.10);
+        --shadow-hd: 0 4px 24px rgba(231,76,60,.30);
+      }
+
+      /* Tema Magalu */
+      [data-theme="magalu"] {
+        --bg:          #F0F4FF;
+        --surface:     #FFFFFF;
+        --surface2:    #EBF1FF;
+        --navy:        #0B3D91;
+        --navy-light:  #1A56C4;
+        --yellow:      #4A90D9;
+        --yellow-light:#DDEEFF;
+        --yellow-dark: #0B3D91;
+        --yellow-muted:rgba(26,86,196,.15);
+        --text:        #050F2C;
+        --text-muted:  #2C4A7D;
+        --gray-200:    #C5D5F0;
+        --gray-100:    #DCE8FF;
+        --header-bg:     #4A90D9;
+        --header-text:   #050F2C;
+        --header-border: #0B3D91;
+        --dark:  #0B3D91;
+        --dark2: #082D6E;
+        --border:  #A8C4EE;
+        --border2: #C5D5F0;
+        --yellow-pale: #EBF1FF;
+        --multi-bg:       #DDEEFF;
+        --multi-bg-hover: #CCE0FF;
+        --badge-outro-bg:  #DCE8FF; --badge-outro-text: #2C4A7D;
+        --shadow-sm: 0 1px 3px rgba(11,61,145,.12), 0 1px 2px rgba(11,61,145,.08);
+        --shadow-md: 0 4px 12px rgba(11,61,145,.18), 0 2px 6px rgba(11,61,145,.10);
+        --shadow-hd: 0 4px 24px rgba(26,86,196,.30);
+      }
+
       * { box-sizing: border-box; }
       html, body { height: 100%; }
       body {
@@ -468,6 +530,8 @@
               <div class="segBtn" data-src="ML Coleta">ML Coleta</div>
               <div class="segBtn" data-src="ML 1">ML 1</div>
               <div class="segBtn" data-src="TODOS">Todos</div>
+              <div class="segBtn" data-src="Shopee">Shopee</div>
+              <div class="segBtn" data-src="Magalu">Magalu</div>
             </div>
           </div>
 
@@ -507,6 +571,7 @@
             <h2 id="tableTitle">Lista de pedidos</h2>
             <div style="display:flex;gap:8px;align-items:center;">
               <button id="copyFaltamBtn" class="copyFaltamBtn" style="display:none">&#x1F4CB; Copiar lista</button>
+              <button id="copyPendentesBtn" class="copyFaltamBtn" style="display:none">&#x1F4CB; Copiar IDs</button>
               <div class="meta" id="meta">&#x2014;</div>
             </div>
           </div>
@@ -573,6 +638,7 @@
       let MONITOR_SNAPSHOT = { "ML Coleta": null,  "ML 1": null  };
       let LAST_UPDATE_TIME = null;
       let AUTO_REFRESH_TIMER = null;
+      let CURRENT_FILTERED_LIST = [];
 
       const updateCtDisplay = () => {
         CT_SHEETS.forEach((sheet, i) => {
@@ -705,6 +771,28 @@
         el.textContent = "Atualizado às " + hh + ":" + mm + " • próxima atualização em 10 min";
       };
 
+      const copyPendentesIds = () => {
+        const seen = new Set();
+        const parts = [];
+        for (const p of CURRENT_FILTERED_LIST) {
+          const id = String(p.id);
+          if (!seen.has(id)) {
+            seen.add(id);
+            parts.push(id.slice(-5));
+          }
+        }
+        const text = parts.join("/");
+        navigator.clipboard.writeText(text)
+          .then(() => showToast("IDs copiados!", 2500, "success"))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            try { document.execCommand("copy"); showToast("IDs copiados!", 2500, "success"); }
+            catch(e) { showToast("Erro ao copiar."); }
+            document.body.removeChild(ta);
+          });
+      };
+
       const copyFaltamList = () => {
         const lines = ALL_FALTAM.map(it => it.produtoPendentes + " - " + it.quantidade).join("\n");
         if (!lines) { showToast("Lista vazia."); return; }
@@ -833,6 +921,9 @@
           : "";
 
         if (ACTIVE.view === "STATUS") {
+          const andamentoCol = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<th data-sort="andamento" style="width:160px;">Andamento <span class="sort-icon">↕</span></th>`
+            : "";
           $("thead").innerHTML = `
             <tr>
               <th data-sort="id">ID <span class="sort-icon">↕</span></th>
@@ -840,6 +931,7 @@
               <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
               <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
               <th data-sort="status" style="width:180px;">Status <span class="sort-icon">↕</span></th>
+              ${andamentoCol}
               ${fonteCol}
             </tr>
           `;
@@ -896,10 +988,14 @@
         `;
 
         if (ACTIVE.view === "STATUS") {
+          const andamentoCell = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<td>${safe(p.andamento || "—")}</td>`
+            : "";
           return `
             <tr class="${trClass}">
               ${base}
               <td><span class="badge ${badgeClassStatus(p.status)}">${safe(p.status)}</span></td>
+              ${andamentoCell}
               ${fonteCell}
             </tr>
           `;
@@ -926,7 +1022,8 @@
 
       const emptyColspan = () => {
         if (ACTIVE.view === "FALTAM_VIEW") return 2;
-        return 5 + (showTodos() ? 1 : 0);
+        const extraAndamento = (ACTIVE.view === "STATUS" && ACTIVE.type === "STATUS:PENDENTE") ? 1 : 0;
+        return 5 + (showTodos() ? 1 : 0) + extraAndamento;
       };
 
       const applySortClasses = () => {
@@ -1010,6 +1107,8 @@
           updateBlueCellsWarning();
           const cb = $("copyFaltamBtn");
           if (cb) cb.style.display = "";
+          const cbPend = $("copyPendentesBtn");
+          if (cbPend) cbPend.style.display = "none";
           const tt = $("tableTitle");
           if (tt) tt.textContent = "Faltam";
           $("reviewWarning").style.display = "none";
@@ -1046,6 +1145,8 @@
 
         const cb = $("copyFaltamBtn");
         if (cb) cb.style.display = "none";
+        const cbPend = $("copyPendentesBtn");
+        if (cbPend) cbPend.style.display = (ACTIVE.type === "STATUS:PENDENTE") ? "" : "none";
         const tt = $("tableTitle");
         if (tt) tt.textContent = "Lista de pedidos";
         updateBlueCellsWarning();
@@ -1055,6 +1156,7 @@
           && (ACTIVE.type === "ALL" || ACTIVE.type === "STATUS:PENDENTE");
         $("reviewWarning").style.display = showReview ? "block" : "none";
 
+        CURRENT_FILTERED_LIST = list;
         renderTable(list);
         renderStatusline(list.length);
       };
@@ -1097,12 +1199,28 @@
         $("sourceHint").textContent = hint;
       };
 
+      const applySourceTheme = () => {
+        if (ACTIVE_SOURCE === "Shopee") {
+          document.documentElement.setAttribute("data-theme", "shopee");
+        } else if (ACTIVE_SOURCE === "Magalu") {
+          document.documentElement.setAttribute("data-theme", "magalu");
+        } else {
+          const saved = localStorage.getItem("theme") || "light";
+          if (saved === "dark") {
+            document.documentElement.setAttribute("data-theme", "dark");
+          } else {
+            document.documentElement.removeAttribute("data-theme");
+          }
+        }
+      };
+
       const bindSourceSelector = () => {
         document.querySelectorAll("#seg .segBtn").forEach(b => {
           b.addEventListener("click", () => {
             ACTIVE_SOURCE = b.getAttribute("data-src") || "ML Coleta";
             SORT = { col: null, dir: 1 };
             updateSourceUI();
+            applySourceTheme();
 
             ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
             $("q").value = "";
@@ -1167,6 +1285,7 @@
       bindCtSend();
       bindPauseButtons();
       $("copyFaltamBtn").addEventListener("click", copyFaltamList);
+      $("copyPendentesBtn").addEventListener("click", copyPendentesIds);
       setInterval(updateMarketStatus, 60 * 1000);
       bindSourceSelector();
       updateSourceUI();

@@ -3,7 +3,7 @@
  *******************************/
 const CONFIG = {
   DEFAULT_SOURCE: "ML Coleta",
-  SHEET_NAMES: ["ML Coleta", "ML 1"],
+  SHEET_NAMES: ["ML Coleta", "ML 1", "Shopee", "Magalu"],
 
   HEADER_ROW: 1,
   DATA_START_ROW: 2,
@@ -64,6 +64,14 @@ function getPedidos(source) {
     // faltamItems.sort((a,b)=>String(a.produtoPendentes).localeCompare(String(b.produtoPendentes)));
 
     const kpis = buildKpis_(pedidos, faltamItems);
+
+    const _todayCheck = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+    const _storedDate = PropertiesService.getScriptProperties().getProperty("COLLECTION_TIMES_DATE") || "";
+    if (_storedDate !== _todayCheck) {
+      const _p = PropertiesService.getScriptProperties();
+      _p.deleteProperty("MONITOR_PAUSED_ML_COLETA");
+      _p.deleteProperty("MONITOR_PAUSED_ML_1");
+    }
 
     const hasBlueCells = checkBlueCells_(ss, sheetsToRead);
     const hasReviewCells = checkReviewCells_(ss, sheetsToRead);
@@ -643,4 +651,15 @@ function pausarMonitorML1() {
 function resumirMonitorML1() {
   try { PropertiesService.getScriptProperties().deleteProperty("MONITOR_PAUSED_ML_1"); return { ok: true }; }
   catch(e) { return { ok: false, error: e.message }; }
+}
+
+/*******************************
+ * LIMPEZA DIÁRIA (gatilho meia-noite)
+ *******************************/
+function limparPlanilhaDiaria() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  for (const name of ["ML Coleta", "ML 1"]) {
+    const sh = ss.getSheetByName(name);
+    if (sh) limparAbaExcetoCabecalho_(sh);
+  }
 }

@@ -986,3 +986,114 @@ function pend_parseQtd_(v) {
   if (!isFinite(n) || n <= 0) return 1;
   return Math.floor(n);
 }
+
+/******************* SHOPEE / MAGALU — IMPORT (gatilho 5 min) *******************/
+function importarShopeeMagalu() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) {
+    Logger.log("importarShopeeMagalu: lock não obtido — outra execução em andamento.");
+    return;
+  }
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const shShopee = ss.getSheetByName("Shopee");
+    const shMagalu = ss.getSheetByName("Magalu");
+    if (!shShopee || !shMagalu) {
+      Logger.log("importarShopeeMagalu: abas 'Shopee' ou 'Magalu' não encontradas.");
+      return;
+    }
+
+    limparAbaExcetoCabecalho_(shShopee);
+    limparAbaExcetoCabecalho_(shMagalu);
+
+    const ssSrc = SpreadsheetApp.openById(ML_IMPORT_CONFIG.STATUS_SOURCE_SPREADSHEET_ID);
+    const rowsShopee = [];
+    const rowsMagalu = [];
+
+    for (const sheetName of ["Maio", "Abril"]) {
+      const sh = ssSrc.getSheetByName(sheetName);
+      if (!sh) { Logger.log("importarShopeeMagalu: aba '" + sheetName + "' não encontrada na fonte."); continue; }
+
+      const lastRow = sh.getLastRow();
+      if (lastRow < 2) continue;
+
+      const n = lastRow - 1;
+      const values = sh.getRange(2, 1, n, 7).getValues();
+      const bgs    = sh.getRange(2, 7, n, 1).getBackgrounds(); // col G
+
+      for (let i = 0; i < n; i++) {
+        // Filtro 1 — Coluna C (índice 2): destino
+        const colC = String(values[i][2] ?? "").trim().toLowerCase();
+        let dest = null;
+        if (colC.includes("shopee"))      dest = "Shopee";
+        else if (colC.includes("magalu")) dest = "Magalu";
+        else continue;
+
+        // Filtro 2 — Coluna G (índice 6): exclusão
+        const colG = String(values[i][6] ?? "").trim().toLowerCase();
+        const bgG  = String(bgs[i][0]    ?? "").trim().toLowerCase();
+        if (colG.includes("ok"))         continue;
+        if (bgG === ML_IMPORT_CONFIG.OK_GREEN) continue;
+        if (colG.includes("cancelado"))  continue;
+
+        // B→ID, D→CLIENTE, F→PRODUTO, E→QTD
+        const row = [values[i][1], values[i][3], values[i][5], values[i][4]];
+        if (dest === "Shopee") rowsShopee.push(row);
+        else                   rowsMagalu.push(row);
+      }
+    }
+
+    if (rowsShopee.length) shShopee.getRange(2, 1, rowsShopee.length, 4).setValues(rowsShopee);
+    if (rowsMagalu.length) shMagalu.getRange(2, 1, rowsMagalu.length, 4).setValues(rowsMagalu);
+
+    const noop = () => {};
+    const statusById = construirStatusById_(noop);
+    aplicarStatus_porAba_(statusById, "Shopee");
+    aplicarStatus_porAba_(statusById, "Magalu");
+
+    const andamentoByIdQueue = construirFilaAndamentoPorId_(noop);
+    aplicarAndamento_porAba_(andamentoByIdQueue, "Shopee");
+    aplicarAndamento_porAba_(andamentoByIdQueue, "Magalu");
+
+    Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function aplicarStatus_porAba_(statusById, sheetName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) return;
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
+  const n = lastRow - 1;
+  const ids       = sh.getRange(2, ML_IMPORT_CONFIG.COL_ID,        n, 1).getValues();
+  const etiquetas = sh.getRange(2, ML_IMPORT_CONFIG.COL_ETIQUETAS,  n, 1).getValues();
+  const out = ids.map((r, i) => {
+    const id  = (r[0]              ?? "").toString().trim();
+    const etq = (etiquetas[i][0]   ?? "").toString().trim();
+    if (etq === "Cancelado") return ["Cancelado"];
+    return [statusById.get(id) || "Pendente"];
+  });
+  sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).setValues(out);
+}
+
+function aplicarAndamento_porAba_(byIdQueue, sheetName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) return;
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
+  const n = lastRow - 1;
+  const ids        = sh.getRange(2, ML_IMPORT_CONFIG.COL_ID,     n, 1).getValues();
+  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS,  n, 1).getValues();
+  const out = ids.map((r, i) => {
+    const status = (statusVals[i][0] ?? "").toString().trim();
+    if (status === "Confirmado") return [""];
+    const id   = (r[0] ?? "").toString().trim();
+    const fila = byIdQueue.get(id);
+    return [(fila && fila.length) ? fila.shift() : ""];
+  });
+  sh.getRange(2, ML_IMPORT_CONFIG.COL_ANDAMENTO, n, 1).setValues(out);
+}
