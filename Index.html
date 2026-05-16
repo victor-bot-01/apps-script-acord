@@ -102,28 +102,104 @@
       /* Tema Shopee */
       [data-theme="shopee"] {
         --yellow:       #D32F2F;
-        --yellow-light: #FFEBEE;
         --yellow-dark:  #B71C1C;
+        --yellow-deep:  #8B0000;
+        --yellow-light: #FFEBEE;
+        --yellow-pale:  #FFF0F0;
         --yellow-muted: rgba(211,47,47,.15);
-        --yellow-pale:  #FFEBEE;
-        --multi-bg:       rgba(211,47,47,.10);
-        --multi-bg-hover: rgba(211,47,47,.18);
-        --shadow-hd: 0 4px 24px rgba(211,47,47,.22);
+
+        --bg:       #FFF8F8;
+        --surface:  #FFFFFF;
+        --surface2: #FFF0F0;
+
+        --header-bg:     #8B0000;
+        --header-text:   #FFE5E5;
+        --header-border: #6B0000;
+
+        --dark:  #8B0000;
+        --dark2: #6B0000;
+
+        --text:       #1A0000;
+        --text-muted: #6B2020;
+
+        --border:  #F0B0B0;
+        --border2: #F8D0D0;
+
+        --gray-50:  #FAF5F5;
+        --gray-100: #F5EDED;
+        --gray-200: #EDD8D8;
+        --gray-300: #E0B8B8;
+        --gray-500: #B06060;
+        --gray-700: #6B2020;
+
+        --multi-bg:       #FFE0E0;
+        --multi-bg-hover: #FFD0D0;
+
         --badge-outro-bg:  #FFEBEE; --badge-outro-text: #7D0000;
+
+        --shadow-sm: 0 1px 3px rgba(139,0,0,.12), 0 1px 2px rgba(139,0,0,.08);
+        --shadow-md: 0 4px 12px rgba(139,0,0,.18), 0 2px 6px rgba(139,0,0,.10);
+        --shadow-hd: 0 4px 24px rgba(139,0,0,.30);
       }
+      [data-theme="shopee"] .badgeLogo { background: #3A0000; border-left-color: var(--yellow); }
+      [data-theme="shopee"] .btn { background: var(--dark); color: #FFE5E5; border-color: var(--dark); }
+      [data-theme="shopee"] .btn:hover { background: var(--dark2); border-color: var(--dark2); }
+      [data-theme="shopee"] .copyFaltamBtn { background: var(--dark); color: #FFE5E5; }
+      [data-theme="shopee"] thead th { background: var(--dark); color: #FFE5E5; border-bottom-color: var(--dark2); }
+      [data-theme="shopee"] thead th:hover { background: var(--dark2); }
+      [data-theme="shopee"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="shopee"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
 
       /* Tema Magalu */
       [data-theme="magalu"] {
         --yellow:       #1565C0;
-        --yellow-light: #E3F2FD;
         --yellow-dark:  #0D47A1;
+        --yellow-deep:  #083380;
+        --yellow-light: #E3F2FD;
+        --yellow-pale:  #EEF5FF;
         --yellow-muted: rgba(21,101,192,.15);
-        --yellow-pale:  #E3F2FD;
-        --multi-bg:       rgba(21,101,192,.10);
-        --multi-bg-hover: rgba(21,101,192,.18);
-        --shadow-hd: 0 4px 24px rgba(21,101,192,.22);
+
+        --bg:       #F8FAFE;
+        --surface:  #FFFFFF;
+        --surface2: #F0F5FF;
+
+        --header-bg:     #0D47A1;
+        --header-text:   #E3F2FD;
+        --header-border: #0A3880;
+
+        --dark:  #0D47A1;
+        --dark2: #0A3880;
+
+        --text:       #00001A;
+        --text-muted: #203060;
+
+        --border:  #B0C8F0;
+        --border2: #D0DCF8;
+
+        --gray-50:  #F8F9FE;
+        --gray-100: #EEF2FA;
+        --gray-200: #D8E2F5;
+        --gray-300: #C0D0EE;
+        --gray-500: #6080B8;
+        --gray-700: #203060;
+
+        --multi-bg:       #DCE8FF;
+        --multi-bg-hover: #CCDCFF;
+
         --badge-outro-bg:  #E3F2FD; --badge-outro-text: #0D47A1;
+
+        --shadow-sm: 0 1px 3px rgba(13,71,161,.12), 0 1px 2px rgba(13,71,161,.08);
+        --shadow-md: 0 4px 12px rgba(13,71,161,.18), 0 2px 6px rgba(13,71,161,.10);
+        --shadow-hd: 0 4px 24px rgba(13,71,161,.30);
       }
+      [data-theme="magalu"] .badgeLogo { background: #020F30; border-left-color: var(--yellow); }
+      [data-theme="magalu"] .btn { background: var(--dark); color: #E3F2FD; border-color: var(--dark); }
+      [data-theme="magalu"] .btn:hover { background: var(--dark2); border-color: var(--dark2); }
+      [data-theme="magalu"] .copyFaltamBtn { background: var(--dark); color: #E3F2FD; }
+      [data-theme="magalu"] thead th { background: var(--dark); color: #E3F2FD; border-bottom-color: var(--dark2); }
+      [data-theme="magalu"] thead th:hover { background: var(--dark2); }
+      [data-theme="magalu"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="magalu"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
 
       [data-theme="shopee-dark"] {
         --bg:       #111111;
