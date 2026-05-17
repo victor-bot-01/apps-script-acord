@@ -704,6 +704,13 @@
         color: var(--yellow);
         border-color: var(--dark);
       }
+
+      .chk-col { width: 36px; text-align: center; }
+      .chk-row {
+        width: 16px; height: 16px;
+        cursor: pointer;
+        accent-color: var(--dark);
+      }
     </style>
   </head>
 
@@ -798,13 +805,13 @@
           </div>
 
           <div class="todosFilters" id="todosFilters">
-            <div class="filterGroup">
+            <div class="filterGroup filterGroup-andamento">
               <span class="filterLabel">Andamento:</span>
               <div class="filterBtn" data-filter-andamento="falta">Falta</div>
               <div class="filterBtn" data-filter-andamento="tenho">Tenho</div>
               <div class="filterBtn" data-filter-andamento="vazio">—</div>
             </div>
-            <div class="filterGroup">
+            <div class="filterGroup filterGroup-fonte">
               <span class="filterLabel">Fonte:</span>
               <div class="filterBtn" data-filter-fonte="ML Coleta">ML Coleta</div>
               <div class="filterBtn" data-filter-fonte="ML 1">ML 1</div>
@@ -1010,12 +1017,25 @@
       const updateTodosFilters = () => {
         const bar = $("todosFilters");
         if (!bar) return;
-        if (ACTIVE_SOURCE === "TODOS") bar.classList.add("visible");
+
+        const isPendentes = ACTIVE.type === "STATUS:PENDENTE";
+        bar.querySelector(".filterGroup-andamento").style.display = isPendentes ? "" : "none";
+
+        const isTodos = ACTIVE_SOURCE === "TODOS";
+        bar.querySelector(".filterGroup-fonte").style.display = isTodos ? "" : "none";
+
+        const anyVisible = isPendentes || isTodos;
+        if (anyVisible) bar.classList.add("visible");
         else {
           bar.classList.remove("visible");
-          FILTER_ANDAMENTO.clear();
-          FILTER_FONTE.clear();
-          bar.querySelectorAll(".filterBtn").forEach(b => b.classList.remove("active"));
+          if (!isPendentes) {
+            FILTER_ANDAMENTO.clear();
+            bar.querySelectorAll("[data-filter-andamento]").forEach(b => b.classList.remove("active"));
+          }
+          if (!isTodos) {
+            FILTER_FONTE.clear();
+            bar.querySelectorAll("[data-filter-fonte]").forEach(b => b.classList.remove("active"));
+          }
         }
       };
 
@@ -1047,23 +1067,35 @@
       };
 
       const copyPendentesIds = () => {
-        const seen = new Set();
+        const checked = [...document.querySelectorAll(".chk-pedido:checked")];
+        const seen  = new Set();
         const parts = [];
-        for (const p of CURRENT_FILTERED_LIST) {
-          const id = String(p.id);
-          if (!seen.has(id)) {
-            seen.add(id);
-            parts.push(id.slice(-5));
+
+        if (checked.length > 0) {
+          for (const cb of checked) {
+            const id = String(cb.getAttribute("data-id") || "");
+            if (!seen.has(id)) {
+              seen.add(id);
+              parts.push(id.slice(-5));
+            }
+          }
+        } else {
+          for (const p of CURRENT_FILTERED_LIST) {
+            const id = String(p.id);
+            if (!seen.has(id)) {
+              seen.add(id);
+              parts.push(id.slice(-5));
+            }
           }
         }
+
         const text = parts.join("/");
         navigator.clipboard.writeText(text)
           .then(() => showToast("IDs copiados!", 2500, "success"))
           .catch(() => {
             const ta = document.createElement("textarea");
-            ta.value = text; document.body.appendChild(ta); ta.select();
-            try { document.execCommand("copy"); showToast("IDs copiados!", 2500, "success"); }
-            catch(e) { showToast("Erro ao copiar."); }
+            ta.value = text; document.body.appendChild(ta);
+            ta.select(); document.execCommand("copy");
             document.body.removeChild(ta);
           });
       };
@@ -1214,8 +1246,12 @@
           const andamentoCol = (ACTIVE.type === "STATUS:PENDENTE")
             ? `<th data-sort="andamento" style="width:160px;">Andamento <span class="sort-icon">↕</span></th>`
             : "";
+          const chkCol = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<th class="chk-col"><input type="checkbox" id="chkAll" class="chk-row" title="Marcar todos"></th>`
+            : "";
           $("thead").innerHTML = `
             <tr>
+              ${chkCol}
               <th data-sort="id">ID <span class="sort-icon">↕</span></th>
               <th data-sort="cliente">Cliente <span class="sort-icon">↕</span></th>
               <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
@@ -1281,8 +1317,12 @@
           const andamentoCell = (ACTIVE.type === "STATUS:PENDENTE")
             ? `<td style="white-space:normal;">${formatAndamento(p.andamento)}</td>`
             : "";
+          const chkCell = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<td class="chk-col"><input type="checkbox" class="chk-row chk-pedido" data-id="${safe(p.id)}"></td>`
+            : "";
           return `
             <tr class="${trClass}">
+              ${chkCell}
               ${base}
               <td><span class="badge ${badgeClassStatus(p.status)}">${safe(p.status)}</span></td>
               ${andamentoCell}
@@ -1312,8 +1352,11 @@
 
       const emptyColspan = () => {
         if (ACTIVE.view === "FALTAM_VIEW") return 2;
-        const extraAndamento = (ACTIVE.view === "STATUS" && ACTIVE.type === "STATUS:PENDENTE") ? 1 : 0;
-        return 5 + (showTodos() ? 1 : 0) + extraAndamento;
+        let cols = 5;
+        if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // andamento
+        if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // checkbox
+        if (showTodos()) cols += 1; // fonte
+        return cols;
       };
 
       const applySortClasses = () => {
@@ -1347,6 +1390,12 @@
         `;
         applySortClasses();
         bindTheadSort();
+        const chkAll = $("chkAll");
+        if (chkAll) {
+          chkAll.addEventListener("change", () => {
+            document.querySelectorAll(".chk-pedido").forEach(c => c.checked = chkAll.checked);
+          });
+        }
       };
 
       const renderMeta = () => {
@@ -1423,8 +1472,8 @@
           });
         }
 
-        // Filtro Andamento (somente quando TODOS)
-        if (ACTIVE_SOURCE === "TODOS" && FILTER_ANDAMENTO.size > 0) {
+        // Filtro Andamento (qualquer fonte, somente Pendentes)
+        if (ACTIVE.type === "STATUS:PENDENTE" && FILTER_ANDAMENTO.size > 0) {
           list = list.filter(p => {
             const and = String(p.andamento || "").trim().toLowerCase();
             const isEmpty = !and || and === "—";
@@ -1491,6 +1540,7 @@
             $("kpis").innerHTML = kpiCards(KPIS);
             bindKpiClicks();
             applyAllFilters();
+            updateTodosFilters();
           });
         });
       };
