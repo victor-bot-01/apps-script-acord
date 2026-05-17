@@ -302,6 +302,45 @@
       [data-theme="magalu-dark"] tbody tr:hover { background: rgba(66,165,245,.06); }
       [data-theme="magalu-dark"] .kpi-active { background: rgba(66,165,245,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
 
+      [data-theme="essencia-dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+        --header-bg:     #1A1A1A;
+        --header-text:   #4CAF50;
+        --header-border: #2E7D32;
+        --dark:  #F5C518;
+        --dark2: #E0B000;
+        --text:       #E8F5E8;
+        --text-muted: #80A880;
+        --border:  #153515;
+        --border2: #102510;
+        --gray-50:  #101610;
+        --gray-100: #15201A;
+        --gray-200: #182518;
+        --gray-300: #203320;
+        --gray-500: #506550;
+        --gray-700: #AAAAAA;
+        --yellow:       #4CAF50;
+        --yellow-light: #153515;
+        --yellow-dark:  #2E7D32;
+        --yellow-muted: rgba(76,175,80,.15);
+        --multi-bg:       rgba(76,175,80,.15);
+        --multi-bg-hover: rgba(76,175,80,.23);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="essencia-dark"] .badgeLogo { background: #051005; border-left-color: var(--yellow); }
+      [data-theme="essencia-dark"] .chip { border-color: var(--yellow); background: rgba(20,30,20,.90); }
+      [data-theme="essencia-dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #F0FFF0; }
+      [data-theme="essencia-dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="essencia-dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="essencia-dark"] thead th { background: #102010; }
+      [data-theme="essencia-dark"] thead th:hover { background: #203320; }
+      [data-theme="essencia-dark"] tbody tr:hover { background: rgba(76,175,80,.06); }
+      [data-theme="essencia-dark"] .kpi-active { background: rgba(76,175,80,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
       * { box-sizing: border-box; }
       html, body { height: 100%; }
       body {
@@ -633,6 +672,38 @@
       .autoRefreshInfo {
         font-size: 11px; color: var(--text-muted); padding: 2px 0;
       }
+
+      .todosFilters {
+        display: none;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        margin-bottom: 12px;
+      }
+      .todosFilters.visible { display: flex; }
+      .filterGroup { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .filterLabel { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+      .filterBtn {
+        cursor: pointer;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        background: var(--gray-100);
+        color: var(--text);
+        transition: background .12s;
+        user-select: none;
+      }
+      .filterBtn.active {
+        background: var(--dark);
+        color: var(--yellow);
+        border-color: var(--dark);
+      }
     </style>
   </head>
 
@@ -726,6 +797,23 @@
             &#x26A0;&#xFE0F; H&#xe1; produtos faltantes que n&#xe3;o entraram nessa lista &#x2014; confirme na aba Pendentes
           </div>
 
+          <div class="todosFilters" id="todosFilters">
+            <div class="filterGroup">
+              <span class="filterLabel">Andamento:</span>
+              <div class="filterBtn" data-filter-andamento="falta">Falta</div>
+              <div class="filterBtn" data-filter-andamento="tenho">Tenho</div>
+              <div class="filterBtn" data-filter-andamento="vazio">—</div>
+            </div>
+            <div class="filterGroup">
+              <span class="filterLabel">Fonte:</span>
+              <div class="filterBtn" data-filter-fonte="ML Coleta">ML Coleta</div>
+              <div class="filterBtn" data-filter-fonte="ML 1">ML 1</div>
+              <div class="filterBtn" data-filter-fonte="Shopee">Shopee</div>
+              <div class="filterBtn" data-filter-fonte="Magalu">Magalu</div>
+              <div class="filterBtn" data-filter-fonte="Essência do Brasil">Essência do Brasil</div>
+            </div>
+          </div>
+
           <div id="loadingOverlay" class="loading-overlay" style="display:none">
             <div class="spinner"></div><span>Carregando dados...</span>
           </div>
@@ -751,6 +839,7 @@
         if (isDark) {
           if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee-dark");
           else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu-dark");
+          else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia-dark");
           else document.documentElement.setAttribute("data-theme", "dark");
         } else {
           applySourceTheme(src);
@@ -777,6 +866,9 @@
       let MULTI_IDS = new Set();
       let ACTIVE_SOURCE = "ML Coleta";
       let SORT = { col: null, dir: 1 };
+
+      let FILTER_ANDAMENTO = new Set(); // valores: "falta", "tenho", "vazio"
+      let FILTER_FONTE     = new Set(); // valores: "ML Coleta", "ML 1", "Shopee", "Magalu", "Essência do Brasil"
 
       let ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
       const isActive = (type) => ACTIVE && ACTIVE.type === type;
@@ -913,6 +1005,37 @@
         const warn = $("blueCellsWarning");
         if (!warn) return;
         warn.classList.toggle("show", HAS_BLUE_CELLS && ACTIVE.view === "FALTAM_VIEW");
+      };
+
+      const updateTodosFilters = () => {
+        const bar = $("todosFilters");
+        if (!bar) return;
+        if (ACTIVE_SOURCE === "TODOS") bar.classList.add("visible");
+        else {
+          bar.classList.remove("visible");
+          FILTER_ANDAMENTO.clear();
+          FILTER_FONTE.clear();
+          bar.querySelectorAll(".filterBtn").forEach(b => b.classList.remove("active"));
+        }
+      };
+
+      const bindTodosFilters = () => {
+        document.querySelectorAll("[data-filter-andamento]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const val = btn.getAttribute("data-filter-andamento");
+            if (FILTER_ANDAMENTO.has(val)) { FILTER_ANDAMENTO.delete(val); btn.classList.remove("active"); }
+            else { FILTER_ANDAMENTO.add(val); btn.classList.add("active"); }
+            applyAllFilters();
+          });
+        });
+        document.querySelectorAll("[data-filter-fonte]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const val = btn.getAttribute("data-filter-fonte");
+            if (FILTER_FONTE.has(val)) { FILTER_FONTE.delete(val); btn.classList.remove("active"); }
+            else { FILTER_FONTE.add(val); btn.classList.add("active"); }
+            applyAllFilters();
+          });
+        });
       };
 
       const updateAutoRefreshIndicator = () => {
@@ -1300,6 +1423,23 @@
           });
         }
 
+        // Filtro Andamento (somente quando TODOS)
+        if (ACTIVE_SOURCE === "TODOS" && FILTER_ANDAMENTO.size > 0) {
+          list = list.filter(p => {
+            const and = String(p.andamento || "").trim().toLowerCase();
+            const isEmpty = !and || and === "—";
+            if (FILTER_ANDAMENTO.has("falta")  && and.includes("falta"))  return true;
+            if (FILTER_ANDAMENTO.has("tenho")  && and.includes("tenho"))  return true;
+            if (FILTER_ANDAMENTO.has("vazio")  && isEmpty)                return true;
+            return false;
+          });
+        }
+
+        // Filtro Fonte (somente quando TODOS)
+        if (ACTIVE_SOURCE === "TODOS" && FILTER_FONTE.size > 0) {
+          list = list.filter(p => FILTER_FONTE.has(p.sheet));
+        }
+
         if (SORT.col) {
           list.sort((a, b) => {
             const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
@@ -1324,6 +1464,7 @@
         $("reviewWarning").style.display = showReview ? "block" : "none";
 
         CURRENT_FILTERED_LIST = list;
+        updateTodosFilters();
         renderTable(list);
         renderStatusline(list.length);
       };
@@ -1371,6 +1512,7 @@
         if (isDark) {
           if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee-dark");
           else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu-dark");
+          else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia-dark");
           else document.documentElement.setAttribute("data-theme", "dark");
         } else {
           if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee");
@@ -1391,6 +1533,7 @@
         document.querySelectorAll("#seg .segBtn").forEach(b => {
           b.addEventListener("click", () => {
             ACTIVE_SOURCE = b.getAttribute("data-src") || "ML Coleta";
+            updateTodosFilters();
             SORT = { col: null, dir: 1 };
             updateSourceUI();
             applySourceTheme(ACTIVE_SOURCE);
@@ -1461,6 +1604,7 @@
       $("copyPendentesBtn").addEventListener("click", copyPendentesIds);
       setInterval(updateMarketStatus, 60 * 1000);
       bindSourceSelector();
+      bindTodosFilters();
       updateSourceUI();
       fetchPedidos();
     </script>
