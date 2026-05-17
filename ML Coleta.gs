@@ -896,6 +896,68 @@ function pend_process_ML1_(sh, ml1BridgeMap, confById, mapSubseq) {
   if (anyBg) rangeC.setBackgrounds(newBgC);
 }
 
+/************** PEND: Process por aba genérica (Shopee, Magalu, Essência do Brasil) **************/
+function pend_process_porAba_(sh, confById, mapSubseq) {
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
+
+  const n = lastRow - 1;
+  const idVals     = sh.getRange(2, ML_IMPORT_CONFIG.COL_ID,     n, 1).getValues();
+  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS,  n, 1).getValues();
+
+  pend_clearIJ_(sh);
+
+  const rangeC = sh.getRange(2, ML_IMPORT_CONFIG.COL_PRODUTO, n, 1);
+  const bgC    = rangeC.getBackgrounds();
+  const newBgC = bgC.map(r => [r[0]]);
+  let anyBg    = false;
+
+  const idsUnique = [];
+  const seen = new Set();
+  for (let i = 0; i < n; i++) {
+    const id     = String(idVals[i][0]     ?? "").trim();
+    const status = String(statusVals[i][0] ?? "").trim();
+    if (!id) continue;
+    if (status === "Confirmado") continue;
+    if (!seen.has(id)) { seen.add(id); idsUnique.push(id); }
+  }
+
+  const counts = new Map();
+  const perId  = new Map();
+
+  for (const id of idsUnique) {
+    const linhas = confById.get(id) || [];
+    if (!linhas.length) {
+      perId.set(id, { hadFalta: false, generated: false });
+      continue;
+    }
+    let gen = false;
+    for (const it of linhas) {
+      const r = pend_processFaltaLine_(it, mapSubseq, counts);
+      if (r.added > 0) gen = true;
+    }
+    perId.set(id, { hadFalta: true, generated: gen });
+  }
+
+  for (let i = 0; i < n; i++) {
+    const id = String(idVals[i][0] ?? "").trim();
+    if (!id) continue;
+    const pr = perId.get(id);
+    if (pr && pr.hadFalta === true && pr.generated === false) {
+      newBgC[i][0] = PEND_BLUE;
+      anyBg = true;
+    }
+  }
+
+  const rowsOut = pend_countsToRows_(counts);
+  if (rowsOut.length) {
+    pend_ensureRows_(sh, 1 + rowsOut.length);
+    sh.getRange(2, PEND_OUT_COL_PROD, rowsOut.length, 2).setValues(rowsOut);
+  }
+
+  if (anyBg) rangeC.setBackgrounds(newBgC);
+}
+
 /************** PEND: core (linha com FALTA) **************/
 function pend_processFaltaLine_(it, mapSubseq, counts) {
   const prod = String(it.prod ?? "").trim();
@@ -1062,6 +1124,13 @@ function importarShopeeMagalu() {
     aplicarAndamento_porAba_(andamentoByIdQueue, "Shopee");
     aplicarAndamento_porAba_(andamentoByIdQueue, "Magalu");
     aplicarAndamento_porAba_(andamentoByIdQueue, "Essência do Brasil");
+
+    // Pendentes (colunas I e J)
+    const confById  = pend_buildConferenciaById_();
+    const mapSubseq = pend_buildDadosMapSubseq_();
+    pend_process_porAba_(shShopee,   confById, mapSubseq);
+    pend_process_porAba_(shMagalu,   confById, mapSubseq);
+    pend_process_porAba_(shEssencia, confById, mapSubseq);
 
     Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length + " | Essência do Brasil=" + rowsEssencia.length);
   } finally {
