@@ -856,7 +856,7 @@
       }
       .modal-order-row {
         display: flex; align-items: center; gap: 8px;
-        padding: 5px 10px; font-size: 13px;
+        padding: 5px 10px; font-size: 13px; cursor: pointer;
       }
       .modal-order-row:hover { background: var(--gray-50); }
       .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
@@ -2172,11 +2172,11 @@
                 return;
               }
               $("modalParcialList").innerHTML = res.orders.map(o => `
-                <div class="modal-order-row">
+                <label class="modal-order-row">
                   <input type="checkbox" class="chk-modal-order" data-id="${safe(o.orderId)}">
                   <span>${safe(o.orderId)}</span>
                   <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">${safe(o.source)}</span>
-                </div>
+                </label>
               `).join("");
             })
             .withFailureHandler(err => {
@@ -2300,10 +2300,10 @@
           $("modalTenhoTitle").textContent = "Tenho — " + compName;
           const orderIds = [...new Set(items.map(it => it.orderId))];
           $("modalTenhoList").innerHTML = orderIds.map(id => `
-            <div class="modal-order-row">
+            <label class="modal-order-row">
               <input type="checkbox" class="chk-modal-tenho" data-id="${safe(id)}">
               <span>${safe(id)}</span>
-            </div>
+            </label>
           `).join("");
           $("modalTenho").classList.add("open");
         });
