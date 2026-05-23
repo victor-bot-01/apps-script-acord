@@ -1483,7 +1483,7 @@
             <tr>
               <th class="chk-col"><input type="checkbox" id="chkAllParciais" title="Marcar todos"></th>
               <th>Componente Pendente</th>
-              <th style="width:70px;">Qtd</th>
+              <th style="width:70px;">Pedidos</th>
             </tr>
           `;
           return;
@@ -1854,7 +1854,7 @@
             .filter(p => p.componentStatus === "PENDENTE")
             .filter(p => !q || p.componentName.toLowerCase().includes(q))
             .forEach(p => {
-              pendMap[p.componentName] = (pendMap[p.componentName] || 0) + (Number(p.qty) || 0);
+              pendMap[p.componentName] = (pendMap[p.componentName] || 0) + 1;
             });
           const rows = Object.entries(pendMap);
 
@@ -2156,6 +2156,7 @@
           $("modalParcialTitle").textContent = "Falta Parcial — " + prodName;
           $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
           $("modalParcial").classList.add("open");
+          $("modalParcialOk").disabled = true;
 
           google.script.run
             .withSuccessHandler(res => {
@@ -2164,6 +2165,7 @@
                 return;
               }
               _modalOrders = res.orders;
+              $("modalParcialOk").disabled = false;
               if (!res.orders.length) {
                 $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
                 return;
@@ -2233,6 +2235,7 @@
         });
 
         $("modalParcialOk")?.addEventListener("click", () => {
+          if (!_modalOrders) { showToast("Aguarde o carregamento dos pedidos."); return; }
           const items = getCheckedFaltanvItems_();
           if (items.length !== 1) return;
           const prodName = items[0].prodName;
