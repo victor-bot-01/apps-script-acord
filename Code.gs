@@ -973,7 +973,12 @@ function marcarFaltaParcial(componentName, tenhoIds, allModalIds) {
 
         for (const comp of comps) {
           const compNorm = pend_norm_(comp);
-          const cStatus  = (compNorm === normComp && !isTenho) ? "FALTA" : "PENDENTE";
+          let cStatus;
+          if (compNorm === normComp) {
+            cStatus = isTenho ? "TENHO" : "FALTA";
+          } else {
+            cStatus = "PENDENTE";
+          }
           parcSh.appendRow([source, id, kitProdOriginal, comp, cStatus, 1]);
           parciaisAdded++;
         }
@@ -1017,43 +1022,50 @@ function resolverParcialComTenho(items, tenhoIds) {
     if (!items?.length) return { ok: true, updated: 0 };
     const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
 
-    // Ler Parciais para encontrar componentes irmãos (o que FALTA quando o outro é TENHO)
-    const parcSh = bm_getOrCreateParciais_();
-    const parcData = parcSh.getDataRange().getValues();
-    const ordKitComps = {};
+    // Ler Parciais com status de cada componente por pedido+kit
+    const parcSh   = bm_getOrCreateParciais_();
+    const parcData  = parcSh.getDataRange().getValues();
+    const ordKitStatus = {};
     for (let r = 1; r < parcData.length; r++) {
-      const oId  = String(parcData[r][1] || "").trim();
-      const kit  = String(parcData[r][2] || "").trim();
-      const comp = String(parcData[r][3] || "").trim();
+      const oId    = String(parcData[r][1] || "").trim();
+      const kit    = String(parcData[r][2] || "").trim();
+      const comp   = String(parcData[r][3] || "").trim();
+      const status = String(parcData[r][4] || "").trim();
       if (!oId || !kit || !comp) continue;
       const key = oId + "||" + kit;
-      if (!ordKitComps[key]) ordKitComps[key] = [];
-      if (!ordKitComps[key].includes(comp)) ordKitComps[key].push(comp);
+      if (!ordKitStatus[key]) ordKitStatus[key] = {};
+      ordKitStatus[key][comp] = status;
     }
 
-    const conf = bm_readConferencia_();
+    const conf  = bm_readConferencia_();
     const newSt = conf.statuses.map(r => [r[0]]);
     let updated = 0;
+
     for (const item of items) {
       const normKit = pend_norm_(item.kitProduct);
       const orderId = String(item.orderId).trim();
       for (let i = 0; i < conf.rows; i++) {
-        if (String(conf.ids[i][0]??"").trim() !== orderId) continue;
-        if (pend_norm_(String(conf.prods[i][0]??"").trim()) !== normKit) continue;
-        if (String(conf.statuses[i][0]??"").toUpperCase().includes("TENHO")) continue;
+        if (String(conf.ids[i][0]  ?? "").trim() !== orderId)  continue;
+        if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) !== normKit) continue;
+        if (String(conf.statuses[i][0] ?? "").toUpperCase().includes("TENHO")) continue;
+
         if (tenhoSet.has(orderId)) {
-          const key = orderId + "||" + item.kitProduct;
-          const siblings = (ordKitComps[key] || []).filter(c => c !== item.componentName);
-          const missingName = siblings.length ? siblings.join(" / ") : item.componentName;
-          newSt[i][0] = "FALTA - " + missingName;
+          // Encontrar componentes irmãos que ainda FALTAM (status != "TENHO")
+          const compStatus      = ordKitStatus[orderId + "||" + item.kitProduct] || {};
+          const missingSiblings = Object.entries(compStatus)
+            .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
+            .map(([c]) => c);
+          if (missingSiblings.length === 0) continue; // kit completo: não escreve FALTA
+          newSt[i][0] = "FALTA - " + missingSiblings.join(" / ");
         } else {
           newSt[i][0] = "FALTA";
         }
         updated++;
       }
     }
+
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
     bm_removeParciais_(items);
     return { ok: true, updated };
-  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+  } catch(err) { return { ok: false, error: String(err.message || err) }; }
 }
