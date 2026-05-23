@@ -1027,6 +1027,44 @@
       </div>
     </div>
 
+      <!-- Modal: confirmar /Falta -->
+      <div class="modal-overlay" id="modalFalta">
+        <div class="modal-box">
+          <h3>Confirmação</h3>
+          <input type="text" class="modal-input" id="modalFaltaInput" placeholder="" autocomplete="off">
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalFaltaCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalFaltaOk" disabled>Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Falta Parcial (seleção de pedidos) -->
+      <div class="modal-overlay" id="modalParcial">
+        <div class="modal-box">
+          <h3 id="modalParcialTitle">Falta Parcial</h3>
+          <p>Selecione os pedidos onde você <strong>TEM</strong> este produto. Os demais serão marcados como FALTA.</p>
+          <div class="modal-orders-list" id="modalParcialList"></div>
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalParcialCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalParcialOk">Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Tenho (Parciais) -->
+      <div class="modal-overlay" id="modalTenho">
+        <div class="modal-box">
+          <h3 id="modalTenhoTitle">Marcar como Tenho</h3>
+          <p>Selecione os pedidos onde você <strong>TEM</strong> este componente. Os demais serão marcados como FALTA.</p>
+          <div class="modal-orders-list" id="modalTenhoList"></div>
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalTenhoCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalTenhoOk">Confirmar</button>
+          </div>
+        </div>
+      </div>
+
     <script>
       const $ = (id) => document.getElementById(id);
 
@@ -2271,42 +2309,5 @@
       updateSourceUI();
       fetchPedidos();
     </script>
-
-      <!-- Modal: confirmar /Falta -->
-      <div class="modal-overlay" id="modalFalta">
-        <div class="modal-box">
-          <h3>Confirmação</h3>
-          <input type="password" class="modal-input" id="modalFaltaInput" placeholder="" autocomplete="off">
-          <div class="modal-btns">
-            <button class="btn-modal-cancel" id="modalFaltaCancel">Cancelar</button>
-            <button class="btn-modal-ok"    id="modalFaltaOk" disabled>Confirmar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal: Falta Parcial (seleção de pedidos) -->
-      <div class="modal-overlay" id="modalParcial">
-        <div class="modal-box">
-          <h3 id="modalParcialTitle">Falta Parcial</h3>
-          <p>Selecione os pedidos onde você <strong>TEM</strong> este produto. Os demais serão marcados como FALTA.</p>
-          <div class="modal-orders-list" id="modalParcialList"></div>
-          <div class="modal-btns">
-            <button class="btn-modal-cancel" id="modalParcialCancel">Cancelar</button>
-            <button class="btn-modal-ok"    id="modalParcialOk">Confirmar</button>
-          </div>
-        </div>
-      </div>
-      <!-- Modal: Tenho (Parciais) -->
-      <div class="modal-overlay" id="modalTenho">
-        <div class="modal-box">
-          <h3 id="modalTenhoTitle">Marcar como Tenho</h3>
-          <p>Selecione os pedidos onde você <strong>TEM</strong> este componente. Os demais serão marcados como FALTA.</p>
-          <div class="modal-orders-list" id="modalTenhoList"></div>
-          <div class="modal-btns">
-            <button class="btn-modal-cancel" id="modalTenhoCancel">Cancelar</button>
-            <button class="btn-modal-ok"    id="modalTenhoOk">Confirmar</button>
-          </div>
-        </div>
-      </div>
   </body>
 </html>
