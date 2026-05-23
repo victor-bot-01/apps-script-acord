@@ -774,7 +774,8 @@ function pend_buildTodosExcTenho_() {
     if (!id) continue;
 
     const stRaw = String(stats[i][0] ?? "").trim();
-    if (stRaw.toUpperCase().includes("TENHO")) continue;
+    const stUp = stRaw.toUpperCase();
+    if (stUp.includes("TENHO") || stUp.includes("FALTA")) continue;
 
     const prod = String(prods[i][0] ?? "").trim();
     if (!prod) continue;

@@ -785,6 +785,91 @@
         border-color: var(--dark);
       }
 
+      .faltanvBar {
+        display: none;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        margin-bottom: 8px;
+      }
+      .faltanvBar.visible { display: flex; }
+
+      .faltanvActions {
+        display: none;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 14px;
+        margin-bottom: 8px;
+      }
+      .faltanvActions.visible { display: flex; }
+
+      .btn-action {
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: var(--radius2);
+        font-size: 12px;
+        font-weight: 700;
+        border: none;
+      }
+      .btn-falta  { background: #DC2626; color: #fff; }
+      .btn-falta:hover  { opacity: .88; }
+      .btn-falta:disabled  { opacity: .4; cursor: not-allowed; }
+      .btn-parcial { background: var(--yellow-dark); color: var(--dark); }
+      .btn-parcial:hover { opacity: .88; }
+      .btn-parcial:disabled { opacity: .4; cursor: not-allowed; }
+
+      .modal-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.open { display: flex; }
+      .modal-box {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 24px;
+        min-width: 320px;
+        max-width: 480px;
+        width: 90%;
+        box-shadow: var(--shadow-md);
+      }
+      .modal-box h3 { margin: 0 0 12px; font-size: 15px; }
+      .modal-box p  { font-size: 13px; color: var(--text-muted); margin: 0 0 14px; }
+      .modal-input {
+        width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+        border-radius: var(--radius2); font-size: 13px; box-sizing: border-box;
+        margin-bottom: 14px;
+      }
+      .modal-orders-list {
+        max-height: 220px; overflow-y: auto;
+        border: 1px solid var(--border2);
+        border-radius: var(--radius2);
+        margin-bottom: 14px;
+        padding: 6px 0;
+      }
+      .modal-order-row {
+        display: flex; align-items: center; gap: 8px;
+        padding: 5px 10px; font-size: 13px;
+      }
+      .modal-order-row:hover { background: var(--gray-50); }
+      .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+      .btn-modal-cancel {
+        cursor: pointer; padding: 6px 14px; border-radius: var(--radius2);
+        font-size: 12px; border: 1px solid var(--border); background: transparent;
+      }
+      .btn-modal-ok {
+        cursor: pointer; padding: 6px 14px; border-radius: var(--radius2);
+        font-size: 12px; font-weight: 700; border: none;
+        background: var(--dark); color: var(--yellow);
+      }
+
       .chk-col { width: 36px; text-align: center; }
       .chk-row {
         width: 16px; height: 16px;
@@ -905,6 +990,27 @@
             </div>
           </div>
 
+          <div class="faltanvBar" id="faltanvBar">
+            <div class="filterGroup">
+              <span class="filterLabel">Visualizar:</span>
+              <div class="filterBtn faltanv-filter active" data-faltanv="todos">Todos</div>
+              <div class="filterBtn faltanv-filter" data-faltanv="falta">Falta</div>
+              <div class="filterBtn faltanv-filter" data-faltanv="nao_marcado">Não Marcado</div>
+            </div>
+          </div>
+
+          <div class="faltanvActions" id="faltanvActions">
+            <button class="btn-action btn-falta"  id="btnMarcarFalta"  disabled>Marcar /Falta</button>
+            <button class="btn-action btn-parcial" id="btnFaltaParcial" disabled>Falta Parcial</button>
+            <span id="faltanvSelCount" style="font-size:12px;color:var(--text-muted);"></span>
+          </div>
+
+          <div class="faltanvActions" id="parcActions">
+            <button class="btn-action btn-falta"  id="btnParcialFalta"  disabled>Marcar /Falta</button>
+            <button class="btn-action btn-parcial" id="btnParcialTenho"  disabled>Tenho</button>
+            <span id="parcSelCount" style="font-size:12px;color:var(--text-muted);"></span>
+          </div>
+
           <div id="loadingOverlay" class="loading-overlay" style="display:none">
             <div class="spinner"></div><span>Carregando dados...</span>
           </div>
@@ -953,6 +1059,7 @@
       let ALL_PEDIDOS = [];
       let ALL_FALTAM = [];
       let ALL_TODOS_NV = [];
+      let ALL_PARCIAIS = [];
       let KPIS = null;
       let META = null;
 
@@ -962,6 +1069,7 @@
 
       let FILTER_ANDAMENTO = new Set(); // valores: "falta", "tenho", "vazio"
       let FILTER_FONTE     = new Set(); // valores: "ML Coleta", "ML 1", "Shopee", "Magalu", "Essência do Brasil"
+      let FALTANV_FILTER   = "todos";  // "todos" | "falta" | "nao_marcado"
 
       let ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
       const isActive = (type) => ACTIVE && ACTIVE.type === type;
@@ -1292,6 +1400,7 @@
           { type:"STATUS:CONFIRMADO", key:"confirmados",        label:"Confirmados",         hint:"Pedidos confirmados", view:"STATUS" },
           { type:"FALTANV",           key:"faltaNaoVerificado", label:"Falta/Não Verificado", hint:"Qtd não verificada",  view:"FALTANV_VIEW", todosOnly: true },
           { type:"VIEW:ETIQUETAS",    key:"etiquetasImpressas", label:"Etiquetas Impressas", hint:'IDs com "Impressa"', view:"ETIQUETAS" },
+          { type:"PARCIAIS",          key:"parciais",            label:"Produtos Parciais",   hint:"Componentes kit pendentes", view:"PARCIAIS_VIEW", todosOnly: true },
           { type:"STATUS:CANCELADO",  key:"cancelados",         label:"Cancelados",          hint:"Pedidos cancelados", view:"STATUS" },
         ];
 
@@ -1326,11 +1435,33 @@
           return;
         }
 
-        if (ACTIVE.view === "FALTANV_VIEW") {
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
           $("thead").innerHTML = `
             <tr>
+              <th class="chk-col"><input type="checkbox" id="chkAllParciais" title="Marcar todos"></th>
+              <th data-sort="kitProduct">Kit</th>
+              <th data-sort="componentName">Componente</th>
+              <th data-sort="componentStatus" style="width:100px;">Status</th>
+              <th data-sort="qty" style="width:70px;">Qtd</th>
+              <th data-sort="orderId" style="width:130px;">Pedido</th>
+              <th data-sort="source" style="width:100px;">Fonte</th>
+            </tr>
+          `;
+          return;
+        }
+
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          const showChk = (FALTANV_FILTER === "nao_marcado");
+          const tipoCol = (FALTANV_FILTER === "todos")
+            ? `<th style="width:90px;">Tipo</th>` : "";
+          const chkCol = showChk
+            ? `<th class="chk-col"><input type="checkbox" id="chkAllFaltanv" title="Marcar todos"></th>` : "";
+          $("thead").innerHTML = `
+            <tr>
+              ${chkCol}
               <th data-sort="produtoPendentes">Produtos Pendentes <span class="sort-icon">↕</span></th>
               <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
+              ${tipoCol}
             </tr>
           `;
           return;
@@ -1398,8 +1529,35 @@
           `;
         }
 
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
+          const stBadge = p.componentStatus === "FALTA"
+            ? "b-cancelado"
+            : "b-pending";
+          return `
+            <tr>
+              <td class="chk-col"><input type="checkbox" class="chk-parcial"
+                data-orderid="${safe(p.orderId)}"
+                data-kit="${safe(p.kitProduct)}"
+                data-comp="${safe(p.componentName)}"></td>
+              <td>${safe(p.kitProduct)}</td>
+              <td>${safe(p.componentName)}</td>
+              <td><span class="badge ${stBadge}">${safe(p.componentStatus)}</span></td>
+              <td>${safe(p.qty)}</td>
+              <td>${safe(p.orderId)}</td>
+              <td><span class="badge b-outro" style="font-size:10px;">${safe(p.source || "—")}</span></td>
+            </tr>
+          `;
+        }
+
         if (ACTIVE.view === "FALTANV_VIEW") {
-          return `<tr><td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td></tr>`;
+          const showChk = (FALTANV_FILTER === "nao_marcado");
+          const tipoCol = (FALTANV_FILTER === "todos")
+            ? `<td><span class="badge b-outro" style="font-size:10px;">${p._tipo === "falta" ? "Falta" : "Não Marc."}</span></td>`
+            : "";
+          const chkCell = showChk
+            ? `<td class="chk-col"><input type="checkbox" class="chk-faltanv" data-prod="${safe(p.produtoPendentes)}" data-sheet="${safe(p.sheet)}" data-qty="${safe(p.quantidade)}"></td>`
+            : "";
+          return `<tr>${chkCell}<td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td>${tipoCol}</tr>`;
         }
 
         const isMulti = MULTI_IDS.has(String(p.id));
@@ -1454,7 +1612,13 @@
 
       const emptyColspan = () => {
         if (ACTIVE.view === "FALTAM_VIEW") return 2;
-        if (ACTIVE.view === "FALTANV_VIEW") return 2;
+        if (ACTIVE.view === "PARCIAIS_VIEW") return 7;
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          let c = 2;
+          if (FALTANV_FILTER === "nao_marcado") c += 1;
+          if (FALTANV_FILTER === "todos") c += 1;
+          return c;
+        }
         let cols = 5;
         if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // andamento
         if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // checkbox
@@ -1499,6 +1663,28 @@
             document.querySelectorAll(".chk-pedido").forEach(c => c.checked = chkAll.checked);
           });
         }
+        const chkAllFv = $("chkAllFaltanv");
+        if (chkAllFv) {
+          chkAllFv.addEventListener("change", () => {
+            document.querySelectorAll(".chk-faltanv").forEach(c => c.checked = chkAllFv.checked);
+            updateFaltanvActionState_();
+          });
+        }
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          $("tbody").querySelectorAll(".chk-faltanv").forEach(c =>
+            c.addEventListener("change", updateFaltanvActionState_));
+        }
+        const chkAllP = $("chkAllParciais");
+        if (chkAllP) {
+          chkAllP.addEventListener("change", () => {
+            document.querySelectorAll(".chk-parcial").forEach(c => c.checked = chkAllP.checked);
+            updateParcialActionState_();
+          });
+        }
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
+          $("tbody").querySelectorAll(".chk-parcial").forEach(c =>
+            c.addEventListener("change", updateParcialActionState_));
+        }
       };
 
       const renderMeta = () => {
@@ -1529,6 +1715,10 @@
         const q = $("q").value.trim().toLowerCase();
 
         if (ACTIVE.view === "FALTAM_VIEW") {
+          const barFv = $("faltanvBar"); if (barFv) barFv.classList.remove("visible");
+          const actFv = $("faltanvActions"); if (actFv) actFv.classList.remove("visible");
+          const parcActFv = $("parcActions"); if (parcActFv) parcActFv.classList.remove("visible");
+
           let list = [...ALL_FALTAM];
 
           if (q) {
@@ -1561,19 +1751,27 @@
         }
 
         if (ACTIVE.view === "FALTANV_VIEW") {
-          let list = [...ALL_TODOS_NV];
-
-          if (q) {
-            list = list.filter(it => {
-              const hay = `${it.produtoPendentes} ${it.quantidade}`.toLowerCase();
-              return hay.includes(q);
-            });
+          let list;
+          if (FALTANV_FILTER === "falta") {
+            list = ALL_FALTAM.map(it => ({ ...it, _tipo: "falta" }));
+          } else if (FALTANV_FILTER === "nao_marcado") {
+            list = ALL_TODOS_NV.map(it => ({ ...it, _tipo: "nao_marcado" }));
+          } else {
+            list = [
+              ...ALL_FALTAM.map(it => ({ ...it, _tipo: "falta" })),
+              ...ALL_TODOS_NV.map(it => ({ ...it, _tipo: "nao_marcado" })),
+            ];
           }
 
+          if (q) {
+            list = list.filter(it =>
+              `${it.produtoPendentes} ${it.quantidade}`.toLowerCase().includes(q)
+            );
+          }
           if (SORT.col) {
             list.sort((a, b) => {
-              const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
-              const bv = String(b[SORT.col] == null ? "" : b[SORT.col]).toLowerCase();
+              const av = String(a[SORT.col] ?? "").toLowerCase();
+              const bv = String(b[SORT.col] ?? "").toLowerCase();
               return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
             });
           }
@@ -1587,10 +1785,55 @@
           if (tt) tt.textContent = "Falta/Não Verificado";
           $("reviewWarning").style.display = "none";
 
+          const bar = $("faltanvBar");
+          if (bar) bar.classList.add("visible");
+          const actBar = $("faltanvActions");
+          if (actBar) actBar.classList.toggle("visible", FALTANV_FILTER === "nao_marcado");
+          const parcActFn = $("parcActions"); if (parcActFn) parcActFn.classList.remove("visible");
+          updateFaltanvActionState_();
+
           renderTable(list);
           renderStatusline(list.length);
           return;
         }
+
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
+          let list = [...ALL_PARCIAIS];
+
+          const q = $("q").value.trim().toLowerCase();
+          if (q) {
+            list = list.filter(it =>
+              `${it.kitProduct} ${it.componentName} ${it.orderId} ${it.source}`.toLowerCase().includes(q)
+            );
+          }
+          if (SORT.col) {
+            list.sort((a, b) => {
+              const av = String(a[SORT.col] ?? "").toLowerCase();
+              const bv = String(b[SORT.col] ?? "").toLowerCase();
+              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+            });
+          }
+
+          updateBlueCellsWarning();
+          $("copyFaltamBtn").style.display = "none";
+          $("copyPendentesBtn").style.display = "none";
+          $("tableTitle").textContent = "Produtos Parciais";
+          $("reviewWarning").style.display = "none";
+
+          const bar_ = $("faltanvBar"); if (bar_) bar_.classList.remove("visible");
+
+          const parcActBar = $("parcActions");
+          if (parcActBar) parcActBar.classList.add("visible");
+          updateParcialActionState_();
+
+          renderTable(list);
+          renderStatusline(list.length);
+          return;
+        }
+
+        const bar_ = $("faltanvBar"); if (bar_) bar_.classList.remove("visible");
+        const act_ = $("faltanvActions"); if (act_) act_.classList.remove("visible");
+        const parcAct = $("parcActions"); if (parcAct) parcAct.classList.remove("visible");
 
         let list = [...ALL_PEDIDOS];
         const ft = ACTIVE.type || "ALL";
@@ -1666,11 +1909,19 @@
               "STATUS:CONFIRMADO": "Confirmados",
               "FALTANV": "Falta/Não Verificado",
               "VIEW:ETIQUETAS": "Etiquetas Impressas",
+              "PARCIAIS": "Produtos Parciais",
               "STATUS:CANCELADO": "Cancelados",
             };
 
             ACTIVE = { type, label: labelMap[type] || "Total", view };
             SORT = { col: null, dir: 1 };
+
+            if (type === "FALTANV") {
+              FALTANV_FILTER = "todos";
+              document.querySelectorAll(".faltanv-filter").forEach(b => {
+                b.classList.toggle("active", b.getAttribute("data-faltanv") === "todos");
+              });
+            }
 
             $("kpis").innerHTML = kpiCards(KPIS);
             bindKpiClicks();
@@ -1750,6 +2001,13 @@
             ALL_FALTAM = res.faltamItems || [];
             ALL_TODOS_NV = res.todosNvItems || [];
             KPIS = res.kpis || null;
+            google.script.run.withSuccessHandler(pr => {
+              ALL_PARCIAIS = (pr.ok && pr.items) ? pr.items : [];
+              if (KPIS) KPIS.parciais = ALL_PARCIAIS.reduce((acc, it) => acc + (Number(it.qty) || 0), 0);
+              $("kpis").innerHTML = kpiCards(KPIS);
+              bindKpiClicks();
+              if (ACTIVE.view === "PARCIAIS_VIEW") applyAllFilters();
+            }).getParciais();
             META = res.meta || null;
 
             if (res.collectionTimes) { COLLECTION_TIMES = res.collectionTimes; updateCtDisplay(); }
@@ -1785,6 +2043,189 @@
 
       $("btnReload").addEventListener("click", fetchPedidos);
 
+      const updateFaltanvActionState_ = () => {
+        const checked = document.querySelectorAll(".chk-faltanv:checked");
+        const count   = checked.length;
+        const btnF = $("btnMarcarFalta");
+        const btnP = $("btnFaltaParcial");
+        const sel  = $("faltanvSelCount");
+        if (btnF)  btnF.disabled  = count === 0;
+        if (btnP)  btnP.disabled  = count !== 1;
+        if (sel)   sel.textContent = count > 0 ? `${count} selecionado(s)` : "";
+      };
+
+      const getCheckedFaltanvItems_ = () => {
+        const checked = document.querySelectorAll(".chk-faltanv:checked");
+        return [...checked].map(c => ({
+          prodName: c.getAttribute("data-prod"),
+          sheet:    c.getAttribute("data-sheet"),
+          qty:      Number(c.getAttribute("data-qty") || 0),
+        }));
+      };
+
+      const bindFaltanvControls_ = () => {
+        document.querySelectorAll(".faltanv-filter").forEach(btn => {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".faltanv-filter").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            FALTANV_FILTER = btn.getAttribute("data-faltanv") || "todos";
+            applyAllFilters();
+          });
+        });
+
+        $("tbody").addEventListener("change", (e) => {
+          const chkAll = $("chkAllFaltanv");
+          if (e.target === chkAll) {
+            document.querySelectorAll(".chk-faltanv").forEach(c => c.checked = chkAll.checked);
+          }
+          updateFaltanvActionState_();
+        });
+
+        const btnF = $("btnMarcarFalta");
+        if (btnF) btnF.addEventListener("click", () => {
+          const items = getCheckedFaltanvItems_();
+          if (!items.length) return;
+          $("modalFaltaDesc").innerHTML = `Digite <strong>/Falta</strong> para confirmar a marcação de <strong>${items.length}</strong> produto(s).`;
+          $("modalFaltaInput").value = "";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
+        });
+
+        const btnP = $("btnFaltaParcial");
+        if (btnP) btnP.addEventListener("click", () => {
+          const items = getCheckedFaltanvItems_();
+          if (items.length !== 1) return;
+          const prodName = items[0].prodName;
+          $("modalParcialTitle").textContent = "Falta Parcial — " + prodName;
+          $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
+          $("modalParcial").classList.add("open");
+
+          google.script.run.withSuccessHandler(res => {
+            if (!res.ok) {
+              $("modalParcialList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
+              return;
+            }
+            if (!res.orders.length) {
+              $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
+              return;
+            }
+            $("modalParcialList").innerHTML = res.orders.map(o => `
+              <div class="modal-order-row">
+                <input type="checkbox" class="chk-modal-order" data-id="${safe(o.orderId)}">
+                <span>${safe(o.orderId)}</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">${safe(o.source)}</span>
+              </div>
+            `).join("");
+          }).getOrdersByComponent(prodName);
+        });
+
+        const inp = $("modalFaltaInput");
+        if (inp) inp.addEventListener("input", () => {
+          $("modalFaltaOk").disabled = inp.value.trim() !== "/Falta";
+        });
+
+        $("modalFaltaCancel")?.addEventListener("click", () => $("modalFalta").classList.remove("open"));
+
+        $("modalFaltaOk")?.addEventListener("click", () => {
+          if ($("modalFaltaInput").value.trim() !== "/Falta") return;
+          $("modalFalta").classList.remove("open");
+          const items = getCheckedFaltanvItems_();
+          google.script.run
+            .withSuccessHandler(res => {
+              if (res.ok) fetchPedidos();
+              else alert("Erro: " + res.error);
+            })
+            .marcarProdutosComoFalta(items.map(it => ({ prodName: it.prodName, qty: it.qty, sheet: it.sheet })));
+        });
+
+        $("modalParcialCancel")?.addEventListener("click", () => $("modalParcial").classList.remove("open"));
+
+        $("modalParcialOk")?.addEventListener("click", () => {
+          const items = getCheckedFaltanvItems_();
+          if (items.length !== 1) return;
+          const prodName = items[0].prodName;
+          const tenhoIds = [...document.querySelectorAll(".chk-modal-order:checked")].map(c => c.getAttribute("data-id"));
+          $("modalParcial").classList.remove("open");
+          google.script.run
+            .withSuccessHandler(res => {
+              if (res.ok) fetchPedidos();
+              else alert("Erro: " + res.error);
+            })
+            .marcarFaltaParcial(prodName, tenhoIds);
+        });
+      };
+
+      const updateParcialActionState_ = () => {
+        const checked = document.querySelectorAll(".chk-parcial:checked");
+        const count   = checked.length;
+        const btnF = $("btnParcialFalta");
+        const btnT = $("btnParcialTenho");
+        const sel  = $("parcSelCount");
+        const uniqueComps = new Set([...checked].map(c => c.getAttribute("data-comp")));
+        if (btnF) btnF.disabled = count === 0;
+        if (btnT) btnT.disabled = count === 0 || uniqueComps.size !== 1;
+        if (sel)  sel.textContent = count > 0 ? `${count} selecionado(s)` : "";
+      };
+
+      const getCheckedParcialItems_ = () => {
+        return [...document.querySelectorAll(".chk-parcial:checked")].map(c => ({
+          orderId:       c.getAttribute("data-orderid"),
+          kitProduct:    c.getAttribute("data-kit"),
+          componentName: c.getAttribute("data-comp"),
+        }));
+      };
+
+      const bindParcialControls_ = () => {
+        $("tbody").addEventListener("change", (e) => {
+          const chkAll = $("chkAllParciais");
+          if (e.target === chkAll) {
+            document.querySelectorAll(".chk-parcial").forEach(c => c.checked = chkAll.checked);
+          }
+          updateParcialActionState_();
+        });
+
+        $("btnParcialFalta")?.addEventListener("click", () => {
+          const items = getCheckedParcialItems_();
+          if (!items.length) return;
+          if (!confirm(`Marcar ${items.length} item(s) como /Falta na Conferencia?`)) return;
+          google.script.run
+            .withSuccessHandler(res => {
+              if (res.ok) fetchPedidos();
+              else alert("Erro: " + res.error);
+            })
+            .resolverParcialComoFalta(items);
+        });
+
+        $("btnParcialTenho")?.addEventListener("click", () => {
+          const items = getCheckedParcialItems_();
+          if (!items.length) return;
+          const compName = items[0].componentName;
+          $("modalTenhoTitle").textContent = "Tenho — " + compName;
+          const orderIds = [...new Set(items.map(it => it.orderId))];
+          $("modalTenhoList").innerHTML = orderIds.map(id => `
+            <div class="modal-order-row">
+              <input type="checkbox" class="chk-modal-tenho" data-id="${safe(id)}">
+              <span>${safe(id)}</span>
+            </div>
+          `).join("");
+          $("modalTenho").classList.add("open");
+        });
+
+        $("modalTenhoCancel")?.addEventListener("click", () => $("modalTenho").classList.remove("open"));
+
+        $("modalTenhoOk")?.addEventListener("click", () => {
+          const items    = getCheckedParcialItems_();
+          const tenhoIds = [...document.querySelectorAll(".chk-modal-tenho:checked")].map(c => c.getAttribute("data-id"));
+          $("modalTenho").classList.remove("open");
+          google.script.run
+            .withSuccessHandler(res => {
+              if (res.ok) fetchPedidos();
+              else alert("Erro: " + res.error);
+            })
+            .resolverParcialComTenho(items, tenhoIds);
+        });
+      };
+
       // Boot
       initTheme();
       bindCtEdit();
@@ -1795,8 +2236,48 @@
       setInterval(updateMarketStatus, 60 * 1000);
       bindSourceSelector();
       bindTodosFilters();
+      bindFaltanvControls_();
+      bindParcialControls_();
       updateSourceUI();
       fetchPedidos();
     </script>
+
+      <!-- Modal: confirmar /Falta -->
+      <div class="modal-overlay" id="modalFalta">
+        <div class="modal-box">
+          <h3>Confirmar marcação como /Falta</h3>
+          <p id="modalFaltaDesc">Digite <strong>/Falta</strong> para confirmar a marcação dos produtos selecionados.</p>
+          <input type="text" class="modal-input" id="modalFaltaInput" placeholder="/Falta" autocomplete="off">
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalFaltaCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalFaltaOk" disabled>Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Falta Parcial (seleção de pedidos) -->
+      <div class="modal-overlay" id="modalParcial">
+        <div class="modal-box">
+          <h3 id="modalParcialTitle">Falta Parcial</h3>
+          <p>Selecione os pedidos onde você <strong>TEM</strong> este produto. Os demais serão marcados como FALTA.</p>
+          <div class="modal-orders-list" id="modalParcialList"></div>
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalParcialCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalParcialOk">Confirmar</button>
+          </div>
+        </div>
+      </div>
+      <!-- Modal: Tenho (Parciais) -->
+      <div class="modal-overlay" id="modalTenho">
+        <div class="modal-box">
+          <h3 id="modalTenhoTitle">Marcar como Tenho</h3>
+          <p>Selecione os pedidos onde você <strong>TEM</strong> este componente. Os demais serão marcados como FALTA.</p>
+          <div class="modal-orders-list" id="modalTenhoList"></div>
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalTenhoCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalTenhoOk">Confirmar</button>
+          </div>
+        </div>
+      </div>
   </body>
 </html>

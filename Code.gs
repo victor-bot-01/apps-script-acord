@@ -236,6 +236,7 @@ function buildKpis_(pedidos, faltamItems, todosNvItems) {
     etiquetasImpressas: idsEtiquetasImpressa.size,
     faltam: faltam,
     faltaNaoVerificado,
+    parciais: (todosNvItems || []).length,
   };
 }
 
@@ -685,4 +686,304 @@ function limparPlanilhaDiaria() {
     const sh = ss.getSheetByName(name);
     if (sh) limparAbaExcetoCabecalho_(sh);
   }
+}
+
+/*******************************
+ * BULK MARKING
+ *******************************/
+
+function bm_getOrCreateParciais_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName("Parciais");
+  if (!sh) {
+    sh = ss.insertSheet("Parciais");
+    sh.getRange(1,1,1,6).setValues([["Source","OrderID","KitProduct","ComponentName","ComponentStatus","Qty"]]);
+  }
+  return sh;
+}
+
+// Reverse lookup: normalized component -> [normalized kit keys that contain it]
+function bm_buildReverseMap_(mapSubseq) {
+  const rev = new Map();
+  for (const [kitKey, str] of mapSubseq.entries()) {
+    for (const part of str.split(";").map(s=>s.trim()).filter(Boolean)) {
+      const k = pend_norm_(part);
+      if (!rev.has(k)) rev.set(k, []);
+      rev.get(k).push(kitKey);
+    }
+  }
+  return rev;
+}
+
+// Lê todas as linhas da Conferencia; retorna { rows, ids, prods, statuses, sh }
+function bm_readConferencia_() {
+  const ss = SpreadsheetApp.openById(ML_IMPORT_CONFIG.ANDAMENTO_SOURCE_SPREADSHEET_ID);
+  const sh = ss.getSheetByName("Conferencia");
+  if (!sh) throw new Error("Sheet 'Conferencia' não encontrada");
+  const last = sh.getLastRow();
+  if (last < 2) return { rows: 0, ids: [], prods: [], statuses: [], sh };
+  const n = last - 1;
+  return {
+    rows: n,
+    ids:      sh.getRange(2, 1, n, 1).getValues(),
+    prods:    sh.getRange(2, 4, n, 1).getValues(),
+    statuses: sh.getRange(2, 6, n, 1).getValues(),
+    sh,
+  };
+}
+
+// Remove linhas da sheet Parciais por { orderId, componentName }
+function bm_removeParciais_(toRemove) {
+  const sh = bm_getOrCreateParciais_();
+  const last = sh.getLastRow();
+  if (last < 2) return;
+  const vals = sh.getRange(2, 1, last - 1, 6).getValues();
+  const del = [];
+  for (let i = 0; i < vals.length; i++) {
+    const oId  = String(vals[i][1] ?? "").trim();
+    const comp = String(vals[i][3] ?? "").trim();
+    if (toRemove.some(r => r.orderId === oId && pend_norm_(r.componentName) === pend_norm_(comp)))
+      del.push(i + 2);
+  }
+  for (let k = del.length - 1; k >= 0; k--) sh.deleteRow(del[k]);
+}
+
+// Retorna todos os itens da sheet Parciais
+function getParciais() {
+  try {
+    const sh = bm_getOrCreateParciais_();
+    const last = sh.getLastRow();
+    if (last < 2) return { ok: true, items: [] };
+    const vals = sh.getRange(2, 1, last - 1, 6).getValues();
+    const items = vals
+      .map(r => ({
+        source:          String(r[0] ?? "").trim(),
+        orderId:         String(r[1] ?? "").trim(),
+        kitProduct:      String(r[2] ?? "").trim(),
+        componentName:   String(r[3] ?? "").trim(),
+        componentStatus: String(r[4] ?? "").trim(),
+        qty:             Number(r[5] || 0),
+      }))
+      .filter(it => it.orderId);
+    return { ok: true, items };
+  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+}
+
+// Retorna { ok, orders: [{orderId, source}] } para um dado componentName (para o modal Falta Parcial).
+// "source" = nome da aba do dashboard onde o pedido aparece.
+function getOrdersByComponent(componentName) {
+  try {
+    const mapSubseq = pend_buildDadosMapSubseq_();
+    const rev = bm_buildReverseMap_(mapSubseq);
+    const normComp = pend_norm_(componentName);
+    const kitKeys  = rev.get(normComp) || [];
+
+    const conf = bm_readConferencia_();
+    const matchIds = new Set();
+
+    for (let i = 0; i < conf.rows; i++) {
+      const status = String(conf.statuses[i][0] ?? "").trim();
+      if (status !== "") continue;
+      const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
+      const match = kitKeys.length ? kitKeys.includes(pk) : pk === normComp;
+      if (!match) continue;
+      const id = String(conf.ids[i][0] ?? "").trim();
+      if (id) matchIds.add(id);
+    }
+
+    // Resolve source (aba do dashboard) por ID
+    const dashSS = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt"];
+    const idSource = new Map();
+    for (const name of sheetNames) {
+      const sh = dashSS.getSheetByName(name);
+      if (!sh || sh.getLastRow() < 2) continue;
+      const ids = sh.getRange(2, 1, sh.getLastRow()-1, 1).getValues();
+      for (const r of ids) {
+        const id = String(r[0]??"").trim();
+        if (matchIds.has(id) && !idSource.has(id)) idSource.set(id, name);
+      }
+    }
+
+    const orders = [...matchIds].map(id => ({ orderId: id, source: idSource.get(id) || "—" }));
+    return { ok: true, orders };
+  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+}
+
+// Marca produtos selecionados como /Falta.
+// selections = [{ prodName, qty, sheet }]  — vêm dos itens M/N (FALTANV_VIEW) selecionados.
+// Lógica:
+//   - Produto não-kit (não está no reverse map): busca Conferencia onde col D (norm) = prodName e F vazio → F = "FALTA"
+//   - Produto kit-component:
+//       • todos os componentes do kit estão em selections → F = "FALTA" nas rows do kit (F vazio)
+//       • seleção parcial → NÃO atualiza Conferencia; escreve na sheet Parciais
+//         (componentes selecionados: FALTA, restantes: PENDENTE)
+function marcarProdutosComoFalta(selections) {
+  try {
+    if (!selections?.length) return { ok: true, updated: 0, parciaisAdded: 0 };
+
+    const mapSubseq = pend_buildDadosMapSubseq_();
+    const rev = bm_buildReverseMap_(mapSubseq);
+    const fwd = new Map([...mapSubseq.entries()].map(([k, v]) =>
+      [k, v.split(";").map(s=>s.trim()).filter(Boolean)]));
+
+    const selectedNorms = new Set(selections.map(s => pend_norm_(s.prodName)));
+    const conf = bm_readConferencia_();
+    const newSt = conf.statuses.map(r => [r[0]]);
+
+    let updated = 0;
+    let parciaisAdded = 0;
+    const processedKits = new Set();
+
+    for (const sel of selections) {
+      const normComp = pend_norm_(sel.prodName);
+      const kitKeys  = rev.get(normComp);
+
+      if (!kitKeys?.length) {
+        // Produto direto — sem mapeamento kit
+        for (let i = 0; i < conf.rows; i++) {
+          const pk = pend_norm_(String(conf.prods[i][0]??"").trim());
+          if (pk !== normComp) continue;
+          if (String(conf.statuses[i][0]??"").trim() !== "") continue;
+          newSt[i][0] = "FALTA";
+          updated++;
+        }
+        continue;
+      }
+
+      for (const kitKey of kitKeys) {
+        if (processedKits.has(kitKey)) continue;
+        processedKits.add(kitKey);
+
+        const comps     = fwd.get(kitKey) || [];
+        const normComps = comps.map(c => pend_norm_(c));
+        const allSel    = normComps.every(nc => selectedNorms.has(nc));
+
+        if (allSel) {
+          // Kit completo
+          for (let i = 0; i < conf.rows; i++) {
+            const pk = pend_norm_(String(conf.prods[i][0]??"").trim());
+            if (pk !== kitKey) continue;
+            if (String(conf.statuses[i][0]??"").trim() !== "") continue;
+            newSt[i][0] = "FALTA";
+            updated++;
+          }
+        } else {
+          // Kit parcial — escreve Parciais, sem tocar na Conferencia
+          const ordersSeen = new Set();
+          const kitProdOriginal = (() => {
+            for (let i = 0; i < conf.rows; i++) {
+              if (pend_norm_(String(conf.prods[i][0]??"").trim()) === kitKey)
+                return String(conf.prods[i][0]).trim();
+            }
+            return kitKey;
+          })();
+
+          for (let i = 0; i < conf.rows; i++) {
+            const pk = pend_norm_(String(conf.prods[i][0]??"").trim());
+            if (pk !== kitKey) continue;
+            if (String(conf.statuses[i][0]??"").trim() !== "") continue;
+            const id = String(conf.ids[i][0]??"").trim();
+            if (id && !ordersSeen.has(id)) ordersSeen.add(id);
+          }
+
+          const parciaisSheet = bm_getOrCreateParciais_();
+          for (const orderId of ordersSeen) {
+            for (let ci = 0; ci < comps.length; ci++) {
+              const cNorm   = pend_norm_(comps[ci]);
+              const cStatus = selectedNorms.has(cNorm) ? "FALTA" : "PENDENTE";
+              parciaisSheet.appendRow([sel.sheet || "", orderId, kitProdOriginal, comps[ci], cStatus, sel.qty || 1]);
+              parciaisAdded++;
+            }
+          }
+        }
+      }
+    }
+
+    if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+    return { ok: true, updated, parciaisAdded };
+  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+}
+
+// Para o modal Falta Parcial: marca tenhoIds com F = "FALTA - [componentName]"
+// e os demais (status vazio) com F = "FALTA".
+function marcarFaltaParcial(componentName, tenhoIds) {
+  try {
+    const mapSubseq = pend_buildDadosMapSubseq_();
+    const rev = bm_buildReverseMap_(mapSubseq);
+    const normComp = pend_norm_(componentName);
+    const kitKeys  = rev.get(normComp) || [];
+    const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
+
+    const conf = bm_readConferencia_();
+    const newSt = conf.statuses.map(r => [r[0]]);
+    let updated = 0;
+
+    for (let i = 0; i < conf.rows; i++) {
+      if (String(conf.statuses[i][0]??"").trim() !== "") continue;
+      const pk    = pend_norm_(String(conf.prods[i][0]??"").trim());
+      const match = kitKeys.length ? kitKeys.includes(pk) : pk === normComp;
+      if (!match) continue;
+      const id = String(conf.ids[i][0]??"").trim();
+      if (!id) continue;
+      newSt[i][0] = tenhoSet.has(id) ? "FALTA - " + componentName : "FALTA";
+      updated++;
+    }
+
+    if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+    return { ok: true, updated };
+  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+}
+
+// Resolve itens de Parciais como /Falta: Conferencia F = "FALTA" para as ordens dos itens.
+// items = [{ orderId, kitProduct, componentName }]
+function resolverParcialComoFalta(items) {
+  try {
+    if (!items?.length) return { ok: true, updated: 0 };
+    const conf = bm_readConferencia_();
+    const newSt = conf.statuses.map(r => [r[0]]);
+    let updated = 0;
+    for (const item of items) {
+      const normKit = pend_norm_(item.kitProduct);
+      for (let i = 0; i < conf.rows; i++) {
+        if (String(conf.ids[i][0]??"").trim() !== String(item.orderId).trim()) continue;
+        if (pend_norm_(String(conf.prods[i][0]??"").trim()) !== normKit) continue;
+        if (String(conf.statuses[i][0]??"").toUpperCase().includes("TENHO")) continue;
+        newSt[i][0] = "FALTA";
+        updated++;
+      }
+    }
+    if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+    bm_removeParciais_(items);
+    return { ok: true, updated };
+  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+}
+
+// Resolve itens de Parciais com Tenho (modal de seleção de IDs).
+// tenhoIds = IDs onde o componente é Tenho → F = "FALTA - [componentName]"
+// demais IDs dos mesmos itens → F = "FALTA"
+function resolverParcialComTenho(items, tenhoIds) {
+  try {
+    if (!items?.length) return { ok: true, updated: 0 };
+    const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
+    const conf = bm_readConferencia_();
+    const newSt = conf.statuses.map(r => [r[0]]);
+    let updated = 0;
+    for (const item of items) {
+      const normKit = pend_norm_(item.kitProduct);
+      const orderId = String(item.orderId).trim();
+      for (let i = 0; i < conf.rows; i++) {
+        if (String(conf.ids[i][0]??"").trim() !== orderId) continue;
+        if (pend_norm_(String(conf.prods[i][0]??"").trim()) !== normKit) continue;
+        if (String(conf.statuses[i][0]??"").toUpperCase().includes("TENHO")) continue;
+        newSt[i][0] = tenhoSet.has(orderId)
+          ? "FALTA - " + item.componentName
+          : "FALTA";
+        updated++;
+      }
+    }
+    if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+    bm_removeParciais_(items);
+    return { ok: true, updated };
+  } catch(err) { return { ok: false, error: String(err.message||err) }; }
 }
