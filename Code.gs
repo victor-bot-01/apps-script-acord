@@ -913,6 +913,10 @@ function marcarFaltaParcial(componentName, tenhoIds, allModalIds) {
     const rev = bm_buildReverseMap_(mapSubseq);
     const normComp = pend_norm_(componentName);
     const kitKeys  = rev.get(normComp) || [];
+    const fwd = new Map();
+    for (const [k, v] of mapSubseq.entries()) {
+      fwd.set(k, v.split(";").map(s => s.trim()).filter(Boolean));
+    }
     const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
     const allSet   = new Set((allModalIds || []).map(id => String(id).trim()));
 
@@ -928,8 +932,19 @@ function marcarFaltaParcial(componentName, tenhoIds, allModalIds) {
       const id = String(conf.ids[i][0]??"").trim();
       if (!id) continue;
       if (allSet.size > 0 && !allSet.has(id)) continue;
-      newSt[i][0] = tenhoSet.has(id) ? "FALTA - " + componentName : "FALTA";
-      updated++;
+      if (tenhoSet.has(id)) {
+        if (kitKeys.length > 0) {
+          const comps    = fwd.get(pk) || [];
+          const siblings = comps.filter(c => pend_norm_(c) !== normComp);
+          const missingName = siblings.length ? siblings.join(" / ") : componentName;
+          newSt[i][0] = "FALTA - " + missingName;
+          updated++;
+        }
+        // Produto standalone: TENHO → não toca, deixa como está
+      } else {
+        newSt[i][0] = "FALTA";
+        updated++;
+      }
     }
 
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
