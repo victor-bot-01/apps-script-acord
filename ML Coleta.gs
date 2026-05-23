@@ -634,6 +634,8 @@ function aplicarAndamento_ML1_viaPonteEIdQueue_(ml1BridgeMap, byIdQueue, hb) {
 const PEND_BLUE = "#0000ff";
 const PEND_OUT_COL_PROD = 9; // I
 const PEND_OUT_COL_QTD  = 10; // J
+const PEND_NV_COL_PROD  = 13; // M — Falta/Não Verificado
+const PEND_NV_COL_QTD   = 14; // N
 const PEND_DADOS_MAX_COL = 26; // Z
 
 // ANDAMENTO > Conferencia (fixo)
@@ -653,6 +655,11 @@ function aplicarPendentes_MLColeta_e_ML1_(ml1BridgeMap, hb) {
 
   pend_process_MLColeta_(shColeta, confById, mapSubseq);
   pend_process_ML1_(shML1, ml1BridgeMap, confById, mapSubseq);
+
+  // Falta/Não Verificado (M/N)
+  const confTodosById = pend_buildTodosExcTenho_();
+  pend_process_nv_porId_(shColeta, confTodosById, mapSubseq);
+  pend_process_nv_ML1_(shML1, ml1BridgeMap, confTodosById, mapSubseq);
 }
 
 /************** PEND: limpar azul na col C **************/
@@ -736,6 +743,43 @@ function pend_buildConferenciaById_() {
     if (!prod) continue;
 
     const qty = pend_parseQtd_(qtds[i][0]);
+    const terms = pend_extractTerms_(stRaw);
+
+    if (!map.has(id)) map.set(id, []);
+    map.get(id).push({ prod, qty, terms });
+  }
+
+  return map;
+}
+
+/************** PEND: Conferencia (tudo exceto TENHO) por ID **************/
+function pend_buildTodosExcTenho_() {
+  const ss = SpreadsheetApp.openById(ML_IMPORT_CONFIG.ANDAMENTO_SOURCE_SPREADSHEET_ID);
+  const sh = ss.getSheetByName("Conferencia");
+  if (!sh) throw new Error('Aba "Conferencia" não encontrada na planilha ANDAMENTO.');
+
+  const lastRow = sh.getLastRow();
+  const map = new Map();
+  if (lastRow < 2) return map;
+
+  const n = lastRow - 1;
+
+  const ids   = sh.getRange(2, PEND_CONF_COL_ID,     n, 1).getValues();
+  const prods = sh.getRange(2, PEND_CONF_COL_PROD,   n, 1).getValues();
+  const qtds  = sh.getRange(2, PEND_CONF_COL_QTD,    n, 1).getValues();
+  const stats = sh.getRange(2, PEND_CONF_COL_STATUS,  n, 1).getValues();
+
+  for (let i = 0; i < n; i++) {
+    const id = String(ids[i][0] ?? "").trim();
+    if (!id) continue;
+
+    const stRaw = String(stats[i][0] ?? "").trim();
+    if (stRaw.toUpperCase().includes("TENHO")) continue;
+
+    const prod = String(prods[i][0] ?? "").trim();
+    if (!prod) continue;
+
+    const qty   = pend_parseQtd_(qtds[i][0]);
     const terms = pend_extractTerms_(stRaw);
 
     if (!map.has(id)) map.set(id, []);
@@ -1011,6 +1055,10 @@ function pend_clearIJ_(sh) {
   const max = sh.getMaxRows();
   if (max >= 2) sh.getRange(2, PEND_OUT_COL_PROD, max - 1, 2).clearContent();
 }
+function pend_clearMN_(sh) {
+  const max = sh.getMaxRows();
+  if (max >= 2) sh.getRange(2, PEND_NV_COL_PROD, max - 1, 2).clearContent();
+}
 function pend_countsToRows_(counts) {
   return Array.from(counts.entries())
     .sort((a, b) => String(a[0]).localeCompare(String(b[0]), "pt-BR"))
@@ -1047,6 +1095,82 @@ function pend_parseQtd_(v) {
   const n = Number(s);
   if (!isFinite(n) || n <= 0) return 1;
   return Math.floor(n);
+}
+
+/************** PEND: Falta/Não Verificado por ID direto (M/N) **************/
+function pend_process_nv_porId_(sh, confTodosById, mapSubseq) {
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
+
+  const n = lastRow - 1;
+  const idVals     = sh.getRange(2, ML_IMPORT_CONFIG.COL_ID,     n, 1).getValues();
+  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS,  n, 1).getValues();
+
+  pend_clearMN_(sh);
+
+  const idsUnique = [];
+  const seen = new Set();
+  for (let i = 0; i < n; i++) {
+    const id     = String(idVals[i][0]     ?? "").trim();
+    const status = String(statusVals[i][0] ?? "").trim();
+    if (!id) continue;
+    if (status === "Confirmado") continue;
+    if (!seen.has(id)) { seen.add(id); idsUnique.push(id); }
+  }
+
+  const counts = new Map();
+  for (const id of idsUnique) {
+    const linhas = confTodosById.get(id) || [];
+    for (const it of linhas) {
+      pend_processFaltaLine_(it, mapSubseq, counts);
+    }
+  }
+
+  const rowsOut = pend_countsToRows_(counts);
+  if (rowsOut.length) {
+    pend_ensureRows_(sh, 1 + rowsOut.length);
+    sh.getRange(2, PEND_NV_COL_PROD, rowsOut.length, 2).setValues(rowsOut);
+  }
+}
+
+/************** PEND: Falta/Não Verificado para ML 1 via ponte (M/N) **************/
+function pend_process_nv_ML1_(sh, ml1BridgeMap, confTodosById, mapSubseq) {
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
+
+  const n = lastRow - 1;
+  pend_clearMN_(sh);
+
+  const clientes   = sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).getValues();
+  const codigos    = sh.getRange(2, ML_IMPORT_CONFIG.COL_CODIGO,  n, 1).getValues();
+  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS,  n, 1).getValues();
+
+  const idsUnique = new Set();
+  for (let i = 0; i < n; i++) {
+    const status = String(statusVals[i][0] ?? "").trim();
+    if (status === "Confirmado") continue;
+
+    const key = makeKeyCodigoCliente_(codigos[i][0], clientes[i][0]);
+    const bridge = ml1BridgeMap.get(key);
+    if (!bridge || bridge.count > 1) continue;
+
+    const idRef = String(bridge.ids[0] ?? "").trim();
+    if (idRef) idsUnique.add(idRef);
+  }
+
+  const counts = new Map();
+  for (const id of idsUnique) {
+    const linhas = confTodosById.get(id) || [];
+    for (const it of linhas) {
+      pend_processFaltaLine_(it, mapSubseq, counts);
+    }
+  }
+
+  const rowsOut = pend_countsToRows_(counts);
+  if (rowsOut.length) {
+    pend_ensureRows_(sh, 1 + rowsOut.length);
+    sh.getRange(2, PEND_NV_COL_PROD, rowsOut.length, 2).setValues(rowsOut);
+  }
 }
 
 /******************* SHOPEE / MAGALU — IMPORT (gatilho 5 min) *******************/
@@ -1159,6 +1283,14 @@ function importarShopeeMagalu() {
     pend_process_porAba_(shEssencia, confById, mapSubseq);
     pend_process_porAba_(shAmazon,   confById, mapSubseq);
     pend_process_porAba_(shFlexVapt, confById, mapSubseq);
+
+    // Falta/Não Verificado (M/N)
+    const confTodosById = pend_buildTodosExcTenho_();
+    pend_process_nv_porId_(shShopee,   confTodosById, mapSubseq);
+    pend_process_nv_porId_(shMagalu,   confTodosById, mapSubseq);
+    pend_process_nv_porId_(shEssencia, confTodosById, mapSubseq);
+    pend_process_nv_porId_(shAmazon,   confTodosById, mapSubseq);
+    pend_process_nv_porId_(shFlexVapt, confTodosById, mapSubseq);
 
     Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length + " | Essência do Brasil=" + rowsEssencia.length + " | Amazon=" + rowsAmazon.length + " | Flex/Vapt=" + rowsFlexVapt.length);
   } finally {

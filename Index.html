@@ -900,6 +900,8 @@
               <div class="filterBtn" data-filter-fonte="Shopee">Shopee</div>
               <div class="filterBtn" data-filter-fonte="Magalu">Magalu</div>
               <div class="filterBtn" data-filter-fonte="Essência do Brasil">Essência do Brasil</div>
+              <div class="filterBtn" data-filter-fonte="Amazon">Amazon</div>
+              <div class="filterBtn" data-filter-fonte="Flex/Vapt">Flex/Vapt</div>
             </div>
           </div>
 
@@ -950,6 +952,7 @@
 
       let ALL_PEDIDOS = [];
       let ALL_FALTAM = [];
+      let ALL_TODOS_NV = [];
       let KPIS = null;
       let META = null;
 
@@ -1287,12 +1290,14 @@
           { type:"STATUS:PENDENTE",   key:"pendentes",          label:"Pendentes",           hint:"Pedidos pendentes", view:"STATUS" },
           { type:"FALTAM",            key:"faltam",             label:"Faltam",              hint:"Soma de Quantidade", view:"FALTAM_VIEW" },
           { type:"STATUS:CONFIRMADO", key:"confirmados",        label:"Confirmados",         hint:"Pedidos confirmados", view:"STATUS" },
-          { type:"VIEW:BIPADO",       key:"bipadosPronto",      label:"Bipados",             hint:'IDs com "Pronto"', view:"BIPADO" },
+          { type:"FALTANV",           key:"faltaNaoVerificado", label:"Falta/Não Verificado", hint:"Qtd não verificada",  view:"FALTANV_VIEW", todosOnly: true },
           { type:"VIEW:ETIQUETAS",    key:"etiquetasImpressas", label:"Etiquetas Impressas", hint:'IDs com "Impressa"', view:"ETIQUETAS" },
           { type:"STATUS:CANCELADO",  key:"cancelados",         label:"Cancelados",          hint:"Pedidos cancelados", view:"STATUS" },
         ];
 
-        return defs.map(d => `
+        return defs
+          .filter(d => !d.todosOnly || ACTIVE_SOURCE === "TODOS")
+          .map(d => `
           <div class="card${isActive(d.type) ? ' kpi-active' : ''}"
                role="button"
                tabindex="0"
@@ -1308,10 +1313,20 @@
         `).join("");
       };
 
-      const showTodos = () => ACTIVE_SOURCE === "TODOS" && ACTIVE.view !== "FALTAM_VIEW";
+      const showTodos = () => ACTIVE_SOURCE === "TODOS" && ACTIVE.view !== "FALTAM_VIEW" && ACTIVE.view !== "FALTANV_VIEW";
 
       const setThead = () => {
         if (ACTIVE.view === "FALTAM_VIEW") {
+          $("thead").innerHTML = `
+            <tr>
+              <th data-sort="produtoPendentes">Produtos Pendentes <span class="sort-icon">↕</span></th>
+              <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
+            </tr>
+          `;
+          return;
+        }
+
+        if (ACTIVE.view === "FALTANV_VIEW") {
           $("thead").innerHTML = `
             <tr>
               <th data-sort="produtoPendentes">Produtos Pendentes <span class="sort-icon">↕</span></th>
@@ -1383,6 +1398,10 @@
           `;
         }
 
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          return `<tr><td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td></tr>`;
+        }
+
         const isMulti = MULTI_IDS.has(String(p.id));
         const trClass = isMulti ? "row-multi" : "";
         const fonteCell = showTodos()
@@ -1435,6 +1454,7 @@
 
       const emptyColspan = () => {
         if (ACTIVE.view === "FALTAM_VIEW") return 2;
+        if (ACTIVE.view === "FALTANV_VIEW") return 2;
         let cols = 5;
         if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // andamento
         if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // checkbox
@@ -1540,6 +1560,38 @@
           return;
         }
 
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          let list = [...ALL_TODOS_NV];
+
+          if (q) {
+            list = list.filter(it => {
+              const hay = `${it.produtoPendentes} ${it.quantidade}`.toLowerCase();
+              return hay.includes(q);
+            });
+          }
+
+          if (SORT.col) {
+            list.sort((a, b) => {
+              const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
+              const bv = String(b[SORT.col] == null ? "" : b[SORT.col]).toLowerCase();
+              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+            });
+          }
+
+          updateBlueCellsWarning();
+          const cb = $("copyFaltamBtn");
+          if (cb) cb.style.display = "none";
+          const cbPend = $("copyPendentesBtn");
+          if (cbPend) cbPend.style.display = "none";
+          const tt = $("tableTitle");
+          if (tt) tt.textContent = "Falta/Não Verificado";
+          $("reviewWarning").style.display = "none";
+
+          renderTable(list);
+          renderStatusline(list.length);
+          return;
+        }
+
         let list = [...ALL_PEDIDOS];
         const ft = ACTIVE.type || "ALL";
 
@@ -1612,7 +1664,7 @@
               "STATUS:PENDENTE": "Pendentes",
               "FALTAM": "Faltam",
               "STATUS:CONFIRMADO": "Confirmados",
-              "VIEW:BIPADO": "Bipados",
+              "FALTANV": "Falta/Não Verificado",
               "VIEW:ETIQUETAS": "Etiquetas Impressas",
               "STATUS:CANCELADO": "Cancelados",
             };
@@ -1696,6 +1748,7 @@
 
             ALL_PEDIDOS = res.pedidos || [];
             ALL_FALTAM = res.faltamItems || [];
+            ALL_TODOS_NV = res.todosNvItems || [];
             KPIS = res.kpis || null;
             META = res.meta || null;
 

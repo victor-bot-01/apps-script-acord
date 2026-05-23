@@ -20,6 +20,8 @@ const CONFIG = {
     ANDAMENTO: 8,
     PRODUTOS_PENDENTES: 9, // I
     QUANTIDADE: 10,        // J
+    TODOS_NV_PROD: 13,     // M — Falta/Não Verificado
+    TODOS_NV_QTD:  14,     // N
   },
 };
 
@@ -47,6 +49,7 @@ function getPedidos(source) {
 
     const pedidos = [];
     const faltamItems = [];
+    const todosNvItems = [];
     const perSheet = {};
 
     for (const name of sheetsToRead) {
@@ -55,6 +58,7 @@ function getPedidos(source) {
 
       pedidos.push(...out.pedidos);
       faltamItems.push(...out.faltamItems);
+      todosNvItems.push(...out.todosNvItems);
     }
 
     // Ordena pedidos por ID (ajuda no visual e multi-item)
@@ -63,7 +67,7 @@ function getPedidos(source) {
     // FaltamItems: mantém ordem da planilha (ou ordena por produto se quiser)
     // faltamItems.sort((a,b)=>String(a.produtoPendentes).localeCompare(String(b.produtoPendentes)));
 
-    const kpis = buildKpis_(pedidos, faltamItems);
+    const kpis = buildKpis_(pedidos, faltamItems, todosNvItems);
 
     const _todayCheck = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
     const _storedDate = PropertiesService.getScriptProperties().getProperty("COLLECTION_TIMES_DATE") || "";
@@ -90,6 +94,7 @@ function getPedidos(source) {
       source: src,
       pedidos,
       faltamItems,
+      todosNvItems,
       kpis,
       collectionTimes: getCollectionTimes(),
       hasBlueCells,
@@ -120,7 +125,7 @@ function readFromSheet_(ss, sheetName) {
   const lastRow = sh.getLastRow();
   if (lastRow < CONFIG.DATA_START_ROW) return { pedidos: [], faltamItems: [] };
 
-  const lastCol = CONFIG.COLS.QUANTIDADE; // 10
+  const lastCol = CONFIG.COLS.TODOS_NV_QTD; // 14
 
   const range = sh.getRange(
     CONFIG.DATA_START_ROW,
@@ -133,6 +138,7 @@ function readFromSheet_(ss, sheetName) {
 
   const pedidos = [];
   const faltamItems = [];
+  const todosNvItems = [];
 
   for (const r of values) {
     // ====== FALTAM LIST (independente) ======
@@ -144,6 +150,17 @@ function readFromSheet_(ss, sheetName) {
       faltamItems.push({
         produtoPendentes,
         quantidade,
+        sheet: sheetName
+      });
+    }
+
+    // ====== TODOS NV LIST (M/N) ======
+    const todosNvProd = String(r[CONFIG.COLS.TODOS_NV_PROD - 1] ?? "").trim();
+    const todosNvQtd  = parseNumber_(r[CONFIG.COLS.TODOS_NV_QTD - 1]);
+    if (todosNvProd !== "") {
+      todosNvItems.push({
+        produtoPendentes: todosNvProd,
+        quantidade: todosNvQtd,
         sheet: sheetName
       });
     }
@@ -170,7 +187,7 @@ function readFromSheet_(ss, sheetName) {
     });
   }
 
-  return { pedidos, faltamItems };
+  return { pedidos, faltamItems, todosNvItems };
 }
 
 /*******************************
@@ -180,7 +197,7 @@ function readFromSheet_(ss, sheetName) {
  * - Etiquetas Impressas: IDs com etiquetas IMPRESSA
  * - Faltam: soma Quantidade da lista independente faltamItems
  *******************************/
-function buildKpis_(pedidos, faltamItems) {
+function buildKpis_(pedidos, faltamItems, todosNvItems) {
   const idsTotal = new Set();
   const idsPendentes = new Set();
   const idsConfirmados = new Set();
@@ -205,6 +222,11 @@ function buildKpis_(pedidos, faltamItems) {
     faltam += Number(it.quantidade || 0);
   }
 
+  let faltaNaoVerificado = 0;
+  for (const it of (todosNvItems || [])) {
+    faltaNaoVerificado += Number(it.quantidade || 0);
+  }
+
   return {
     total: idsTotal.size,
     pendentes: idsPendentes.size,
@@ -212,7 +234,8 @@ function buildKpis_(pedidos, faltamItems) {
     cancelados: idsCancelados.size,
     bipadosPronto: idsBipadosPronto.size,
     etiquetasImpressas: idsEtiquetasImpressa.size,
-    faltam: faltam, // soma
+    faltam: faltam,
+    faltaNaoVerificado,
   };
 }
 
