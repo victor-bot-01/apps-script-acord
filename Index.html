@@ -1098,6 +1098,8 @@
       let ALL_FALTAM = [];
       let ALL_TODOS_NV = [];
       let ALL_PARCIAIS = [];
+      let _parcialFaltaPending = null;
+      let _modalOrders = null;
       let KPIS = null;
       let META = null;
 
@@ -1480,12 +1482,8 @@
           $("thead").innerHTML = `
             <tr>
               <th class="chk-col"><input type="checkbox" id="chkAllParciais" title="Marcar todos"></th>
-              <th data-sort="kitProduct">Kit</th>
-              <th data-sort="componentName">Componente</th>
-              <th data-sort="componentStatus" style="width:100px;">Status</th>
-              <th data-sort="qty" style="width:70px;">Qtd</th>
-              <th data-sort="orderId" style="width:130px;">Pedido</th>
-              <th data-sort="source" style="width:100px;">Fonte</th>
+              <th>Componente Pendente</th>
+              <th style="width:70px;">Qtd</th>
             </tr>
           `;
           return;
@@ -1653,7 +1651,7 @@
 
       const emptyColspan = () => {
         if (ACTIVE.view === "FALTAM_VIEW") return 2;
-        if (ACTIVE.view === "PARCIAIS_VIEW") return 7;
+        if (ACTIVE.view === "PARCIAIS_VIEW") return 3;
         if (ACTIVE.view === "FALTANV_VIEW") {
           let c = 2;
           if (FALTANV_FILTER === "nao_marcado") c += 1;
@@ -1839,36 +1837,50 @@
         }
 
         if (ACTIVE.view === "PARCIAIS_VIEW") {
-          let list = [...ALL_PARCIAIS];
-
-          const q = $("q").value.trim().toLowerCase();
-          if (q) {
-            list = list.filter(it =>
-              `${it.kitProduct} ${it.componentName} ${it.orderId} ${it.source}`.toLowerCase().includes(q)
-            );
-          }
-          if (SORT.col) {
-            list.sort((a, b) => {
-              const av = String(a[SORT.col] ?? "").toLowerCase();
-              const bv = String(b[SORT.col] ?? "").toLowerCase();
-              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
-            });
-          }
-
           updateBlueCellsWarning();
           $("copyFaltamBtn").style.display = "none";
           $("copyPendentesBtn").style.display = "none";
           $("tableTitle").textContent = "Produtos Parciais";
           $("reviewWarning").style.display = "none";
-
           const bar_ = $("faltanvBar"); if (bar_) bar_.classList.remove("visible");
-
           const parcActBar = $("parcActions");
           if (parcActBar) parcActBar.classList.add("visible");
-          updateParcialActionState_();
 
-          renderTable(list);
-          renderStatusline(list.length);
+          setThead();
+
+          const q = $("q").value.trim().toLowerCase();
+          const pendMap = {};
+          (ALL_PARCIAIS || [])
+            .filter(p => p.componentStatus === "PENDENTE")
+            .filter(p => !q || p.componentName.toLowerCase().includes(q))
+            .forEach(p => {
+              pendMap[p.componentName] = (pendMap[p.componentName] || 0) + (Number(p.qty) || 0);
+            });
+          const rows = Object.entries(pendMap);
+
+          if (!rows.length) {
+            $("tbody").innerHTML = `<tr><td colspan="3" style="padding:16px;color:var(--text-muted)">Nenhum componente pendente.</td></tr>`;
+          } else {
+            $("tbody").innerHTML = rows.map(([name, qty]) => `
+              <tr>
+                <td class="chk-col"><input type="checkbox" class="chk-parcial" value="${safe(name)}"></td>
+                <td>${safe(name)}</td>
+                <td>${qty}</td>
+              </tr>
+            `).join("");
+            const chkAllP = $("chkAllParciais");
+            if (chkAllP) {
+              chkAllP.addEventListener("change", () => {
+                document.querySelectorAll(".chk-parcial").forEach(c => c.checked = chkAllP.checked);
+                updateParcialActionState_();
+              });
+            }
+            document.querySelectorAll(".chk-parcial").forEach(c =>
+              c.addEventListener("change", updateParcialActionState_));
+          }
+
+          updateParcialActionState_();
+          renderStatusline(rows.length);
           return;
         }
 
@@ -2151,6 +2163,7 @@
                 $("modalParcialList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
                 return;
               }
+              _modalOrders = res.orders;
               if (!res.orders.length) {
                 $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
                 return;
@@ -2174,11 +2187,31 @@
           $("modalFaltaOk").disabled = inp.value.trim() !== "/Falta";
         });
 
-        $("modalFaltaCancel")?.addEventListener("click", () => $("modalFalta").classList.remove("open"));
+        $("modalFaltaCancel")?.addEventListener("click", () => {
+          _parcialFaltaPending = null;
+          $("modalFalta").classList.remove("open");
+        });
 
         $("modalFaltaOk")?.addEventListener("click", () => {
           if ($("modalFaltaInput").value.trim() !== "/Falta") return;
           $("modalFalta").classList.remove("open");
+          if (_parcialFaltaPending) {
+            const items = _parcialFaltaPending;
+            _parcialFaltaPending = null;
+            $("loadingOverlay").style.display = "flex";
+            google.script.run
+              .withSuccessHandler(res => {
+                $("loadingOverlay").style.display = "none";
+                if (res.ok) { fetchPedidos(); showToast("Itens marcados como /Falta."); }
+                else showToast("Erro: " + res.error);
+              })
+              .withFailureHandler(err => {
+                $("loadingOverlay").style.display = "none";
+                showToast("Falha: " + (err && err.message ? err.message : err));
+              })
+              .resolverParcialComoFalta(items);
+            return;
+          }
           const items = getCheckedFaltanvItems_();
           $("loadingOverlay").style.display = "flex";
           google.script.run
@@ -2194,20 +2227,28 @@
             .marcarProdutosComoFalta(items.map(it => ({ prodName: it.prodName, qty: it.qty, sheet: it.sheet })));
         });
 
-        $("modalParcialCancel")?.addEventListener("click", () => $("modalParcial").classList.remove("open"));
+        $("modalParcialCancel")?.addEventListener("click", () => {
+          _modalOrders = null;
+          $("modalParcial").classList.remove("open");
+        });
 
         $("modalParcialOk")?.addEventListener("click", () => {
           const items = getCheckedFaltanvItems_();
           if (items.length !== 1) return;
           const prodName = items[0].prodName;
           const tenhoIds = [...document.querySelectorAll(".chk-modal-order:checked")].map(c => c.getAttribute("data-id"));
+          const allModalIds = (_modalOrders || []).map(o => o.orderId);
+          _modalOrders = null;
           $("modalParcial").classList.remove("open");
           google.script.run
             .withSuccessHandler(res => {
               if (res.ok) fetchPedidos();
-              else alert("Erro: " + res.error);
+              else showToast("Erro: " + res.error);
             })
-            .marcarFaltaParcial(prodName, tenhoIds);
+            .withFailureHandler(err => {
+              showToast("Falha: " + (err && err.message ? err.message : err));
+            })
+            .marcarFaltaParcial(prodName, tenhoIds, allModalIds);
         });
       };
 
@@ -2217,18 +2258,17 @@
         const btnF = $("btnParcialFalta");
         const btnT = $("btnParcialTenho");
         const sel  = $("parcSelCount");
-        const uniqueComps = new Set([...checked].map(c => c.getAttribute("data-comp")));
         if (btnF) btnF.disabled = count === 0;
-        if (btnT) btnT.disabled = count === 0 || uniqueComps.size !== 1;
+        if (btnT) btnT.disabled = count !== 1;
         if (sel)  sel.textContent = count > 0 ? `${count} selecionado(s)` : "";
       };
 
       const getCheckedParcialItems_ = () => {
-        return [...document.querySelectorAll(".chk-parcial:checked")].map(c => ({
-          orderId:       c.getAttribute("data-orderid"),
-          kitProduct:    c.getAttribute("data-kit"),
-          componentName: c.getAttribute("data-comp"),
-        }));
+        const checked = new Set([...document.querySelectorAll(".chk-parcial:checked")].map(cb => cb.value));
+        if (!checked.size) return [];
+        return (ALL_PARCIAIS || []).filter(p =>
+          checked.has(p.componentName) && p.componentStatus === "PENDENTE"
+        );
       };
 
       const bindParcialControls_ = () => {
@@ -2243,19 +2283,10 @@
         $("btnParcialFalta")?.addEventListener("click", () => {
           const items = getCheckedParcialItems_();
           if (!items.length) return;
-          if (!confirm(`Marcar ${items.length} item(s) como /Falta na Conferencia?`)) return;
-          $("loadingOverlay").style.display = "flex";
-          google.script.run
-            .withSuccessHandler(res => {
-              $("loadingOverlay").style.display = "none";
-              if (res.ok) fetchPedidos();
-              else showToast("Erro: " + res.error);
-            })
-            .withFailureHandler(err => {
-              $("loadingOverlay").style.display = "none";
-              showToast("Falha: " + (err && err.message ? err.message : err));
-            })
-            .resolverParcialComoFalta(items);
+          _parcialFaltaPending = items;
+          $("modalFaltaInput").value = "";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
         });
 
         $("btnParcialTenho")?.addEventListener("click", () => {

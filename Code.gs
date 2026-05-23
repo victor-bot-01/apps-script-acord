@@ -907,13 +907,14 @@ function marcarProdutosComoFalta(selections) {
 
 // Para o modal Falta Parcial: marca tenhoIds com F = "FALTA - [componentName]"
 // e os demais (status vazio) com F = "FALTA".
-function marcarFaltaParcial(componentName, tenhoIds) {
+function marcarFaltaParcial(componentName, tenhoIds, allModalIds) {
   try {
     const mapSubseq = pend_buildDadosMapSubseq_();
     const rev = bm_buildReverseMap_(mapSubseq);
     const normComp = pend_norm_(componentName);
     const kitKeys  = rev.get(normComp) || [];
     const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
+    const allSet   = new Set((allModalIds || []).map(id => String(id).trim()));
 
     const conf = bm_readConferencia_();
     const newSt = conf.statuses.map(r => [r[0]]);
@@ -926,6 +927,7 @@ function marcarFaltaParcial(componentName, tenhoIds) {
       if (!match) continue;
       const id = String(conf.ids[i][0]??"").trim();
       if (!id) continue;
+      if (allSet.size > 0 && !allSet.has(id)) continue;
       newSt[i][0] = tenhoSet.has(id) ? "FALTA - " + componentName : "FALTA";
       updated++;
     }
@@ -966,6 +968,21 @@ function resolverParcialComTenho(items, tenhoIds) {
   try {
     if (!items?.length) return { ok: true, updated: 0 };
     const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
+
+    // Ler Parciais para encontrar componentes irmãos (o que FALTA quando o outro é TENHO)
+    const parcSh = bm_getOrCreateParciais_();
+    const parcData = parcSh.getDataRange().getValues();
+    const ordKitComps = {};
+    for (let r = 1; r < parcData.length; r++) {
+      const oId  = String(parcData[r][1] || "").trim();
+      const kit  = String(parcData[r][2] || "").trim();
+      const comp = String(parcData[r][3] || "").trim();
+      if (!oId || !kit || !comp) continue;
+      const key = oId + "||" + kit;
+      if (!ordKitComps[key]) ordKitComps[key] = [];
+      if (!ordKitComps[key].includes(comp)) ordKitComps[key].push(comp);
+    }
+
     const conf = bm_readConferencia_();
     const newSt = conf.statuses.map(r => [r[0]]);
     let updated = 0;
@@ -976,9 +993,14 @@ function resolverParcialComTenho(items, tenhoIds) {
         if (String(conf.ids[i][0]??"").trim() !== orderId) continue;
         if (pend_norm_(String(conf.prods[i][0]??"").trim()) !== normKit) continue;
         if (String(conf.statuses[i][0]??"").toUpperCase().includes("TENHO")) continue;
-        newSt[i][0] = tenhoSet.has(orderId)
-          ? "FALTA - " + item.componentName
-          : "FALTA";
+        if (tenhoSet.has(orderId)) {
+          const key = orderId + "||" + item.kitProduct;
+          const siblings = (ordKitComps[key] || []).filter(c => c !== item.componentName);
+          const missingName = siblings.length ? siblings.join(" / ") : item.componentName;
+          newSt[i][0] = "FALTA - " + missingName;
+        } else {
+          newSt[i][0] = "FALTA";
+        }
         updated++;
       }
     }
