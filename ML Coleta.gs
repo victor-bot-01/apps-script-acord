@@ -1065,15 +1065,25 @@ function importarShopeeMagalu() {
       Logger.log("importarShopeeMagalu: abas 'Shopee', 'Magalu' ou 'Essência do Brasil' não encontradas.");
       return;
     }
+    const shAmazon   = ss.getSheetByName("Amazon");
+    const shFlexVapt = ss.getSheetByName("Flex/Vapt");
+    if (!shAmazon || !shFlexVapt) {
+      Logger.log("importarShopeeMagalu: abas 'Amazon' ou 'Flex/Vapt' não encontradas.");
+      return;
+    }
 
     limparAbaExcetoCabecalho_(shShopee);
     limparAbaExcetoCabecalho_(shMagalu);
     limparAbaExcetoCabecalho_(shEssencia);
+    limparAbaExcetoCabecalho_(shAmazon);
+    limparAbaExcetoCabecalho_(shFlexVapt);
 
     const ssSrc = SpreadsheetApp.openById(ML_IMPORT_CONFIG.STATUS_SOURCE_SPREADSHEET_ID);
     const rowsShopee   = [];
     const rowsMagalu   = [];
     const rowsEssencia = [];
+    const rowsAmazon   = [];
+    const rowsFlexVapt = [];
 
     for (const sheetName of ["Maio", "Abril"]) {
       const sh = ssSrc.getSheetByName(sheetName);
@@ -1093,19 +1103,29 @@ function importarShopeeMagalu() {
         if (colC.includes("shopee"))      dest = "Shopee";
         else if (colC.includes("magalu")) dest = "Magalu";
         else if (colC.includes("essência do brasil") || colC.includes("essencia do brasil")) dest = "Essência do Brasil";
-        else continue;
+        else if (colC.includes("amazon")) dest = "Amazon";
 
-        // Filtro 2 — Coluna G (índice 6): exclusão
+        // Coluna G (índice 6): usada para exclusão e para Flex/Vapt
         const colG = String(values[i][6] ?? "").trim().toLowerCase();
         const bgG  = String(bgs[i][0]    ?? "").trim().toLowerCase();
-        if (colG.includes("ok"))         continue;
-        if (bgG === ML_IMPORT_CONFIG.OK_GREEN) continue;
-        if (colG.includes("cancelado"))  continue;
+
+        // Flex/Vapt: independente de destino, verifica coluna G
+        const hasFlexVapt = colG.includes("flex") || colG.includes("vapt");
+        const isExcluded  = colG.includes("ok") || bgG === ML_IMPORT_CONFIG.OK_GREEN.toLowerCase() || colG.includes("cancelado");
+        if (hasFlexVapt && !isExcluded) {
+          rowsFlexVapt.push([values[i][1], values[i][3], values[i][5], values[i][4]]);
+        }
+
+        if (!dest) continue;
+        if (colG.includes("ok"))                   continue;
+        if (bgG === ML_IMPORT_CONFIG.OK_GREEN)     continue;
+        if (colG.includes("cancelado"))            continue;
 
         // B→ID, D→CLIENTE, F→PRODUTO, E→QTD
         const row = [values[i][1], values[i][3], values[i][5], values[i][4]];
         if (dest === "Shopee")               rowsShopee.push(row);
         else if (dest === "Magalu")          rowsMagalu.push(row);
+        else if (dest === "Amazon")          rowsAmazon.push(row);
         else                                 rowsEssencia.push(row);
       }
     }
@@ -1113,17 +1133,23 @@ function importarShopeeMagalu() {
     if (rowsShopee.length)   shShopee.getRange(2, 1, rowsShopee.length, 4).setValues(rowsShopee);
     if (rowsMagalu.length)   shMagalu.getRange(2, 1, rowsMagalu.length, 4).setValues(rowsMagalu);
     if (rowsEssencia.length) shEssencia.getRange(2, 1, rowsEssencia.length, 4).setValues(rowsEssencia);
+    if (rowsAmazon.length)   shAmazon.getRange(2, 1, rowsAmazon.length, 4).setValues(rowsAmazon);
+    if (rowsFlexVapt.length) shFlexVapt.getRange(2, 1, rowsFlexVapt.length, 4).setValues(rowsFlexVapt);
 
     const noop = () => {};
     const statusById = construirStatusById_(noop);
     aplicarStatus_porAba_(statusById, "Shopee");
     aplicarStatus_porAba_(statusById, "Magalu");
     aplicarStatus_porAba_(statusById, "Essência do Brasil");
+    aplicarStatus_porAba_(statusById, "Amazon");
+    aplicarStatus_porAba_(statusById, "Flex/Vapt");
 
     const andamentoByIdQueue = construirFilaAndamentoPorId_(noop);
     aplicarAndamento_porAba_(andamentoByIdQueue, "Shopee");
     aplicarAndamento_porAba_(andamentoByIdQueue, "Magalu");
     aplicarAndamento_porAba_(andamentoByIdQueue, "Essência do Brasil");
+    aplicarAndamento_porAba_(andamentoByIdQueue, "Amazon");
+    aplicarAndamento_porAba_(andamentoByIdQueue, "Flex/Vapt");
 
     // Pendentes (colunas I e J)
     const confById  = pend_buildConferenciaById_();
@@ -1131,8 +1157,10 @@ function importarShopeeMagalu() {
     pend_process_porAba_(shShopee,   confById, mapSubseq);
     pend_process_porAba_(shMagalu,   confById, mapSubseq);
     pend_process_porAba_(shEssencia, confById, mapSubseq);
+    pend_process_porAba_(shAmazon,   confById, mapSubseq);
+    pend_process_porAba_(shFlexVapt, confById, mapSubseq);
 
-    Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length + " | Essência do Brasil=" + rowsEssencia.length);
+    Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length + " | Essência do Brasil=" + rowsEssencia.length + " | Amazon=" + rowsAmazon.length + " | Flex/Vapt=" + rowsFlexVapt.length);
   } finally {
     lock.releaseLock();
   }

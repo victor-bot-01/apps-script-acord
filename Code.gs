@@ -3,7 +3,7 @@
  *******************************/
 const CONFIG = {
   DEFAULT_SOURCE: "ML Coleta",
-  SHEET_NAMES: ["ML Coleta", "ML 1", "Shopee", "Magalu", "Essência do Brasil"],
+  SHEET_NAMES: ["ML Coleta", "ML 1", "Shopee", "Magalu", "Essência do Brasil", "Amazon", "Flex/Vapt"],
 
   HEADER_ROW: 1,
   DATA_START_ROW: 2,

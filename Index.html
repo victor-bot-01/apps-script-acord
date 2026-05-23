@@ -341,6 +341,86 @@
       [data-theme="essencia-dark"] tbody tr:hover { background: rgba(76,175,80,.06); }
       [data-theme="essencia-dark"] .kpi-active { background: rgba(76,175,80,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
 
+      [data-theme="amazon"] {
+        --yellow:       #546E7A;
+        --yellow-dark:  #37474F;
+        --yellow-deep:  #263238;
+        --yellow-light: #ECEFF1;
+        --yellow-pale:  #F5F7F8;
+        --yellow-muted: rgba(84,110,122,.15);
+
+        --bg:       #F7F8F9;
+        --surface2: #ECEFF1;
+
+        --header-bg:     #37474F;
+        --header-text:   #ECEFF1;
+        --header-border: #263238;
+
+        --text:       #0A0F12;
+        --text-muted: #546E7A;
+
+        --border:  #B0BEC5;
+        --border2: #CFD8DC;
+
+        --gray-50:  #F7F8F9;
+        --gray-100: #ECEFF1;
+        --gray-200: #CFD8DC;
+        --gray-300: #B0BEC5;
+        --gray-500: #78909C;
+        --gray-700: #455A64;
+
+        --multi-bg:       #E0E6EA;
+        --multi-bg-hover: #CFD8DC;
+
+        --badge-outro-bg:  #ECEFF1; --badge-outro-text: #37474F;
+
+        --shadow-sm: 0 1px 3px rgba(55,71,79,.12), 0 1px 2px rgba(55,71,79,.08);
+        --shadow-md: 0 4px 12px rgba(55,71,79,.18), 0 2px 6px rgba(55,71,79,.10);
+        --shadow-hd: 0 4px 24px rgba(55,71,79,.30);
+      }
+      [data-theme="amazon"] .badgeLogo { background: #0A1520; border-left-color: var(--yellow); }
+      [data-theme="amazon"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="amazon"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      [data-theme="amazon-dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+        --header-bg:     #1A1A1A;
+        --header-text:   #90A4AE;
+        --header-border: #37474F;
+        --dark:  #F5C518;
+        --dark2: #E0B000;
+        --text:       #E8ECED;
+        --text-muted: #78909C;
+        --border:  #1A2025;
+        --border2: #151A1E;
+        --gray-50:  #111518;
+        --gray-100: #161C20;
+        --gray-200: #1C2428;
+        --gray-300: #253035;
+        --gray-500: #455A64;
+        --gray-700: #AAAAAA;
+        --yellow:       #90A4AE;
+        --yellow-light: #1A2530;
+        --yellow-dark:  #546E7A;
+        --yellow-muted: rgba(144,164,174,.15);
+        --multi-bg:       rgba(144,164,174,.15);
+        --multi-bg-hover: rgba(144,164,174,.23);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="amazon-dark"] .badgeLogo { background: #0A1015; border-left-color: var(--yellow); }
+      [data-theme="amazon-dark"] .chip { border-color: var(--yellow); background: rgba(20,25,30,.90); }
+      [data-theme="amazon-dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #0A1015; }
+      [data-theme="amazon-dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="amazon-dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="amazon-dark"] thead th { background: #161C20; }
+      [data-theme="amazon-dark"] thead th:hover { background: #253035; }
+      [data-theme="amazon-dark"] tbody tr:hover { background: rgba(144,164,174,.06); }
+      [data-theme="amazon-dark"] .kpi-active { background: rgba(144,164,174,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
       * { box-sizing: border-box; }
       html, body { height: 100%; }
       body {
@@ -752,6 +832,8 @@
               <div class="segBtn" data-src="Shopee">Shopee</div>
               <div class="segBtn" data-src="Magalu">Magalu</div>
               <div class="segBtn" data-src="Essência do Brasil">Essência do Brasil</div>
+              <div class="segBtn" data-src="Amazon">Amazon</div>
+              <div class="segBtn" data-src="Flex/Vapt">Flex/Vapt</div>
             </div>
           </div>
 
@@ -847,6 +929,7 @@
           if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee-dark");
           else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu-dark");
           else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia-dark");
+          else if (src === "Amazon") document.documentElement.setAttribute("data-theme", "amazon-dark");
           else document.documentElement.setAttribute("data-theme", "dark");
         } else {
           applySourceTheme(src);
@@ -1563,17 +1646,21 @@
           if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee-dark");
           else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu-dark");
           else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia-dark");
+          else if (src === "Amazon") document.documentElement.setAttribute("data-theme", "amazon-dark");
           else document.documentElement.setAttribute("data-theme", "dark");
         } else {
           if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee");
           else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu");
           else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia");
+          else if (src === "Amazon") document.documentElement.setAttribute("data-theme", "amazon");
           else document.documentElement.removeAttribute("data-theme");
         }
         const titleMap = {
           "Shopee":             "Pedidos — HUD Shopee",
           "Magalu":             "Pedidos — HUD Magalu",
           "Essência do Brasil": "Pedidos — HUD Essência do Brasil",
+          "Amazon":             "Pedidos — HUD Amazon",
+          "Flex/Vapt":          "Pedidos — HUD Flex/Vapt",
         };
         const h1 = document.querySelector("header h1");
         if (h1) h1.textContent = titleMap[src] || "Pedidos — HUD Mercado Livre";
