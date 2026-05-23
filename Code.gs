@@ -120,10 +120,10 @@ function getPedidos(source) {
  *******************************/
 function readFromSheet_(ss, sheetName) {
   const sh = ss.getSheetByName(sheetName);
-  if (!sh) return { pedidos: [], faltamItems: [] };
+  if (!sh) return { pedidos: [], faltamItems: [], todosNvItems: [] };
 
   const lastRow = sh.getLastRow();
-  if (lastRow < CONFIG.DATA_START_ROW) return { pedidos: [], faltamItems: [] };
+  if (lastRow < CONFIG.DATA_START_ROW) return { pedidos: [], faltamItems: [], todosNvItems: [] };
 
   const lastCol = CONFIG.COLS.TODOS_NV_QTD; // 14
 
