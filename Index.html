@@ -1399,13 +1399,16 @@
           { type:"FALTAM",            key:"faltam",             label:"Faltam",              hint:"Soma de Quantidade", view:"FALTAM_VIEW" },
           { type:"STATUS:CONFIRMADO", key:"confirmados",        label:"Confirmados",         hint:"Pedidos confirmados", view:"STATUS" },
           { type:"FALTANV",           key:"faltaNaoVerificado", label:"Falta/Não Verificado", hint:"Qtd não verificada",  view:"FALTANV_VIEW", todosOnly: true },
-          { type:"VIEW:ETIQUETAS",    key:"etiquetasImpressas", label:"Etiquetas Impressas", hint:'IDs com "Impressa"', view:"ETIQUETAS" },
+          { type:"VIEW:ETIQUETAS",    key:"etiquetasImpressas", label:"Etiquetas Impressas", hint:'IDs com "Impressa"', view:"ETIQUETAS", hideInTodos: true },
           { type:"PARCIAIS",          key:"parciais",            label:"Produtos Parciais",   hint:"Componentes kit pendentes", view:"PARCIAIS_VIEW", todosOnly: true },
           { type:"STATUS:CANCELADO",  key:"cancelados",         label:"Cancelados",          hint:"Pedidos cancelados", view:"STATUS" },
         ];
 
         return defs
-          .filter(d => !d.todosOnly || ACTIVE_SOURCE === "TODOS")
+          .filter(d =>
+            (!d.todosOnly   || ACTIVE_SOURCE === "TODOS") &&
+            (!d.hideInTodos || ACTIVE_SOURCE !== "TODOS")
+          )
           .map(d => `
           <div class="card${isActive(d.type) ? ' kpi-active' : ''}"
                role="button"
@@ -1995,19 +1998,27 @@
           .withSuccessHandler((res) => {
             $("loadingOverlay").style.display = "none";
 
-            if (!res || !res.ok) throw new Error((res && res.error) || "Erro desconhecido.");
+            if (!res || !res.ok) {
+              showToast((res && res.error) || "Erro desconhecido.");
+              return;
+            }
 
             ALL_PEDIDOS = res.pedidos || [];
             ALL_FALTAM = res.faltamItems || [];
             ALL_TODOS_NV = res.todosNvItems || [];
             KPIS = res.kpis || null;
-            google.script.run.withSuccessHandler(pr => {
-              ALL_PARCIAIS = (pr.ok && pr.items) ? pr.items : [];
-              if (KPIS) KPIS.parciais = ALL_PARCIAIS.reduce((acc, it) => acc + (Number(it.qty) || 0), 0);
-              $("kpis").innerHTML = kpiCards(KPIS);
-              bindKpiClicks();
-              if (ACTIVE.view === "PARCIAIS_VIEW") applyAllFilters();
-            }).getParciais();
+            google.script.run
+              .withSuccessHandler(pr => {
+                ALL_PARCIAIS = (pr.ok && pr.items) ? pr.items : [];
+                if (KPIS) KPIS.parciais = ALL_PARCIAIS.reduce((acc, it) => acc + (Number(it.qty) || 0), 0);
+                $("kpis").innerHTML = kpiCards(KPIS);
+                bindKpiClicks();
+                if (ACTIVE.view === "PARCIAIS_VIEW") applyAllFilters();
+              })
+              .withFailureHandler(err => {
+                showToast("Falha ao carregar parciais: " + (err && err.message ? err.message : err));
+              })
+              .getParciais();
             META = res.meta || null;
 
             if (res.collectionTimes) { COLLECTION_TIMES = res.collectionTimes; updateCtDisplay(); }
@@ -2022,9 +2033,6 @@
             updatePauseButtons();
             updateMonitorSnapshot();
             startAutoRefresh();
-
-            $("kpis").innerHTML = kpiCards(KPIS);
-            bindKpiClicks();
 
             renderMeta();
             applyAllFilters();
@@ -2085,7 +2093,6 @@
         if (btnF) btnF.addEventListener("click", () => {
           const items = getCheckedFaltanvItems_();
           if (!items.length) return;
-          $("modalFaltaDesc").innerHTML = `Digite <strong>/Falta</strong> para confirmar a marcação de <strong>${items.length}</strong> produto(s).`;
           $("modalFaltaInput").value = "";
           $("modalFaltaOk").disabled = true;
           $("modalFalta").classList.add("open");
@@ -2100,23 +2107,28 @@
           $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
           $("modalParcial").classList.add("open");
 
-          google.script.run.withSuccessHandler(res => {
-            if (!res.ok) {
-              $("modalParcialList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
-              return;
-            }
-            if (!res.orders.length) {
-              $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
-              return;
-            }
-            $("modalParcialList").innerHTML = res.orders.map(o => `
-              <div class="modal-order-row">
-                <input type="checkbox" class="chk-modal-order" data-id="${safe(o.orderId)}">
-                <span>${safe(o.orderId)}</span>
-                <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">${safe(o.source)}</span>
-              </div>
-            `).join("");
-          }).getOrdersByComponent(prodName);
+          google.script.run
+            .withSuccessHandler(res => {
+              if (!res.ok) {
+                $("modalParcialList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
+                return;
+              }
+              if (!res.orders.length) {
+                $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
+                return;
+              }
+              $("modalParcialList").innerHTML = res.orders.map(o => `
+                <div class="modal-order-row">
+                  <input type="checkbox" class="chk-modal-order" data-id="${safe(o.orderId)}">
+                  <span>${safe(o.orderId)}</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">${safe(o.source)}</span>
+                </div>
+              `).join("");
+            })
+            .withFailureHandler(err => {
+              $("modalParcialList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
+            })
+            .getOrdersByComponent(prodName);
         });
 
         const inp = $("modalFaltaInput");
@@ -2130,10 +2142,16 @@
           if ($("modalFaltaInput").value.trim() !== "/Falta") return;
           $("modalFalta").classList.remove("open");
           const items = getCheckedFaltanvItems_();
+          $("loadingOverlay").style.display = "flex";
           google.script.run
             .withSuccessHandler(res => {
+              $("loadingOverlay").style.display = "none";
               if (res.ok) fetchPedidos();
-              else alert("Erro: " + res.error);
+              else showToast("Erro: " + res.error);
+            })
+            .withFailureHandler(err => {
+              $("loadingOverlay").style.display = "none";
+              showToast("Falha ao marcar: " + (err && err.message ? err.message : err));
             })
             .marcarProdutosComoFalta(items.map(it => ({ prodName: it.prodName, qty: it.qty, sheet: it.sheet })));
         });
@@ -2188,10 +2206,16 @@
           const items = getCheckedParcialItems_();
           if (!items.length) return;
           if (!confirm(`Marcar ${items.length} item(s) como /Falta na Conferencia?`)) return;
+          $("loadingOverlay").style.display = "flex";
           google.script.run
             .withSuccessHandler(res => {
+              $("loadingOverlay").style.display = "none";
               if (res.ok) fetchPedidos();
-              else alert("Erro: " + res.error);
+              else showToast("Erro: " + res.error);
+            })
+            .withFailureHandler(err => {
+              $("loadingOverlay").style.display = "none";
+              showToast("Falha: " + (err && err.message ? err.message : err));
             })
             .resolverParcialComoFalta(items);
         });
@@ -2217,10 +2241,16 @@
           const items    = getCheckedParcialItems_();
           const tenhoIds = [...document.querySelectorAll(".chk-modal-tenho:checked")].map(c => c.getAttribute("data-id"));
           $("modalTenho").classList.remove("open");
+          $("loadingOverlay").style.display = "flex";
           google.script.run
             .withSuccessHandler(res => {
+              $("loadingOverlay").style.display = "none";
               if (res.ok) fetchPedidos();
-              else alert("Erro: " + res.error);
+              else showToast("Erro: " + res.error);
+            })
+            .withFailureHandler(err => {
+              $("loadingOverlay").style.display = "none";
+              showToast("Falha: " + (err && err.message ? err.message : err));
             })
             .resolverParcialComTenho(items, tenhoIds);
         });
@@ -2245,9 +2275,8 @@
       <!-- Modal: confirmar /Falta -->
       <div class="modal-overlay" id="modalFalta">
         <div class="modal-box">
-          <h3>Confirmar marcação como /Falta</h3>
-          <p id="modalFaltaDesc">Digite <strong>/Falta</strong> para confirmar a marcação dos produtos selecionados.</p>
-          <input type="text" class="modal-input" id="modalFaltaInput" placeholder="/Falta" autocomplete="off">
+          <h3>Confirmação</h3>
+          <input type="password" class="modal-input" id="modalFaltaInput" placeholder="" autocomplete="off">
           <div class="modal-btns">
             <button class="btn-modal-cancel" id="modalFaltaCancel">Cancelar</button>
             <button class="btn-modal-ok"    id="modalFaltaOk" disabled>Confirmar</button>
