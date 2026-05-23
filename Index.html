@@ -2155,8 +2155,9 @@
           const prodName = items[0].prodName;
           $("modalParcialTitle").textContent = "Falta Parcial — " + prodName;
           $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
-          $("modalParcial").classList.add("open");
+          _modalOrders = null;
           $("modalParcialOk").disabled = true;
+          $("modalParcial").classList.add("open");
 
           google.script.run
             .withSuccessHandler(res => {
