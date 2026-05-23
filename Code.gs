@@ -910,46 +910,83 @@ function marcarProdutosComoFalta(selections) {
 function marcarFaltaParcial(componentName, tenhoIds, allModalIds) {
   try {
     const mapSubseq = pend_buildDadosMapSubseq_();
-    const rev = bm_buildReverseMap_(mapSubseq);
-    const normComp = pend_norm_(componentName);
-    const kitKeys  = rev.get(normComp) || [];
+    const rev       = bm_buildReverseMap_(mapSubseq);
+    const normComp  = pend_norm_(componentName);
+    const kitKeys   = rev.get(normComp) || [];
+    const tenhoSet  = new Set(tenhoIds.map(id => String(id).trim()));
+    const allSet    = new Set((allModalIds || []).map(id => String(id).trim()));
+    const conf      = bm_readConferencia_();
+
+    // === STANDALONE: toca Conferencia diretamente ===
+    if (kitKeys.length === 0) {
+      const newSt = conf.statuses.map(r => [r[0]]);
+      let updated = 0;
+      for (let i = 0; i < conf.rows; i++) {
+        if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
+        const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
+        if (pk !== normComp) continue;
+        const id = String(conf.ids[i][0] ?? "").trim();
+        if (!id) continue;
+        if (allSet.size > 0 && !allSet.has(id)) continue;
+        if (tenhoSet.has(id)) continue;   // TENHO standalone: não toca
+        newSt[i][0] = "FALTA";
+        updated++;
+      }
+      if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+      return { ok: true, updated, parciaisAdded: 0 };
+    }
+
+    // === KIT: escreve na Parciais, não toca Conferencia ===
     const fwd = new Map();
     for (const [k, v] of mapSubseq.entries()) {
       fwd.set(k, v.split(";").map(s => s.trim()).filter(Boolean));
     }
-    const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
-    const allSet   = new Set((allModalIds || []).map(id => String(id).trim()));
 
-    const conf = bm_readConferencia_();
-    const newSt = conf.statuses.map(r => [r[0]]);
-    let updated = 0;
-
-    for (let i = 0; i < conf.rows; i++) {
-      if (String(conf.statuses[i][0]??"").trim() !== "") continue;
-      const pk    = pend_norm_(String(conf.prods[i][0]??"").trim());
-      const match = kitKeys.length ? kitKeys.includes(pk) : pk === normComp;
-      if (!match) continue;
-      const id = String(conf.ids[i][0]??"").trim();
-      if (!id) continue;
-      if (allSet.size > 0 && !allSet.has(id)) continue;
-      if (tenhoSet.has(id)) {
-        if (kitKeys.length > 0) {
-          const comps    = fwd.get(pk) || [];
-          const siblings = comps.filter(c => pend_norm_(c) !== normComp);
-          const missingName = siblings.length ? siblings.join(" / ") : componentName;
-          newSt[i][0] = "FALTA - " + missingName;
-          updated++;
-        }
-        // Produto standalone: TENHO → não toca, deixa como está
-      } else {
-        newSt[i][0] = "FALTA";
-        updated++;
+    // Resolve source (aba) por orderId
+    const dashSS     = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt"];
+    const idSource   = new Map();
+    for (const name of sheetNames) {
+      const sh = dashSS.getSheetByName(name);
+      if (!sh || sh.getLastRow() < 2) continue;
+      const ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+      for (const r of ids) {
+        const id = String(r[0] ?? "").trim();
+        if (allSet.has(id) && !idSource.has(id)) idSource.set(id, name);
       }
     }
 
-    if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
-    return { ok: true, updated };
-  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+    const parcSh        = bm_getOrCreateParciais_();
+    const processedKeys = new Set();
+    let parciaisAdded   = 0;
+
+    for (let i = 0; i < conf.rows; i++) {
+      if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
+      const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
+      if (!kitKeys.includes(pk)) continue;
+      const id = String(conf.ids[i][0] ?? "").trim();
+      if (!id) continue;
+      if (allSet.size > 0 && !allSet.has(id)) continue;
+
+      const orderKey = id + "||" + pk;
+      if (processedKeys.has(orderKey)) continue;
+      processedKeys.add(orderKey);
+
+      const kitProdOriginal = String(conf.prods[i][0]).trim();
+      const source          = idSource.get(id) || "";
+      const isTenho         = tenhoSet.has(id);
+      const comps           = fwd.get(pk) || [];
+
+      for (const comp of comps) {
+        const compNorm = pend_norm_(comp);
+        const cStatus  = (compNorm === normComp && !isTenho) ? "FALTA" : "PENDENTE";
+        parcSh.appendRow([source, id, kitProdOriginal, comp, cStatus, 1]);
+        parciaisAdded++;
+      }
+    }
+
+    return { ok: true, updated: 0, parciaisAdded };
+  } catch(err) { return { ok: false, error: String(err.message || err) }; }
 }
 
 // Resolve itens de Parciais como /Falta: Conferencia F = "FALTA" para as ordens dos itens.
