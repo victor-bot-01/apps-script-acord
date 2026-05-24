@@ -1031,7 +1031,7 @@
       <div class="modal-overlay" id="modalFalta">
         <div class="modal-box">
           <h3>Confirmação</h3>
-          <input type="text" class="modal-input" id="modalFaltaInput" placeholder="" autocomplete="off">
+          <input type="text" class="modal-input" id="modalFaltaInput" placeholder="/Falta" autocomplete="off">
           <div class="modal-btns">
             <button class="btn-modal-cancel" id="modalFaltaCancel">Cancelar</button>
             <button class="btn-modal-ok"    id="modalFaltaOk" disabled>Confirmar</button>
@@ -1112,6 +1112,7 @@
       let _parcialFaltaPending = null;
       let _modalOrders = null;
       let _faltaItemOrders = null;
+      let _faltaParcialPendente = null;
       let KPIS = null;
       let META = null;
 
@@ -1572,8 +1573,10 @@
 
       const rowHtml = (p) => {
         if (ACTIVE.view === "FALTAM_VIEW") {
+          const isTodosTab = ACTIVE_SOURCE === "TODOS";
           return `
-            <tr data-produto="${safe(p.produtoPendentes)}" style="cursor:pointer" onclick="openFaltaItemModal_(this.dataset.produto)">
+            <tr data-produto="${safe(p.produtoPendentes)}"
+              ${isTodosTab ? 'style="cursor:pointer" onclick="openFaltaItemModal_(this.dataset.produto)"' : ''}>
               <td>${safe(p.produtoPendentes)}</td>
               <td>${safe(p.quantidade)}</td>
             </tr>
@@ -2199,15 +2202,40 @@
 
         const inp = $("modalFaltaInput");
         if (inp) inp.addEventListener("input", () => {
-          $("modalFaltaOk").disabled = inp.value.trim() !== "/Falta";
+          $("modalFaltaOk").disabled = !(
+            inp.value.trim() === "/Falta" ||
+            (inp.value.trim() === "/Tenho" && _faltaParcialPendente !== null)
+          );
         });
 
         $("modalFaltaCancel")?.addEventListener("click", () => {
           _parcialFaltaPending = null;
+          _faltaParcialPendente = null;
+          $("modalFaltaInput").placeholder = "/Falta";
           $("modalFalta").classList.remove("open");
         });
 
         $("modalFaltaOk")?.addEventListener("click", () => {
+          if (_faltaParcialPendente) {
+            if ($("modalFaltaInput").value.trim() !== "/Tenho") return;
+            $("modalFalta").classList.remove("open");
+            $("modalFaltaInput").placeholder = "/Falta";
+            const { prodName, tenhoIds, allModalIds } = _faltaParcialPendente;
+            _faltaParcialPendente = null;
+            $("loadingOverlay").style.display = "flex";
+            google.script.run
+              .withSuccessHandler(res => {
+                $("loadingOverlay").style.display = "none";
+                if (res.ok) { fetchPedidos(); showToast("Falta Parcial registrada."); }
+                else showToast("Erro: " + res.error);
+              })
+              .withFailureHandler(err => {
+                $("loadingOverlay").style.display = "none";
+                showToast("Falha: " + (err?.message || err));
+              })
+              .marcarFaltaParcial(prodName, tenhoIds, allModalIds);
+            return;
+          }
           if ($("modalFaltaInput").value.trim() !== "/Falta") return;
           $("modalFalta").classList.remove("open");
           if (_parcialFaltaPending) {
@@ -2256,15 +2284,11 @@
           const allModalIds = (_modalOrders || []).map(o => o.orderId);
           _modalOrders = null;
           $("modalParcial").classList.remove("open");
-          google.script.run
-            .withSuccessHandler(res => {
-              if (res.ok) fetchPedidos();
-              else showToast("Erro: " + res.error);
-            })
-            .withFailureHandler(err => {
-              showToast("Falha: " + (err && err.message ? err.message : err));
-            })
-            .marcarFaltaParcial(prodName, tenhoIds, allModalIds);
+          _faltaParcialPendente = { prodName, tenhoIds, allModalIds };
+          $("modalFaltaInput").value = "";
+          $("modalFaltaInput").placeholder = "/Tenho";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
         });
       };
 
@@ -2288,26 +2312,28 @@
       };
 
       function openFaltaItemModal_(productName) {
-        _faltaItemOrders = null;
         $("modalFaltaItemTitle").textContent = productName;
-        $("modalFaltaItemList").innerHTML = "<em>Carregando...</em>";
-        $("btnFaltaItemCopy").disabled = true;
         $("modalFaltaItem").style.display = "flex";
-        google.script.run
-          .withSuccessHandler(res => {
-            if (!res.ok) { showToast("Erro: " + res.error); return; }
-            _faltaItemOrders = res.orders;
-            $("modalFaltaItemList").innerHTML = res.orders.length
-              ? res.orders.map(o => `
-                  <label class="modal-order-row">
-                    <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
-                    <span>${safe(o.orderId)} — ${safe(o.source)}</span>
-                  </label>`).join("")
-              : "<em>Nenhum pedido encontrado.</em>";
-            $("btnFaltaItemCopy").disabled = false;
-          })
-          .withFailureHandler(err => showToast("Falha: " + err.message))
-          .getOrdersByFaltaItem(productName);
+
+        let orders = [];
+        const aggItem = ALL_FALTAM.find(it => it.produtoPendentes === productName);
+        if (aggItem && aggItem.orders) {
+          orders = aggItem.orders;
+        } else {
+          orders = ALL_FALTAM
+            .filter(it => it.produtoPendentes === productName && it.id)
+            .map(it => ({ orderId: it.id, source: it.sheet }));
+        }
+
+        $("modalFaltaItemList").innerHTML = orders.length
+          ? orders.map(o => `
+              <label class="modal-order-row">
+                <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
+                <span>${safe(o.orderId)} — ${safe(o.source)}</span>
+              </label>`).join("")
+          : "<em>Nenhum pedido encontrado.</em>";
+        $("btnFaltaItemCopy").disabled = false;
+        _faltaItemOrders = orders;
       }
 
       function closeFaltaItemModal_() {
@@ -2319,9 +2345,20 @@
         if (!_faltaItemOrders) { showToast("Aguarde o carregamento."); return; }
         const checked = [...document.querySelectorAll(".chk-falta-item:checked")].map(c => c.dataset.id);
         if (!checked.length) { showToast("Selecione ao menos um pedido."); return; }
-        navigator.clipboard.writeText(checked.join("\n"))
-          .then(() => showToast("IDs copiados: " + checked.length))
-          .catch(() => showToast("Erro ao copiar."));
+        const seen = new Set();
+        const parts = [];
+        for (const id of checked) {
+          if (!seen.has(id)) { seen.add(id); parts.push(id.slice(-5)); }
+        }
+        const text = parts.join("/");
+        navigator.clipboard.writeText(text)
+          .then(() => showToast("IDs copiados!", 2500, "success"))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = text; document.body.appendChild(ta);
+            ta.select(); document.execCommand("copy");
+            document.body.removeChild(ta);
+          });
       }
 
       const bindParcialControls_ = () => {

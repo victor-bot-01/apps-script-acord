@@ -146,12 +146,9 @@ function readFromSheet_(ss, sheetName) {
     const quantidade = parseNumber_(r[CONFIG.COLS.QUANTIDADE - 1]);
 
     // Só entra se tiver produto pendente (o principal)
+    const rowId = String(r[CONFIG.COLS.ID - 1] ?? "").trim();
     if (produtoPendentes !== "") {
-      faltamItems.push({
-        produtoPendentes,
-        quantidade,
-        sheet: sheetName
-      });
+      faltamItems.push({ id: rowId, produtoPendentes, quantidade, sheet: sheetName });
     }
 
     // ====== TODOS NV LIST (M/N) ======
@@ -1050,23 +1047,56 @@ function marcarFaltaParcial(componentName, tenhoIds, allModalIds) {
 function resolverParcialComoFalta(items) {
   try {
     if (!items?.length) return { ok: true, updated: 0 };
-    const conf = bm_readConferencia_();
+
+    // Ler estado atual de Parciais para respeitar componentes já marcados como TENHO
+    const parcSh   = bm_getOrCreateParciais_();
+    const parcData = parcSh.getDataRange().getValues();
+    const ordKitStatus = {};
+    for (let r = 1; r < parcData.length; r++) {
+      const oId    = String(parcData[r][1] || "").trim();
+      const kit    = String(parcData[r][2] || "").trim();
+      const comp   = String(parcData[r][3] || "").trim();
+      const status = String(parcData[r][4] || "").trim();
+      if (!oId || !kit || !comp) continue;
+      const key = oId + "||" + kit;
+      if (!ordKitStatus[key]) ordKitStatus[key] = {};
+      ordKitStatus[key][comp] = status;
+    }
+
+    const conf  = bm_readConferencia_();
     const newSt = conf.statuses.map(r => [r[0]]);
     let updated = 0;
+
     for (const item of items) {
       const normKit = pend_norm_(item.kitProduct);
+      const orderId = String(item.orderId).trim();
       for (let i = 0; i < conf.rows; i++) {
-        if (String(conf.ids[i][0]??"").trim() !== String(item.orderId).trim()) continue;
-        if (pend_norm_(String(conf.prods[i][0]??"").trim()) !== normKit) continue;
-        if (String(conf.statuses[i][0]??"").toUpperCase().includes("TENHO")) continue;
-        newSt[i][0] = "FALTA";
+        if (String(conf.ids[i][0] ?? "").trim() !== orderId) continue;
+        if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) !== normKit) continue;
+        if (String(conf.statuses[i][0] ?? "").toUpperCase().includes("TENHO")) continue;
+
+        const compStatus = ordKitStatus[orderId + "||" + item.kitProduct] || {};
+        const missingSiblings = Object.entries(compStatus)
+          .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
+          .map(([c]) => c);
+        const hasTenhoSibling = Object.entries(compStatus)
+          .some(([c, st]) => c !== item.componentName && st === "TENHO");
+
+        if (hasTenhoSibling && missingSiblings.length > 0) {
+          newSt[i][0] = "FALTA - " + missingSiblings.join(";");
+        } else if (hasTenhoSibling && missingSiblings.length === 0) {
+          newSt[i][0] = "FALTA - " + item.componentName;
+        } else {
+          newSt[i][0] = "FALTA";
+        }
         updated++;
       }
     }
+
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
     bm_removeParciais_(items);
     return { ok: true, updated };
-  } catch(err) { return { ok: false, error: String(err.message||err) }; }
+  } catch(err) { return { ok: false, error: String(err.message || err) }; }
 }
 
 // Resolve itens de Parciais com Tenho (modal de seleção de IDs).
