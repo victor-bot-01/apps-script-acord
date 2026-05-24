@@ -89,10 +89,9 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
 
   // 1) STATUS
   const statusById = construirStatusById_(hb);
-  const ml1Bridge = construirPonteML1_CodigoCliente_para_IdRef_(hb);
 
   aplicarStatus_MLColeta_porId_(statusById, hb);
-  aplicarStatus_ML1_viaPonte_(ml1Bridge, statusById, hb);
+  aplicarStatus_porAba_(statusById, "ML 1");
 
   hb();
 
@@ -100,12 +99,12 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
   const andamentoByIdQueue = construirFilaAndamentoPorId_(hb);
 
   aplicarAndamento_MLColeta_porIdQueue_(andamentoByIdQueue, hb);
-  aplicarAndamento_ML1_viaPonteEIdQueue_(ml1Bridge, andamentoByIdQueue, hb);
+  aplicarAndamento_porAba_(andamentoByIdQueue, "ML 1");
 
   hb();
 
   // ✅ 3) PENDENTES (Produtos Pendentes / Quantidade em I/J)
-  aplicarPendentes_MLColeta_e_ML1_(ml1Bridge, hb);
+  aplicarPendentes_MLColeta_e_ML1_(hb);
 
   hb();
 
@@ -417,114 +416,6 @@ function aplicarStatus_MLColeta_porId_(statusById, hb) {
   sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).setValues(out);
 }
 
-/******************* PONTE ML1: (Código A + Cliente D) => idRef (col B) *******************/
-function construirPonteML1_CodigoCliente_para_IdRef_(hb) {
-  // key (case-insensitive) = codigo||cliente -> { count, ids: [idRef...] }
-  const map = new Map();
-
-  const ss = SpreadsheetApp.openById(ML_IMPORT_CONFIG.ML1_LOOKUP_SPREADSHEET_ID);
-
-  // Só a aba "Mês Atual"
-  const sh = ss.getSheetByName("Mês Atual");
-  if (!sh) throw new Error('Aba "Mês Atual" não encontrada na planilha ponte (ML1_LOOKUP_SPREADSHEET_ID).');
-
-  const lastRow = sh.getLastRow();
-  if (lastRow < 2) return map;
-
-  const numRows = lastRow - 1;
-
-  // A = Código (SKU)
-  // B = idRef
-  // D = Cliente
-  const COL_PONTE_CODIGO = 1;  // A
-  const COL_PONTE_IDREF = 2;   // B
-  const COL_PONTE_CLIENTE = 4; // D
-
-  const codigos = sh.getRange(2, COL_PONTE_CODIGO, numRows, 1).getValues();
-  const idRefs  = sh.getRange(2, COL_PONTE_IDREF,  numRows, 1).getValues();
-  const clientes= sh.getRange(2, COL_PONTE_CLIENTE,numRows, 1).getValues();
-
-  for (let i = 0; i < numRows; i++) {
-    if (i % 1200 === 0) hb();
-
-    const codigo = normKeyPart_(codigos[i][0]);
-    const cliente = normKeyPart_(clientes[i][0]);
-    if (!codigo && !cliente) continue;
-
-    const idRef = (idRefs[i][0] ?? "").toString().trim();
-    if (!idRef) continue;
-
-    const key = `${codigo}||${cliente}`;
-
-    const cur = map.get(key) || { count: 0, ids: [] };
-    cur.count += 1;
-    cur.ids.push(idRef);
-    map.set(key, cur);
-  }
-
-  return map;
-}
-
-/******************* STATUS ML1: usa (Código+Cliente) -> ponte -> idRef -> STATUS; pinta B amarelo/vermelho *******************/
-function aplicarStatus_ML1_viaPonte_(ml1BridgeMap, statusById, hb) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName("ML 1");
-  if (!sh) return;
-
-  const lastRow = sh.getLastRow();
-  if (lastRow < 2) return;
-
-  const n = lastRow - 1;
-
-  const clientes = sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).getValues(); // B
-  const codigos = sh.getRange(2, ML_IMPORT_CONFIG.COL_CODIGO, n, 1).getValues();   // L
-  const etiquetas = sh.getRange(2, ML_IMPORT_CONFIG.COL_ETIQUETAS, n, 1).getValues();
-
-  const outStatus = new Array(n);
-  const outBgB = new Array(n);
-
-  for (let i = 0; i < n; i++) {
-    if (i % 900 === 0) hb();
-
-    const etiqueta = (etiquetas[i][0] ?? "").toString().trim();
-    if (etiqueta === "Cancelado") {
-      outStatus[i] = ["Cancelado"];
-      outBgB[i] = outBgB[i] || [null];
-      continue;
-    }
-
-    const key = makeKeyCodigoCliente_(codigos[i][0], clientes[i][0]);
-    const bridge = ml1BridgeMap.get(key);
-
-    // Não encontrou na ponte => B vermelho e Status = Pendente
-    if (!bridge) {
-      outStatus[i] = ["Pendente"];
-      outBgB[i] = [ML_IMPORT_CONFIG.RED];
-      continue;
-    }
-
-    // Encontrou mais de 1 => B amarelo
-    outBgB[i] = (bridge.count > 1) ? [ML_IMPORT_CONFIG.YELLOW] : [null];
-
-    // Regra: Cancelado > Confirmado > Pendente
-    let anyCancel = false;
-    let anyConfirm = false;
-
-    for (const idRef of bridge.ids) {
-      const st = statusById.get(String(idRef).trim());
-      if (st === "Cancelado") anyCancel = true;
-      else if (st === "Confirmado") anyConfirm = true;
-    }
-
-    if (anyCancel) outStatus[i] = ["Cancelado"];
-    else if (anyConfirm) outStatus[i] = ["Confirmado"];
-    else outStatus[i] = ["Pendente"];
-  }
-
-  sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).setValues(outStatus);
-  sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).setBackgrounds(outBgB);
-}
-
 /******************* ANDAMENTO (NOVO) — construir fila por ID (A -> F) *******************/
 function construirFilaAndamentoPorId_(hb) {
   // id -> [v1, v2, ...] (ordem de leitura; shift na aplicação)
@@ -583,45 +474,6 @@ function aplicarAndamento_MLColeta_porIdQueue_(byIdQueue, hb) {
   sh.getRange(2, ML_IMPORT_CONFIG.COL_ANDAMENTO, n, 1).setValues(out);
 }
 
-/******************* ANDAMENTO ML 1: (Código+Cliente) -> ponte -> idRef -> fila por ID *******************/
-function aplicarAndamento_ML1_viaPonteEIdQueue_(ml1BridgeMap, byIdQueue, hb) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName("ML 1");
-  if (!sh) return;
-
-  const lastRow = sh.getLastRow();
-  if (lastRow < 2) return;
-
-  const n = lastRow - 1;
-
-  const clientes = sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).getValues(); // B
-  const codigos  = sh.getRange(2, ML_IMPORT_CONFIG.COL_CODIGO, n, 1).getValues();  // L
-  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).getValues();
-
-  const out = new Array(n);
-
-  for (let i = 0; i < n; i++) {
-    if (i % 900 === 0) hb();
-
-    const status = (statusVals[i][0] ?? "").toString().trim();
-    if (status === "Confirmado") { out[i] = [""]; continue; }
-
-    const key = makeKeyCodigoCliente_(codigos[i][0], clientes[i][0]);
-    const bridge = ml1BridgeMap.get(key);
-
-    if (!bridge) { out[i] = [""]; continue; }
-    if (bridge.count > 1) { out[i] = [""]; continue; }
-
-    const idRef = String(bridge.ids[0] ?? "").trim();
-    if (!idRef) { out[i] = [""]; continue; }
-
-    const fila = byIdQueue.get(idRef);
-    out[i] = [(fila && fila.length) ? fila.shift() : ""];
-  }
-
-  sh.getRange(2, ML_IMPORT_CONFIG.COL_ANDAMENTO, n, 1).setValues(out);
-}
-
 /* =========================================================================
    PENDENTES (I/J) + AZUL (col C) — integrado ao script principal
    Regras:
@@ -644,7 +496,7 @@ const PEND_CONF_COL_PROD   = 4; // D Produto
 const PEND_CONF_COL_QTD    = 5; // E Qtd
 const PEND_CONF_COL_STATUS = 6; // F Status
 
-function aplicarPendentes_MLColeta_e_ML1_(ml1BridgeMap, hb) {
+function aplicarPendentes_MLColeta_e_ML1_(hb) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const shColeta = ss.getSheetByName("ML Coleta");
   const shML1    = ss.getSheetByName("ML 1");
@@ -654,7 +506,7 @@ function aplicarPendentes_MLColeta_e_ML1_(ml1BridgeMap, hb) {
   const confById  = pend_buildConferenciaById_();
 
   pend_process_MLColeta_(shColeta, confById, mapSubseq);
-  pend_process_ML1_(shML1, ml1BridgeMap, confById, mapSubseq);
+  pend_process_porAba_(shML1, confById, mapSubseq);
 
   // Falta/Não Verificado (M/N)
   const confTodosById = pend_buildTodosExcTenho_();
@@ -843,88 +695,6 @@ function pend_process_MLColeta_(sh, confById, mapSubseq) {
     if (!id) continue;
 
     const pr = perId.get(id);
-    if (pr && pr.hadFalta === true && pr.generated === false) {
-      newBgC[i][0] = PEND_BLUE;
-      anyBg = true;
-    }
-  }
-
-  // escreve I/J
-  const rowsOut = pend_countsToRows_(counts);
-  if (rowsOut.length) {
-    pend_ensureRows_(sh, 1 + rowsOut.length);
-    sh.getRange(2, PEND_OUT_COL_PROD, rowsOut.length, 2).setValues(rowsOut);
-  }
-
-  if (anyBg) rangeC.setBackgrounds(newBgC);
-}
-
-/************** PEND: Process ML 1 **************/
-function pend_process_ML1_(sh, ml1BridgeMap, confById, mapSubseq) {
-  const lastRow = sh.getLastRow();
-  if (lastRow < 2) return;
-
-  const n = lastRow - 1;
-
-  // limpa I/J
-  pend_clearIJ_(sh);
-
-  // backgrounds coluna C
-  const rangeC = sh.getRange(2, ML_IMPORT_CONFIG.COL_PRODUTO, n, 1);
-  const bgC = rangeC.getBackgrounds();
-  const newBgC = bgC.map(r => [r[0]]);
-  let anyBg = false;
-
-  const clientes = sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).getValues(); // B
-  const codigos  = sh.getRange(2, ML_IMPORT_CONFIG.COL_CODIGO,  n, 1).getValues(); // L
-  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS, n, 1).getValues();
-
-  // por linha, resolve idRef somente quando ponte é única
-  const rowToId = new Map(); // rowIndex0 -> idRef
-  const idsUnique = new Set();
-
-  for (let i = 0; i < n; i++) {
-    const status = String(statusVals[i][0] ?? "").trim();
-    if (status === "Confirmado") continue;
-
-    const key = makeKeyCodigoCliente_(codigos[i][0], clientes[i][0]);
-    if (!key) continue;
-
-    const bridge = ml1BridgeMap.get(key);
-    if (!bridge) continue;
-    if (bridge.count > 1) continue;
-
-    const idRef = String(bridge.ids[0] ?? "").trim();
-    if (!idRef) continue;
-
-    rowToId.set(i, idRef);
-    idsUnique.add(idRef);
-  }
-
-  const counts = new Map();
-  const perId = new Map(); // id -> {hadFalta, generated}
-
-  for (const id of idsUnique) {
-    const linhas = confById.get(id) || [];
-    if (!linhas.length) {
-      perId.set(id, { hadFalta: false, generated: false });
-      continue;
-    }
-
-    let gen = false;
-    for (const it of linhas) {
-      const r = pend_processFaltaLine_(it, mapSubseq, counts);
-      if (r.added > 0) gen = true;
-    }
-    perId.set(id, { hadFalta: true, generated: gen });
-  }
-
-  // azul por linha: somente se idRef teve FALTA e não gerou nada
-  for (let i = 0; i < n; i++) {
-    const idRef = rowToId.get(i);
-    if (!idRef) continue;
-
-    const pr = perId.get(idRef);
     if (pr && pr.hadFalta === true && pr.generated === false) {
       newBgC[i][0] = PEND_BLUE;
       anyBg = true;
