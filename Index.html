@@ -2364,7 +2364,7 @@
           .withFailureHandler(err => {
             $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
           })
-          .getOrdersByComponent(productName);
+          .getOrdersByComponent(productName, true);
       }
 
       function closeFaltaItemModal_() {

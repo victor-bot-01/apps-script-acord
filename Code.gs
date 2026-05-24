@@ -824,7 +824,7 @@ function getParciais() {
 
 // Retorna { ok, orders: [{orderId, source}] } para um dado componentName (para o modal Falta Parcial).
 // "source" = nome da aba do dashboard onde o pedido aparece.
-function getOrdersByComponent(componentName) {
+function getOrdersByComponent(componentName, ignoreStatus) {
   try {
     const mapSubseq = pend_buildDadosMapSubseq_();
     const rev = bm_buildReverseMap_(mapSubseq);
@@ -836,7 +836,7 @@ function getOrdersByComponent(componentName) {
 
     for (let i = 0; i < conf.rows; i++) {
       const status = String(conf.statuses[i][0] ?? "").trim();
-      if (status !== "") continue;
+      if (!ignoreStatus && status !== "") continue;
       const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
       const match = kitKeys.length ? kitKeys.includes(pk) : pk === normComp;
       if (!match) continue;
