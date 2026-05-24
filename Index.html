@@ -2339,21 +2339,32 @@
       function openFaltaItemModal_(productName) {
         $("modalFaltaItemTitle").textContent = productName;
         $("modalFaltaItem").style.display = "flex";
+        $("modalFaltaItemList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
+        $("btnFaltaItemCopy").disabled = true;
+        _faltaItemOrders = null;
 
-        const normProduct = normJs_(productName);
-        const orders = ALL_PEDIDOS
-          .filter(it => normJs_(it.produto) === normProduct && it.id)
-          .map(it => ({ orderId: it.id, source: it.sheet }));
-
-        $("modalFaltaItemList").innerHTML = orders.length
-          ? orders.map(o => `
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.ok) {
+              $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
+              return;
+            }
+            _faltaItemOrders = res.orders;
+            $("btnFaltaItemCopy").disabled = false;
+            if (!res.orders.length) {
+              $("modalFaltaItemList").innerHTML = '<em>Nenhum pedido encontrado.</em>';
+              return;
+            }
+            $("modalFaltaItemList").innerHTML = res.orders.map(o => `
               <label class="modal-order-row">
                 <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
                 <span>${safe(o.orderId)} — ${safe(o.source)}</span>
-              </label>`).join("")
-          : "<em>Nenhum pedido encontrado.</em>";
-        $("btnFaltaItemCopy").disabled = false;
-        _faltaItemOrders = orders;
+              </label>`).join("");
+          })
+          .withFailureHandler(err => {
+            $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
+          })
+          .getOrdersByComponent(productName);
       }
 
       function closeFaltaItemModal_() {
