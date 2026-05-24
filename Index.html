@@ -959,6 +959,10 @@
             <div style="display:flex;gap:8px;align-items:center;">
               <button id="copyFaltamBtn" class="copyFaltamBtn" style="display:none">&#x1F4CB; Copiar lista</button>
               <button id="copyPendentesBtn" class="copyFaltamBtn" style="display:none">&#x1F4CB; Copiar IDs</button>
+              <button id="btnProcessarFotos"
+                style="display:none;font-size:12px;padding:5px 12px;cursor:pointer;">
+                📷 Processar Fotos
+              </button>
               <div class="meta" id="meta">&#x2014;</div>
             </div>
           </div>
@@ -1474,10 +1478,6 @@
               <div class="label">${d.label}</div>
               <div class="value">${(k && typeof k[d.key] !== "undefined") ? k[d.key] : 0}</div>
               <div class="hint">${d.hint}</div>
-              ${d.type === "STATUS:PENDENTE" ? `<button id="btnProcessarFotos" class="btn-kpi-action"
-                style="margin-top:8px;font-size:11px;padding:4px 10px;cursor:pointer;">
-                Processar Fotos
-              </button>` : ""}
             </div>
           </div>
         `).join("");
@@ -2024,6 +2024,8 @@
           : `Usando apenas: ${ACTIVE_SOURCE}`;
 
         $("sourceHint").textContent = hint;
+        const _btnPF = $("btnProcessarFotos");
+        if (_btnPF) _btnPF.style.display = (ACTIVE_SOURCE === "TODOS") ? "" : "none";
       };
 
       const applySourceTheme = (src) => {

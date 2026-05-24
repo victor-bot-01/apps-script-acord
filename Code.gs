@@ -1231,7 +1231,7 @@ function processarFotosPedidos() {
       const fileName = file.getName();
 
       try {
-        const copied = Drive.Files.copy(
+        const copied = DriveApi.Files.copy(
           { title: "ocr_temp_" + file.getId(),
             mimeType: "application/vnd.google-apps.document" },
           file.getId(),
