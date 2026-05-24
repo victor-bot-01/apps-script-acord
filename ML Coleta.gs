@@ -511,7 +511,7 @@ function aplicarPendentes_MLColeta_e_ML1_(hb) {
   // Falta/Não Verificado (M/N)
   const confTodosById = pend_buildTodosExcTenho_();
   pend_process_nv_porId_(shColeta, confTodosById, mapSubseq);
-  pend_process_nv_ML1_(shML1, ml1BridgeMap, confTodosById, mapSubseq);
+  pend_process_nv_porId_(shML1, confTodosById, mapSubseq);
 }
 
 /************** PEND: limpar azul na col C **************/
@@ -887,46 +887,6 @@ function pend_process_nv_porId_(sh, confTodosById, mapSubseq) {
     if (!id) continue;
     if (status === "Confirmado") continue;
     if (!seen.has(id)) { seen.add(id); idsUnique.push(id); }
-  }
-
-  const counts = new Map();
-  for (const id of idsUnique) {
-    const linhas = confTodosById.get(id) || [];
-    for (const it of linhas) {
-      pend_processFaltaLine_(it, mapSubseq, counts);
-    }
-  }
-
-  const rowsOut = pend_countsToRows_(counts);
-  if (rowsOut.length) {
-    pend_ensureRows_(sh, 1 + rowsOut.length);
-    sh.getRange(2, PEND_NV_COL_PROD, rowsOut.length, 2).setValues(rowsOut);
-  }
-}
-
-/************** PEND: Falta/Não Verificado para ML 1 via ponte (M/N) **************/
-function pend_process_nv_ML1_(sh, ml1BridgeMap, confTodosById, mapSubseq) {
-  const lastRow = sh.getLastRow();
-  if (lastRow < 2) return;
-
-  const n = lastRow - 1;
-  pend_clearMN_(sh);
-
-  const clientes   = sh.getRange(2, ML_IMPORT_CONFIG.COL_CLIENTE, n, 1).getValues();
-  const codigos    = sh.getRange(2, ML_IMPORT_CONFIG.COL_CODIGO,  n, 1).getValues();
-  const statusVals = sh.getRange(2, ML_IMPORT_CONFIG.COL_STATUS,  n, 1).getValues();
-
-  const idsUnique = new Set();
-  for (let i = 0; i < n; i++) {
-    const status = String(statusVals[i][0] ?? "").trim();
-    if (status === "Confirmado") continue;
-
-    const key = makeKeyCodigoCliente_(codigos[i][0], clientes[i][0]);
-    const bridge = ml1BridgeMap.get(key);
-    if (!bridge || bridge.count > 1) continue;
-
-    const idRef = String(bridge.ids[0] ?? "").trim();
-    if (idRef) idsUnique.add(idRef);
   }
 
   const counts = new Map();
