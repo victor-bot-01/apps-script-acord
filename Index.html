@@ -1832,6 +1832,16 @@
             ];
           }
 
+          const _nvAggMap = new Map();
+          for (const it of list) {
+            const key = normJs_(it.produtoPendentes) + "||" + it._tipo;
+            if (!_nvAggMap.has(key)) {
+              _nvAggMap.set(key, { ...it, quantidade: 0 });
+            }
+            _nvAggMap.get(key).quantidade += Number(it.quantidade || 0);
+          }
+          list = [..._nvAggMap.values()];
+
           if (q) {
             list = list.filter(it =>
               `${it.produtoPendentes} ${it.quantidade}`.toLowerCase().includes(q)
