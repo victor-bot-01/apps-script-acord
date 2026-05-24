@@ -1065,6 +1065,17 @@
         </div>
       </div>
 
+  <div id="modalFaltaItem" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="modal-title" id="modalFaltaItemTitle">Pedidos</div>
+      <div id="modalFaltaItemList" style="max-height:320px;overflow-y:auto"></div>
+      <div class="modal-actions">
+        <button id="modalFaltaItemCopy" onclick="copyFaltaItemIds_()">Copiar IDs</button>
+        <button onclick="closeFaltaItemModal_()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
     <script>
       const $ = (id) => document.getElementById(id);
 
@@ -1100,6 +1111,7 @@
       let ALL_PARCIAIS = [];
       let _parcialFaltaPending = null;
       let _modalOrders = null;
+      let _faltaItemOrders = null;
       let KPIS = null;
       let META = null;
 
@@ -1561,7 +1573,7 @@
       const rowHtml = (p) => {
         if (ACTIVE.view === "FALTAM_VIEW") {
           return `
-            <tr>
+            <tr data-produto="${safe(p.produtoPendentes)}" style="cursor:pointer">
               <td>${safe(p.produtoPendentes)}</td>
               <td>${safe(p.quantidade)}</td>
             </tr>
@@ -1723,6 +1735,11 @@
         if (ACTIVE.view === "PARCIAIS_VIEW") {
           $("tbody").querySelectorAll(".chk-parcial").forEach(c =>
             c.addEventListener("change", updateParcialActionState_));
+        }
+        if (ACTIVE.view === "FALTAM_VIEW") {
+          document.querySelectorAll("#tabelaPedidos tbody tr").forEach(tr => {
+            tr.addEventListener("click", () => openFaltaItemModal_(tr.dataset.produto));
+          });
         }
       };
 
@@ -2275,6 +2292,43 @@
         );
       };
 
+      function openFaltaItemModal_(productName) {
+        _faltaItemOrders = null;
+        $("modalFaltaItemTitle").textContent = productName;
+        $("modalFaltaItemList").innerHTML = "<em>Carregando...</em>";
+        $("modalFaltaItemCopy").disabled = true;
+        $("modalFaltaItem").style.display = "flex";
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.ok) { showToast("Erro: " + res.error); return; }
+            _faltaItemOrders = res.orders;
+            $("modalFaltaItemList").innerHTML = res.orders.length
+              ? res.orders.map(o => `
+                  <label class="modal-order-row">
+                    <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
+                    <span>${safe(o.orderId)} — ${safe(o.source)}</span>
+                  </label>`).join("")
+              : "<em>Nenhum pedido encontrado.</em>";
+            $("modalFaltaItemCopy").disabled = false;
+          })
+          .withFailureHandler(err => showToast("Falha: " + err.message))
+          .getOrdersByFaltaItem(productName);
+      }
+
+      function closeFaltaItemModal_() {
+        $("modalFaltaItem").style.display = "none";
+        _faltaItemOrders = null;
+      }
+
+      function copyFaltaItemIds_() {
+        if (!_faltaItemOrders) { showToast("Aguarde o carregamento."); return; }
+        const checked = [...document.querySelectorAll(".chk-falta-item:checked")].map(c => c.dataset.id);
+        if (!checked.length) { showToast("Selecione ao menos um pedido."); return; }
+        navigator.clipboard.writeText(checked.join("\n"))
+          .then(() => showToast("IDs copiados: " + checked.length))
+          .catch(() => showToast("Erro ao copiar."));
+      }
+
       const bindParcialControls_ = () => {
         $("tbody").addEventListener("change", (e) => {
           const chkAll = $("chkAllParciais");
@@ -2299,10 +2353,11 @@
           const compName = items[0].componentName;
           $("modalTenhoTitle").textContent = "Tenho — " + compName;
           const orderIds = [...new Set(items.map(it => it.orderId))];
+          const sourceMap = new Map(ALL_PARCIAIS.map(it => [it.orderId, it.source]));
           $("modalTenhoList").innerHTML = orderIds.map(id => `
             <label class="modal-order-row">
               <input type="checkbox" class="chk-modal-tenho" data-id="${safe(id)}">
-              <span>${safe(id)}</span>
+              <span>${safe(id)} — ${safe(sourceMap.get(id) || "")}</span>
             </label>
           `).join("");
           $("modalTenho").classList.add("open");

@@ -738,14 +738,37 @@ function bm_removeParciais_(toRemove) {
   const last = sh.getLastRow();
   if (last < 2) return;
   const vals = sh.getRange(2, 1, last - 1, 6).getValues();
+  const pairSet = new Set(toRemove.map(r => String(r.orderId).trim() + "||" + String(r.kitProduct).trim()));
   const del = [];
   for (let i = 0; i < vals.length; i++) {
-    const oId  = String(vals[i][1] ?? "").trim();
-    const comp = String(vals[i][3] ?? "").trim();
-    if (toRemove.some(r => r.orderId === oId && pend_norm_(r.componentName) === pend_norm_(comp)))
-      del.push(i + 2);
+    const oId = String(vals[i][1] ?? "").trim();
+    const kit = String(vals[i][2] ?? "").trim();
+    if (pairSet.has(oId + "||" + kit)) del.push(i + 2);
   }
   for (let k = del.length - 1; k >= 0; k--) sh.deleteRow(del[k]);
+}
+
+function getOrdersByFaltaItem(productName) {
+  try {
+    const norm = pend_norm_(productName);
+    const dashSS = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt"];
+    const results = [];
+    for (const name of sheetNames) {
+      const sh = dashSS.getSheetByName(name);
+      if (!sh || sh.getLastRow() < 2) continue;
+      const data = sh.getRange(2, 1, sh.getLastRow() - 1, 10).getValues();
+      for (const row of data) {
+        const id = String(row[0] ?? "").trim();
+        if (!id) continue;
+        const faltaCol = String(row[8] ?? "").trim();
+        if (pend_norm_(faltaCol) === norm) {
+          results.push({ orderId: id, source: name });
+        }
+      }
+    }
+    return { ok: true, orders: results };
+  } catch(err) { return { ok: false, error: String(err.message || err) }; }
 }
 
 // Retorna todos os itens da sheet Parciais
