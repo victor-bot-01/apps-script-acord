@@ -1214,6 +1214,7 @@ function processarFotosPedidos() {
     const files  = folder.getFiles();
 
     const success     = [];
+    const notFound    = [];
     const failed      = [];
     const multipleIds = [];
     let   total       = 0;
@@ -1255,7 +1256,9 @@ function processarFotosPedidos() {
           continue;
         }
 
-        const orderId = matches[0][1].trim().replace(/^[#\s]+/, "").trim();
+        const rawCapture = matches[0][1].trim().replace(/^[#\s]+/, "").trim();
+        const idMatch = rawCapture.match(/^(\d{3}-\d{7}-\d{7}|\d+)/);
+        const orderId = idMatch ? idMatch[1] : rawCapture;
 
         let found = false;
         for (let i = 0; i < conf.rows; i++) {
@@ -1268,12 +1271,12 @@ function processarFotosPedidos() {
         }
 
         if (!found) {
-          failed.push({ file: fileName, reason: "Pedido " + orderId + " não encontrado na Conferencia" });
+          notFound.push({ file: fileName, orderId });
+          file.setTrashed(true);
         } else {
           success.push({ file: fileName, orderId });
+          file.setTrashed(true);
         }
-
-        file.setTrashed(true);
 
       } catch (err) {
         failed.push({ file: fileName, reason: "Erro: " + err.message });
@@ -1290,12 +1293,17 @@ function processarFotosPedidos() {
     let body = "Processamento de fotos concluído.\n\n"
       + "Total de fotos: " + total + "\n"
       + "✅ Sucesso: " + success.length + "\n"
+      + "⚠️ Não Encontrados: " + notFound.length + "\n"
       + "❌ Falhas: " + failed.length + "\n"
       + "⚠️ Múltiplos pedidos na foto (puladas): " + multipleIds.length + "\n";
 
     if (success.length) {
       body += "\n--- SUCESSO ---\n";
       success.forEach(r => { body += "• " + r.file + " → Pedido " + r.orderId + " marcado como TENHO\n"; });
+    }
+    if (notFound.length) {
+      body += "\n--- NÃO ENCONTRADOS NA CONFERENCIA ---\n";
+      notFound.forEach(r => { body += "• " + r.file + ": Pedido " + r.orderId + " não encontrado\n"; });
     }
     if (failed.length) {
       body += "\n--- FALHAS ---\n";
@@ -1308,7 +1316,7 @@ function processarFotosPedidos() {
 
     MailApp.sendEmail({
       to: EMAIL,
-      subject: "Processamento de Fotos — " + success.length + " sucesso(s), " + failed.length + " falha(s)",
+      subject: "Processamento de Fotos — " + success.length + " sucesso(s), " + notFound.length + " não encontrado(s), " + failed.length + " falha(s)",
       body: body
     });
     Logger.log("Email enviado para " + EMAIL);
