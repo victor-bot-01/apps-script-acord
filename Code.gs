@@ -1230,6 +1230,7 @@ function processarFotosPedidos() {
       total++;
       const fileName = file.getName();
 
+      let copiedId = null;
       try {
         const copied = DriveApi.Files.copy(
           { title: "ocr_temp_" + file.getId(),
@@ -1237,9 +1238,10 @@ function processarFotosPedidos() {
           file.getId(),
           { ocr: true, ocrLanguage: "pt" }
         );
+        copiedId = copied.id;
         const doc  = DocumentApp.openById(copied.id);
         const text = doc.getBody().getText();
-        DriveApp.getFileById(copied.id).setTrashed(true);
+        Logger.log("OCR FILE: " + fileName + " | TEXT: " + text.substring(0, 300));
 
         const matches = [...text.matchAll(/\d{2}\/\d{2}\/\d{4}\s*[-–]\s*([^\n\r]+)/g)];
 
@@ -1253,7 +1255,7 @@ function processarFotosPedidos() {
           continue;
         }
 
-        const orderId = matches[0][1].trim();
+        const orderId = matches[0][1].trim().replace(/^[#\s]+/, "").trim();
 
         let found = false;
         for (let i = 0; i < conf.rows; i++) {
@@ -1276,6 +1278,10 @@ function processarFotosPedidos() {
       } catch (err) {
         failed.push({ file: fileName, reason: "Erro: " + err.message });
         file.setTrashed(true);
+      } finally {
+        if (copiedId) {
+          try { DriveApi.Files.remove(copiedId); } catch(e) { Logger.log("Cleanup err: " + e.message); }
+        }
       }
     }
 
@@ -1305,6 +1311,7 @@ function processarFotosPedidos() {
       subject: "Processamento de Fotos — " + success.length + " sucesso(s), " + failed.length + " falha(s)",
       body: body
     });
+    Logger.log("Email enviado para " + EMAIL);
 
     return { ok: true, total, success: success.length, failed: failed.length, skipped: multipleIds.length };
 
