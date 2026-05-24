@@ -2343,30 +2343,23 @@
         $("btnFaltaItemCopy").disabled = true;
         _faltaItemOrders = null;
 
-        const renderOrders_ = (orders) => {
-          _faltaItemOrders = orders;
-          $("btnFaltaItemCopy").disabled = false;
-          $("modalFaltaItemList").innerHTML = orders.length
-            ? orders.map(o => `
-                <label class="modal-order-row">
-                  <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
-                  <span>${safe(o.orderId)} — ${safe(o.source)}</span>
-                </label>`).join("")
-            : "<em>Nenhum pedido encontrado.</em>";
-        };
-
         google.script.run
           .withSuccessHandler(res => {
-            if (res.ok && res.orders.length) {
-              renderOrders_(res.orders);
+            if (!res.ok) {
+              $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
               return;
             }
-            // Fallback: produto standalone — busca direto no ALL_FALTAM pelo produtoPendentes
-            const normProduct = normJs_(productName);
-            const fallback = (ALL_FALTAM || [])
-              .filter(it => normJs_(it.produtoPendentes) === normProduct && it.id)
-              .map(it => ({ orderId: it.id, source: it.sheet }));
-            renderOrders_(fallback);
+            _faltaItemOrders = res.orders;
+            $("btnFaltaItemCopy").disabled = false;
+            if (!res.orders.length) {
+              $("modalFaltaItemList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
+              return;
+            }
+            $("modalFaltaItemList").innerHTML = res.orders.map(o => `
+              <label class="modal-order-row">
+                <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
+                <span>${safe(o.orderId)} — ${safe(o.source)}</span>
+              </label>`).join("");
           })
           .withFailureHandler(err => {
             $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
