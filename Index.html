@@ -1031,7 +1031,7 @@
       <div class="modal-overlay" id="modalFalta">
         <div class="modal-box">
           <h3>Confirmação</h3>
-          <input type="text" class="modal-input" id="modalFaltaInput" placeholder="/Falta" autocomplete="off">
+          <input type="text" class="modal-input" id="modalFaltaInput" autocomplete="off">
           <div class="modal-btns">
             <button class="btn-modal-cancel" id="modalFaltaCancel">Cancelar</button>
             <button class="btn-modal-ok"    id="modalFaltaOk" disabled>Confirmar</button>
@@ -1113,6 +1113,7 @@
       let _modalOrders = null;
       let _faltaItemOrders = null;
       let _faltaParcialPendente = null;
+      let _parcialTenhoPending = null;
       let KPIS = null;
       let META = null;
 
@@ -2204,22 +2205,41 @@
         if (inp) inp.addEventListener("input", () => {
           $("modalFaltaOk").disabled = !(
             inp.value.trim() === "/Falta" ||
-            (inp.value.trim() === "/Tenho" && _faltaParcialPendente !== null)
+            (inp.value.trim() === "/Tenho" && _faltaParcialPendente !== null) ||
+            (inp.value.trim() === "/Tenho" && _parcialTenhoPending !== null)
           );
         });
 
         $("modalFaltaCancel")?.addEventListener("click", () => {
           _parcialFaltaPending = null;
           _faltaParcialPendente = null;
-          $("modalFaltaInput").placeholder = "/Falta";
+          _parcialTenhoPending = null;
           $("modalFalta").classList.remove("open");
         });
 
         $("modalFaltaOk")?.addEventListener("click", () => {
+          if (_parcialTenhoPending) {
+            if ($("modalFaltaInput").value.trim() !== "/Tenho") return;
+            $("modalFalta").classList.remove("open");
+            const { items, tenhoIds } = _parcialTenhoPending;
+            _parcialTenhoPending = null;
+            $("loadingOverlay").style.display = "flex";
+            google.script.run
+              .withSuccessHandler(res => {
+                $("loadingOverlay").style.display = "none";
+                if (res.ok) { fetchPedidos(); showToast("Tenho registrado."); }
+                else showToast("Erro: " + res.error);
+              })
+              .withFailureHandler(err => {
+                $("loadingOverlay").style.display = "none";
+                showToast("Falha: " + (err?.message || err));
+              })
+              .resolverParcialComTenho(items, tenhoIds);
+            return;
+          }
           if (_faltaParcialPendente) {
             if ($("modalFaltaInput").value.trim() !== "/Tenho") return;
             $("modalFalta").classList.remove("open");
-            $("modalFaltaInput").placeholder = "/Falta";
             const { prodName, tenhoIds, allModalIds } = _faltaParcialPendente;
             _faltaParcialPendente = null;
             $("loadingOverlay").style.display = "flex";
@@ -2286,7 +2306,6 @@
           $("modalParcial").classList.remove("open");
           _faltaParcialPendente = { prodName, tenhoIds, allModalIds };
           $("modalFaltaInput").value = "";
-          $("modalFaltaInput").placeholder = "/Tenho";
           $("modalFaltaOk").disabled = true;
           $("modalFalta").classList.add("open");
         });
@@ -2322,8 +2341,8 @@
         $("modalFaltaItem").style.display = "flex";
 
         const normProduct = normJs_(productName);
-        const orders = ALL_FALTAM
-          .filter(it => normJs_(it.produtoPendentes) === normProduct && it.id)
+        const orders = ALL_PEDIDOS
+          .filter(it => normJs_(it.produto) === normProduct && it.id)
           .map(it => ({ orderId: it.id, source: it.sheet }));
 
         $("modalFaltaItemList").innerHTML = orders.length
@@ -2402,18 +2421,10 @@
           const items    = getCheckedParcialItems_();
           const tenhoIds = [...document.querySelectorAll(".chk-modal-tenho:checked")].map(c => c.getAttribute("data-id"));
           $("modalTenho").classList.remove("open");
-          $("loadingOverlay").style.display = "flex";
-          google.script.run
-            .withSuccessHandler(res => {
-              $("loadingOverlay").style.display = "none";
-              if (res.ok) fetchPedidos();
-              else showToast("Erro: " + res.error);
-            })
-            .withFailureHandler(err => {
-              $("loadingOverlay").style.display = "none";
-              showToast("Falha: " + (err && err.message ? err.message : err));
-            })
-            .resolverParcialComTenho(items, tenhoIds);
+          _parcialTenhoPending = { items, tenhoIds };
+          $("modalFaltaInput").value = "";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
         });
       };
 

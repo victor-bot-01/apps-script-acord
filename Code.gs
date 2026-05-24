@@ -1083,7 +1083,7 @@ function resolverParcialComoFalta(items) {
           const nonTenhoComps = [
             item.componentName,
             ...Object.entries(compStatus)
-              .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
+              .filter(([c, st]) => c !== item.componentName && st === "FALTA")
               .map(([c]) => c)
           ];
           newSt[i][0] = "FALTA - " + nonTenhoComps.join(";");
