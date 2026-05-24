@@ -1067,10 +1067,10 @@
 
   <div id="modalFaltaItem" class="modal-overlay" style="display:none">
     <div class="modal-box">
-      <div class="modal-title" id="modalFaltaItemTitle">Pedidos</div>
-      <div id="modalFaltaItemList" style="max-height:320px;overflow-y:auto"></div>
+      <div class="modal-title" id="modalFaltaItemTitle"></div>
+      <div id="modalFaltaItemList" style="max-height:320px;overflow-y:auto;margin:12px 0"></div>
       <div class="modal-actions">
-        <button id="modalFaltaItemCopy" onclick="copyFaltaItemIds_()">Copiar IDs</button>
+        <button id="btnFaltaItemCopy" disabled onclick="copyFaltaItemIds_()">Copiar IDs</button>
         <button onclick="closeFaltaItemModal_()">Fechar</button>
       </div>
     </div>
@@ -1573,7 +1573,7 @@
       const rowHtml = (p) => {
         if (ACTIVE.view === "FALTAM_VIEW") {
           return `
-            <tr data-produto="${safe(p.produtoPendentes)}" style="cursor:pointer">
+            <tr data-produto="${safe(p.produtoPendentes)}" style="cursor:pointer" onclick="openFaltaItemModal_(this.dataset.produto)">
               <td>${safe(p.produtoPendentes)}</td>
               <td>${safe(p.quantidade)}</td>
             </tr>
@@ -1735,11 +1735,6 @@
         if (ACTIVE.view === "PARCIAIS_VIEW") {
           $("tbody").querySelectorAll(".chk-parcial").forEach(c =>
             c.addEventListener("change", updateParcialActionState_));
-        }
-        if (ACTIVE.view === "FALTAM_VIEW") {
-          document.querySelectorAll("#tabelaPedidos tbody tr").forEach(tr => {
-            tr.addEventListener("click", () => openFaltaItemModal_(tr.dataset.produto));
-          });
         }
       };
 
@@ -2296,7 +2291,7 @@
         _faltaItemOrders = null;
         $("modalFaltaItemTitle").textContent = productName;
         $("modalFaltaItemList").innerHTML = "<em>Carregando...</em>";
-        $("modalFaltaItemCopy").disabled = true;
+        $("btnFaltaItemCopy").disabled = true;
         $("modalFaltaItem").style.display = "flex";
         google.script.run
           .withSuccessHandler(res => {
@@ -2309,7 +2304,7 @@
                     <span>${safe(o.orderId)} — ${safe(o.source)}</span>
                   </label>`).join("")
               : "<em>Nenhum pedido encontrado.</em>";
-            $("modalFaltaItemCopy").disabled = false;
+            $("btnFaltaItemCopy").disabled = false;
           })
           .withFailureHandler(err => showToast("Falha: " + err.message))
           .getOrdersByFaltaItem(productName);

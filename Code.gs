@@ -735,15 +735,47 @@ function bm_readConferencia_() {
 // Remove linhas da sheet Parciais por { orderId, componentName }
 function bm_removeParciais_(toRemove) {
   const sh = bm_getOrCreateParciais_();
-  const last = sh.getLastRow();
-  if (last < 2) return;
-  const vals = sh.getRange(2, 1, last - 1, 6).getValues();
-  const pairSet = new Set(toRemove.map(r => String(r.orderId).trim() + "||" + String(r.kitProduct).trim()));
-  const del = [];
+  if (sh.getLastRow() < 2) return;
+
+  // Set de componentes resolvidos agora: orderId||kitProduct||normComp
+  const resolvedSet = new Set(toRemove.map(r =>
+    String(r.orderId).trim() + "||" + String(r.kitProduct).trim() + "||" + pend_norm_(String(r.componentName).trim())
+  ));
+  // Set de pares afetados: orderId||kitProduct
+  const pairSet = new Set(toRemove.map(r =>
+    String(r.orderId).trim() + "||" + String(r.kitProduct).trim()
+  ));
+
+  // Passo 1: deletar linhas dos componentes resolvidos
+  let vals = sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues();
+  let del = [];
+  for (let i = 0; i < vals.length; i++) {
+    const oId  = String(vals[i][1] ?? "").trim();
+    const kit  = String(vals[i][2] ?? "").trim();
+    const comp = pend_norm_(String(vals[i][3] ?? "").trim());
+    if (resolvedSet.has(oId + "||" + kit + "||" + comp)) del.push(i + 2);
+  }
+  for (let k = del.length - 1; k >= 0; k--) sh.deleteRow(del[k]);
+
+  // Passo 2: para cada par afetado, se não houver mais PENDENTE → limpar tudo
+  const last2 = sh.getLastRow();
+  if (last2 < 2) return;
+  vals = sh.getRange(2, 1, last2 - 1, 6).getValues();
+  const pairHasPending = {};
+  for (const v of vals) {
+    const oId   = String(v[1] ?? "").trim();
+    const kit   = String(v[2] ?? "").trim();
+    const st    = String(v[4] ?? "").trim();
+    const key   = oId + "||" + kit;
+    if (!pairSet.has(key)) continue;
+    if (st === "PENDENTE") pairHasPending[key] = true;
+  }
+  del = [];
   for (let i = 0; i < vals.length; i++) {
     const oId = String(vals[i][1] ?? "").trim();
     const kit = String(vals[i][2] ?? "").trim();
-    if (pairSet.has(oId + "||" + kit)) del.push(i + 2);
+    const key = oId + "||" + kit;
+    if (pairSet.has(key) && !pairHasPending[key]) del.push(i + 2);
   }
   for (let k = del.length - 1; k >= 0; k--) sh.deleteRow(del[k]);
 }
@@ -1079,7 +1111,7 @@ function resolverParcialComTenho(items, tenhoIds) {
             .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
             .map(([c]) => c);
           if (missingSiblings.length === 0) continue; // kit completo: não escreve FALTA
-          newSt[i][0] = "FALTA - " + missingSiblings.join(" / ");
+          newSt[i][0] = "FALTA - " + missingSiblings.join(";");
         } else {
           newSt[i][0] = "FALTA";
         }
