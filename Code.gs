@@ -1204,3 +1204,111 @@ function resolverParcialComTenho(items, tenhoIds) {
     return { ok: true, updated };
   } catch(err) { return { ok: false, error: String(err.message || err) }; }
 }
+
+function processarFotosPedidos() {
+  try {
+    const FOLDER_ID = "12gA8sJPuQ2LnkUgwpI0Ix3Bw0AvjMnP5";
+    const EMAIL     = "victor@gigaimports.com";
+
+    const folder = DriveApp.getFolderById(FOLDER_ID);
+    const files  = folder.getFiles();
+
+    const success     = [];
+    const failed      = [];
+    const multipleIds = [];
+    let   total       = 0;
+
+    const conf  = bm_readConferencia_();
+    const newSt = conf.statuses.map(r => [r[0]]);
+    let anyUpdated = false;
+
+    while (files.hasNext()) {
+      const file     = files.next();
+      const mimeType = file.getMimeType();
+      if (!mimeType.startsWith("image/")) continue;
+
+      total++;
+      const fileName = file.getName();
+
+      try {
+        const copied = Drive.Files.copy(
+          { title: "ocr_temp_" + file.getId(),
+            mimeType: "application/vnd.google-apps.document" },
+          file.getId(),
+          { ocr: true, ocrLanguage: "pt" }
+        );
+        const doc  = DocumentApp.openById(copied.id);
+        const text = doc.getBody().getText();
+        DriveApp.getFileById(copied.id).setTrashed(true);
+
+        const matches = [...text.matchAll(/\d{2}\/\d{2}\/\d{4}\s*[-–]\s*([^\n\r]+)/g)];
+
+        if (matches.length === 0) {
+          failed.push({ file: fileName, reason: "ID não encontrado na foto" });
+          file.setTrashed(true);
+          continue;
+        }
+        if (matches.length > 1) {
+          multipleIds.push({ file: fileName, ids: matches.map(m => m[1].trim()) });
+          continue;
+        }
+
+        const orderId = matches[0][1].trim();
+
+        let found = false;
+        for (let i = 0; i < conf.rows; i++) {
+          const id = String(conf.ids[i][0] ?? "").trim();
+          if (id === orderId) {
+            newSt[i][0] = "TENHO";
+            found = true;
+            anyUpdated = true;
+          }
+        }
+
+        if (!found) {
+          failed.push({ file: fileName, reason: "Pedido " + orderId + " não encontrado na Conferencia" });
+        } else {
+          success.push({ file: fileName, orderId });
+        }
+
+        file.setTrashed(true);
+
+      } catch (err) {
+        failed.push({ file: fileName, reason: "Erro: " + err.message });
+        file.setTrashed(true);
+      }
+    }
+
+    if (anyUpdated) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+
+    let body = "Processamento de fotos concluído.\n\n"
+      + "Total de fotos: " + total + "\n"
+      + "✅ Sucesso: " + success.length + "\n"
+      + "❌ Falhas: " + failed.length + "\n"
+      + "⚠️ Múltiplos pedidos na foto (puladas): " + multipleIds.length + "\n";
+
+    if (success.length) {
+      body += "\n--- SUCESSO ---\n";
+      success.forEach(r => { body += "• " + r.file + " → Pedido " + r.orderId + " marcado como TENHO\n"; });
+    }
+    if (failed.length) {
+      body += "\n--- FALHAS ---\n";
+      failed.forEach(r => { body += "• " + r.file + ": " + r.reason + "\n"; });
+    }
+    if (multipleIds.length) {
+      body += "\n--- MÚLTIPLOS PEDIDOS NA FOTO (puladas, não apagadas) ---\n";
+      multipleIds.forEach(r => { body += "• " + r.file + ": " + r.ids.join(", ") + "\n"; });
+    }
+
+    MailApp.sendEmail({
+      to: EMAIL,
+      subject: "Processamento de Fotos — " + success.length + " sucesso(s), " + failed.length + " falha(s)",
+      body: body
+    });
+
+    return { ok: true, total, success: success.length, failed: failed.length, skipped: multipleIds.length };
+
+  } catch (err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+}

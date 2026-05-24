@@ -1474,6 +1474,10 @@
               <div class="label">${d.label}</div>
               <div class="value">${(k && typeof k[d.key] !== "undefined") ? k[d.key] : 0}</div>
               <div class="hint">${d.hint}</div>
+              ${d.type === "STATUS:PENDENTE" ? `<button id="btnProcessarFotos" class="btn-kpi-action"
+                style="margin-top:8px;font-size:11px;padding:4px 10px;cursor:pointer;">
+                Processar Fotos
+              </button>` : ""}
             </div>
           </div>
         `).join("");
@@ -2471,6 +2475,32 @@
       bindFaltanvControls_();
       bindParcialControls_();
       updateSourceUI();
+
+      $("btnProcessarFotos")?.addEventListener("click", () => {
+        $("loadingOverlay").style.display = "flex";
+        google.script.run
+          .withSuccessHandler(res => {
+            $("loadingOverlay").style.display = "none";
+            if (res.ok) {
+              showToast(
+                "Fotos processadas: " + res.total +
+                " | Sucesso: " + res.success +
+                " | Falhas: " + res.failed +
+                (res.skipped ? " | Puladas: " + res.skipped : "") +
+                ". Resumo enviado por e-mail."
+              );
+              fetchPedidos();
+            } else {
+              showToast("Erro: " + res.error);
+            }
+          })
+          .withFailureHandler(err => {
+            $("loadingOverlay").style.display = "none";
+            showToast("Falha: " + (err && err.message ? err.message : String(err)));
+          })
+          .processarFotosPedidos();
+      });
+
       fetchPedidos();
     </script>
   </body>
