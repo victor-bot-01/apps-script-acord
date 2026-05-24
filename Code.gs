@@ -836,7 +836,11 @@ function getOrdersByComponent(componentName, ignoreStatus) {
 
     for (let i = 0; i < conf.rows; i++) {
       const status = String(conf.statuses[i][0] ?? "").trim();
-      if (!ignoreStatus && status !== "") continue;
+      if (ignoreStatus) {
+        if (!status.toUpperCase().includes("FALTA")) continue;
+      } else {
+        if (status !== "") continue;
+      }
       const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
       const match = kitKeys.length ? kitKeys.includes(pk) : pk === normComp;
       if (!match) continue;
