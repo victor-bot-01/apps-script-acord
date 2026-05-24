@@ -147,7 +147,7 @@ function readFromSheet_(ss, sheetName) {
 
     // Só entra se tiver produto pendente (o principal)
     const rowId = String(r[CONFIG.COLS.ID - 1] ?? "").trim();
-    if (produtoPendentes !== "") {
+    if (produtoPendentes !== "" && rowId !== "") {
       faltamItems.push({ id: rowId, produtoPendentes, quantidade, sheet: sheetName });
     }
 
@@ -730,44 +730,45 @@ function bm_readConferencia_() {
 }
 
 // Remove linhas da sheet Parciais por { orderId, componentName }
-function bm_removeParciais_(toRemove) {
+function bm_removeParciais_(items, statusMap) {
   const sh = bm_getOrCreateParciais_();
   if (sh.getLastRow() < 2) return;
 
-  // Set de componentes resolvidos agora: orderId||kitProduct||normComp
-  const resolvedSet = new Set(toRemove.map(r =>
-    String(r.orderId).trim() + "||" + String(r.kitProduct).trim() + "||" + pend_norm_(String(r.componentName).trim())
+  const resolvedSet = new Set(items.map(r =>
+    String(r.orderId).trim() + "||" + String(r.kitProduct).trim() + "||" +
+    pend_norm_(String(r.componentName).trim())
   ));
-  // Set de pares afetados: orderId||kitProduct
-  const pairSet = new Set(toRemove.map(r =>
+  const pairSet = new Set(items.map(r =>
     String(r.orderId).trim() + "||" + String(r.kitProduct).trim()
   ));
 
-  // Passo 1: deletar linhas dos componentes resolvidos
+  // Passo 1: atualizar status das linhas resolvidas (não deletar)
   let vals = sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues();
-  let del = [];
   for (let i = 0; i < vals.length; i++) {
     const oId  = String(vals[i][1] ?? "").trim();
     const kit  = String(vals[i][2] ?? "").trim();
     const comp = pend_norm_(String(vals[i][3] ?? "").trim());
-    if (resolvedSet.has(oId + "||" + kit + "||" + comp)) del.push(i + 2);
+    const key  = oId + "||" + kit + "||" + comp;
+    if (resolvedSet.has(key)) {
+      const newStatus = statusMap ? (statusMap.get(key) || "FALTA") : "FALTA";
+      sh.getRange(i + 2, 5).setValue(newStatus);
+    }
   }
-  for (let k = del.length - 1; k >= 0; k--) sh.deleteRow(del[k]);
 
-  // Passo 2: para cada par afetado, se não houver mais PENDENTE → limpar tudo
+  // Passo 2: se não restar PENDENTE no par → deletar todas as linhas do par
   const last2 = sh.getLastRow();
   if (last2 < 2) return;
   vals = sh.getRange(2, 1, last2 - 1, 6).getValues();
   const pairHasPending = {};
   for (const v of vals) {
-    const oId   = String(v[1] ?? "").trim();
-    const kit   = String(v[2] ?? "").trim();
-    const st    = String(v[4] ?? "").trim();
-    const key   = oId + "||" + kit;
+    const oId = String(v[1] ?? "").trim();
+    const kit = String(v[2] ?? "").trim();
+    const st  = String(v[4] ?? "").trim();
+    const key = oId + "||" + kit;
     if (!pairSet.has(key)) continue;
     if (st === "PENDENTE") pairHasPending[key] = true;
   }
-  del = [];
+  const del = [];
   for (let i = 0; i < vals.length; i++) {
     const oId = String(vals[i][1] ?? "").trim();
     const kit = String(vals[i][2] ?? "").trim();
@@ -1048,7 +1049,6 @@ function resolverParcialComoFalta(items) {
   try {
     if (!items?.length) return { ok: true, updated: 0 };
 
-    // Ler estado atual de Parciais para respeitar componentes já marcados como TENHO
     const parcSh   = bm_getOrCreateParciais_();
     const parcData = parcSh.getDataRange().getValues();
     const ordKitStatus = {};
@@ -1076,16 +1076,17 @@ function resolverParcialComoFalta(items) {
         if (String(conf.statuses[i][0] ?? "").toUpperCase().includes("TENHO")) continue;
 
         const compStatus = ordKitStatus[orderId + "||" + item.kitProduct] || {};
-        const missingSiblings = Object.entries(compStatus)
-          .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
-          .map(([c]) => c);
         const hasTenhoSibling = Object.entries(compStatus)
           .some(([c, st]) => c !== item.componentName && st === "TENHO");
 
-        if (hasTenhoSibling && missingSiblings.length > 0) {
-          newSt[i][0] = "FALTA - " + missingSiblings.join(";");
-        } else if (hasTenhoSibling && missingSiblings.length === 0) {
-          newSt[i][0] = "FALTA - " + item.componentName;
+        if (hasTenhoSibling) {
+          const nonTenhoComps = [
+            item.componentName,
+            ...Object.entries(compStatus)
+              .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
+              .map(([c]) => c)
+          ];
+          newSt[i][0] = "FALTA - " + nonTenhoComps.join(";");
         } else {
           newSt[i][0] = "FALTA";
         }
@@ -1094,7 +1095,14 @@ function resolverParcialComoFalta(items) {
     }
 
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
-    bm_removeParciais_(items);
+
+    const statusMap = new Map(items.map(item => [
+      String(item.orderId).trim() + "||" +
+      String(item.kitProduct).trim() + "||" +
+      pend_norm_(String(item.componentName).trim()),
+      "FALTA"
+    ]));
+    bm_removeParciais_(items, statusMap);
     return { ok: true, updated };
   } catch(err) { return { ok: false, error: String(err.message || err) }; }
 }
@@ -1107,9 +1115,8 @@ function resolverParcialComTenho(items, tenhoIds) {
     if (!items?.length) return { ok: true, updated: 0 };
     const tenhoSet = new Set(tenhoIds.map(id => String(id).trim()));
 
-    // Ler Parciais com status de cada componente por pedido+kit
     const parcSh   = bm_getOrCreateParciais_();
-    const parcData  = parcSh.getDataRange().getValues();
+    const parcData = parcSh.getDataRange().getValues();
     const ordKitStatus = {};
     for (let r = 1; r < parcData.length; r++) {
       const oId    = String(parcData[r][1] || "").trim();
@@ -1135,12 +1142,11 @@ function resolverParcialComTenho(items, tenhoIds) {
         if (String(conf.statuses[i][0] ?? "").toUpperCase().includes("TENHO")) continue;
 
         if (tenhoSet.has(orderId)) {
-          // Encontrar componentes irmãos que ainda FALTAM (status != "TENHO")
           const compStatus      = ordKitStatus[orderId + "||" + item.kitProduct] || {};
           const missingSiblings = Object.entries(compStatus)
             .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
             .map(([c]) => c);
-          if (missingSiblings.length === 0) continue; // kit completo: não escreve FALTA
+          if (missingSiblings.length === 0) continue;
           newSt[i][0] = "FALTA - " + missingSiblings.join(";");
         } else {
           newSt[i][0] = "FALTA";
@@ -1150,7 +1156,14 @@ function resolverParcialComTenho(items, tenhoIds) {
     }
 
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
-    bm_removeParciais_(items);
+
+    const statusMap = new Map(items.map(item => {
+      const key = String(item.orderId).trim() + "||" +
+                  String(item.kitProduct).trim() + "||" +
+                  pend_norm_(String(item.componentName).trim());
+      return [key, tenhoSet.has(String(item.orderId).trim()) ? "TENHO" : "FALTA"];
+    }));
+    bm_removeParciais_(items, statusMap);
     return { ok: true, updated };
   } catch(err) { return { ok: false, error: String(err.message || err) }; }
 }

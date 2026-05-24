@@ -2311,19 +2311,20 @@
         );
       };
 
+      function normJs_(s) {
+        return String(s ?? "").trim().toUpperCase()
+          .normalize("NFD").replace(/[̀-ͯ]/g, "")
+          .replace(/\s+/g, " ");
+      }
+
       function openFaltaItemModal_(productName) {
         $("modalFaltaItemTitle").textContent = productName;
         $("modalFaltaItem").style.display = "flex";
 
-        let orders = [];
-        const aggItem = ALL_FALTAM.find(it => it.produtoPendentes === productName);
-        if (aggItem && aggItem.orders) {
-          orders = aggItem.orders;
-        } else {
-          orders = ALL_FALTAM
-            .filter(it => it.produtoPendentes === productName && it.id)
-            .map(it => ({ orderId: it.id, source: it.sheet }));
-        }
+        const normProduct = normJs_(productName);
+        const orders = ALL_FALTAM
+          .filter(it => normJs_(it.produtoPendentes) === normProduct && it.id)
+          .map(it => ({ orderId: it.id, source: it.sheet }));
 
         $("modalFaltaItemList").innerHTML = orders.length
           ? orders.map(o => `
