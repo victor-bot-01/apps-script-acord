@@ -1783,6 +1783,16 @@
             });
           }
 
+          const _aggMap = new Map();
+          for (const it of list) {
+            const key = normJs_(it.produtoPendentes);
+            if (!_aggMap.has(key)) {
+              _aggMap.set(key, { ...it, quantidade: 0 });
+            }
+            _aggMap.get(key).quantidade += Number(it.quantidade || 0);
+          }
+          list = [..._aggMap.values()];
+
           if (SORT.col) {
             list.sort((a, b) => {
               const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
@@ -2355,11 +2365,20 @@
               $("modalFaltaItemList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
               return;
             }
-            $("modalFaltaItemList").innerHTML = res.orders.map(o => `
+            $("modalFaltaItemList").innerHTML =
+              `<label class="modal-order-row" style="font-weight:600;border-bottom:1px solid var(--border,#ddd);padding-bottom:6px;margin-bottom:4px;">
+                <input type="checkbox" id="chkAllFaltaItem">
+                <span>Selecionar tudo</span>
+              </label>` +
+              res.orders.map(o => `
               <label class="modal-order-row">
                 <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
                 <span>${safe(o.orderId)} — ${safe(o.source)}</span>
               </label>`).join("");
+            const _chkAllFI = document.getElementById("chkAllFaltaItem");
+            if (_chkAllFI) _chkAllFI.addEventListener("change", () => {
+              document.querySelectorAll(".chk-falta-item").forEach(c => c.checked = _chkAllFI.checked);
+            });
           })
           .withFailureHandler(err => {
             $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
