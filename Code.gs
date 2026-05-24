@@ -1063,33 +1063,45 @@ function resolverParcialComoFalta(items) {
       ordKitStatus[key][comp] = status;
     }
 
+    // Projeta o estado final: aplica FALTA em cada item sobre o estado atual da Parciais
+    const projectedStatus = {};
+    for (const item of items) {
+      const pairKey = String(item.orderId).trim() + "||" + String(item.kitProduct).trim();
+      if (!projectedStatus[pairKey]) {
+        projectedStatus[pairKey] = { ...(ordKitStatus[pairKey] || {}) };
+      }
+      projectedStatus[pairKey][item.componentName] = "FALTA";
+    }
+
     const conf  = bm_readConferencia_();
     const newSt = conf.statuses.map(r => [r[0]]);
     let updated = 0;
 
+    const processedPairs = new Set();
     for (const item of items) {
-      const normKit = pend_norm_(item.kitProduct);
       const orderId = String(item.orderId).trim();
+      const pairKey = orderId + "||" + String(item.kitProduct).trim();
+      if (processedPairs.has(pairKey)) continue;
+      processedPairs.add(pairKey);
+
+      const projected = projectedStatus[pairKey] || {};
+      // Se ainda restar algum PENDENTE, não toca na Conferencia
+      if (Object.values(projected).some(st => st === "PENDENTE")) continue;
+
+      const normKit    = pend_norm_(item.kitProduct);
+      const faltaComps = Object.entries(projected)
+        .filter(([, st]) => st === "FALTA")
+        .map(([c]) => c);
+      const hasAnyTenho = Object.values(projected).some(st => st === "TENHO");
+      const finalStatus = hasAnyTenho
+        ? "FALTA - " + faltaComps.join(";")
+        : "FALTA";
+
       for (let i = 0; i < conf.rows; i++) {
-        if (String(conf.ids[i][0] ?? "").trim() !== orderId) continue;
+        if (String(conf.ids[i][0]  ?? "").trim() !== orderId) continue;
         if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) !== normKit) continue;
         if (String(conf.statuses[i][0] ?? "").toUpperCase().includes("TENHO")) continue;
-
-        const compStatus = ordKitStatus[orderId + "||" + item.kitProduct] || {};
-        const hasTenhoSibling = Object.entries(compStatus)
-          .some(([c, st]) => c !== item.componentName && st === "TENHO");
-
-        if (hasTenhoSibling) {
-          const nonTenhoComps = [
-            item.componentName,
-            ...Object.entries(compStatus)
-              .filter(([c, st]) => c !== item.componentName && st === "FALTA")
-              .map(([c]) => c)
-          ];
-          newSt[i][0] = "FALTA - " + nonTenhoComps.join(";");
-        } else {
-          newSt[i][0] = "FALTA";
-        }
+        newSt[i][0] = finalStatus;
         updated++;
       }
     }
@@ -1129,28 +1141,49 @@ function resolverParcialComTenho(items, tenhoIds) {
       ordKitStatus[key][comp] = status;
     }
 
+    // Projeta o estado final: aplica TENHO ou FALTA conforme tenhoSet
+    const projectedStatus = {};
+    for (const item of items) {
+      const pairKey = String(item.orderId).trim() + "||" + String(item.kitProduct).trim();
+      if (!projectedStatus[pairKey]) {
+        projectedStatus[pairKey] = { ...(ordKitStatus[pairKey] || {}) };
+      }
+      projectedStatus[pairKey][item.componentName] =
+        tenhoSet.has(String(item.orderId).trim()) ? "TENHO" : "FALTA";
+    }
+
     const conf  = bm_readConferencia_();
     const newSt = conf.statuses.map(r => [r[0]]);
     let updated = 0;
 
+    const processedPairs = new Set();
     for (const item of items) {
-      const normKit = pend_norm_(item.kitProduct);
       const orderId = String(item.orderId).trim();
+      const pairKey = orderId + "||" + String(item.kitProduct).trim();
+      if (processedPairs.has(pairKey)) continue;
+      processedPairs.add(pairKey);
+
+      const projected = projectedStatus[pairKey] || {};
+      // Se ainda restar algum PENDENTE, não toca na Conferencia
+      if (Object.values(projected).some(st => st === "PENDENTE")) continue;
+
+      const normKit    = pend_norm_(item.kitProduct);
+      const faltaComps = Object.entries(projected)
+        .filter(([, st]) => st === "FALTA")
+        .map(([c]) => c);
+      // Todos TENHO → nada a marcar como FALTA
+      if (faltaComps.length === 0) continue;
+
+      const hasAnyTenho = Object.values(projected).some(st => st === "TENHO");
+      const finalStatus = hasAnyTenho
+        ? "FALTA - " + faltaComps.join(";")
+        : "FALTA";
+
       for (let i = 0; i < conf.rows; i++) {
-        if (String(conf.ids[i][0]  ?? "").trim() !== orderId)  continue;
+        if (String(conf.ids[i][0]  ?? "").trim() !== orderId) continue;
         if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) !== normKit) continue;
         if (String(conf.statuses[i][0] ?? "").toUpperCase().includes("TENHO")) continue;
-
-        if (tenhoSet.has(orderId)) {
-          const compStatus      = ordKitStatus[orderId + "||" + item.kitProduct] || {};
-          const missingSiblings = Object.entries(compStatus)
-            .filter(([c, st]) => c !== item.componentName && st !== "TENHO")
-            .map(([c]) => c);
-          if (missingSiblings.length === 0) continue;
-          newSt[i][0] = "FALTA - " + missingSiblings.join(";");
-        } else {
-          newSt[i][0] = "FALTA";
-        }
+        newSt[i][0] = finalStatus;
         updated++;
       }
     }
