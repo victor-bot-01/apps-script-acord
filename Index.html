@@ -1635,13 +1635,14 @@
 
         if (ACTIVE.view === "FALTANV_VIEW") {
           const showChk = (FALTANV_FILTER === "nao_marcado");
+          const ignoreStatus = p._tipo === "falta" ? "true" : "false";
           const tipoCol = (FALTANV_FILTER === "todos")
             ? `<td><span class="badge b-outro" style="font-size:10px;">${p._tipo === "falta" ? "Falta" : "Não Marc."}</span></td>`
             : "";
           const chkCell = showChk
             ? `<td class="chk-col"><input type="checkbox" class="chk-faltanv" data-prod="${safe(p.produtoPendentes)}" data-sheet="${safe(p.sheet)}" data-qty="${safe(p.quantidade)}"></td>`
             : "";
-          return `<tr>${chkCell}<td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td>${tipoCol}</tr>`;
+          return `<tr style="cursor:pointer;" onclick="openFaltaItemModal_(${JSON.stringify(p.produtoPendentes)}, ${ignoreStatus})">${chkCell}<td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td>${tipoCol}</tr>`;
         }
 
         const isMulti = MULTI_IDS.has(String(p.id));
@@ -2420,7 +2421,7 @@
           .replace(/\s+/g, " ");
       }
 
-      function openFaltaItemModal_(productName) {
+      function openFaltaItemModal_(productName, ignoreStatus = true) {
         $("modalFaltaItemTitle").textContent = productName;
         $("modalFaltaItem").style.display = "flex";
         $("modalFaltaItemList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
@@ -2457,7 +2458,7 @@
           .withFailureHandler(err => {
             $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
           })
-          .getOrdersByComponent(productName, true);
+          .getOrdersByComponent(productName, ignoreStatus);
       }
 
       function closeFaltaItemModal_() {
