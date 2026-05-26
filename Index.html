@@ -963,6 +963,9 @@
                 style="display:none;font-size:12px;padding:5px 12px;cursor:pointer;">
                 📷 Processar Fotos
               </button>
+              <button id="btnAtualizarMarcacoes" style="display:none;font-size:12px;padding:5px 12px;cursor:pointer;">
+                ⚡ Atualizar Marcações
+              </button>
               <div class="meta" id="meta">&#x2014;</div>
             </div>
           </div>
@@ -1112,6 +1115,7 @@
       let ALL_PEDIDOS = [];
       let ALL_FALTAM = [];
       let ALL_TODOS_NV = [];
+      let ALL_TENHO = [];
       let ALL_PARCIAIS = [];
       let _parcialFaltaPending = null;
       let _modalOrders = null;
@@ -1353,7 +1357,13 @@
       };
 
       const copyFaltamList = () => {
-        const lines = ALL_FALTAM.map(it => it.produtoPendentes + " - " + it.quantidade).join("\n");
+        let _copySource;
+        if (ACTIVE.view === "FALTANV_VIEW" && FALTANV_FILTER === "todos") {
+          _copySource = [...ALL_FALTAM, ...ALL_TODOS_NV];
+        } else {
+          _copySource = ALL_FALTAM;
+        }
+        const lines = _copySource.map(it => it.produtoPendentes + " - " + it.quantidade).join("\n");
         if (!lines) { showToast("Lista vazia."); return; }
         navigator.clipboard.writeText(lines)
           .then(() => showToast("Lista copiada!", 2500, "success"))
@@ -1455,11 +1465,12 @@
           { type:"ALL",               key:"total",              label:"Total",               hint:"Pedidos (IDs \xfanicos)", view:"STATUS" },
           { type:"STATUS:PENDENTE",   key:"pendentes",          label:"Pendentes",           hint:"Pedidos pendentes", view:"STATUS" },
           { type:"FALTAM",            key:"faltam",             label:"Faltam",              hint:"Soma de Quantidade", view:"FALTAM_VIEW" },
-          { type:"STATUS:CONFIRMADO", key:"confirmados",        label:"Confirmados",         hint:"Pedidos confirmados", view:"STATUS" },
+          { type:"STATUS:CONFIRMADO", key:"confirmados",        label:"Confirmados",         hint:"Pedidos confirmados", view:"STATUS", hideInTodos: true },
           { type:"FALTANV",           key:"faltaNaoVerificado", label:"Falta/Não Verificado", hint:"Qtd não verificada",  view:"FALTANV_VIEW", todosOnly: true },
+          { type:"TENHO", key:"tenho", label:"Tenho", hint:"Qtd confirmada como Tenho", view:"TENHO_VIEW", todosOnly: true },
           { type:"VIEW:ETIQUETAS",    key:"etiquetasImpressas", label:"Etiquetas Impressas", hint:'IDs com "Impressa"', view:"ETIQUETAS", hideInTodos: true },
           { type:"PARCIAIS",          key:"parciais",            label:"Produtos Parciais",   hint:"Componentes kit pendentes", view:"PARCIAIS_VIEW", todosOnly: true },
-          { type:"STATUS:CANCELADO",  key:"cancelados",         label:"Cancelados",          hint:"Pedidos cancelados", view:"STATUS" },
+          { type:"STATUS:CANCELADO",  key:"cancelados",         label:"Cancelados",          hint:"Pedidos cancelados", view:"STATUS", hideInTodos: true },
         ];
 
         return defs
@@ -1483,13 +1494,23 @@
         `).join("");
       };
 
-      const showTodos = () => ACTIVE_SOURCE === "TODOS" && ACTIVE.view !== "FALTAM_VIEW" && ACTIVE.view !== "FALTANV_VIEW";
+      const showTodos = () => ACTIVE_SOURCE === "TODOS" && ACTIVE.view !== "FALTAM_VIEW" && ACTIVE.view !== "FALTANV_VIEW" && ACTIVE.view !== "TENHO_VIEW";
 
       const setThead = () => {
         if (ACTIVE.view === "FALTAM_VIEW") {
           $("thead").innerHTML = `
             <tr>
               <th data-sort="produtoPendentes">Produtos Pendentes <span class="sort-icon">↕</span></th>
+              <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
+            </tr>
+          `;
+          return;
+        }
+
+        if (ACTIVE.view === "TENHO_VIEW") {
+          $("thead").innerHTML = `
+            <tr>
+              <th data-sort="produtoPendentes">Produtos com Tenho <span class="sort-icon">↕</span></th>
               <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
             </tr>
           `;
@@ -1588,6 +1609,10 @@
           `;
         }
 
+        if (ACTIVE.view === "TENHO_VIEW") {
+          return `<tr><td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td></tr>`;
+        }
+
         if (ACTIVE.view === "PARCIAIS_VIEW") {
           const stBadge = p.componentStatus === "FALTA"
             ? "b-cancelado"
@@ -1671,6 +1696,7 @@
 
       const emptyColspan = () => {
         if (ACTIVE.view === "FALTAM_VIEW") return 2;
+        if (ACTIVE.view === "TENHO_VIEW") return 2;
         if (ACTIVE.view === "PARCIAIS_VIEW") return 3;
         if (ACTIVE.view === "FALTANV_VIEW") {
           let c = 2;
@@ -1819,6 +1845,34 @@
           return;
         }
 
+        if (ACTIVE.view === "TENHO_VIEW") {
+          const barFv = $("faltanvBar"); if (barFv) barFv.classList.remove("visible");
+          const actFv = $("faltanvActions"); if (actFv) actFv.classList.remove("visible");
+          const parcActFv = $("parcActions"); if (parcActFv) parcActFv.classList.remove("visible");
+
+          let list = [...ALL_TENHO];
+          if (q) {
+            list = list.filter(it =>
+              `${it.produtoPendentes} ${it.quantidade}`.toLowerCase().includes(q)
+            );
+          }
+          if (SORT.col) {
+            list.sort((a, b) => {
+              const av = String(a[SORT.col] ?? "").toLowerCase();
+              const bv = String(b[SORT.col] ?? "").toLowerCase();
+              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+            });
+          }
+          const cb = $("copyFaltamBtn");
+          if (cb) cb.style.display = "";
+          const tt = $("tableTitle");
+          if (tt) tt.textContent = "Tenho";
+          $("reviewWarning").style.display = "none";
+          renderTable(list);
+          renderStatusline(list.length);
+          return;
+        }
+
         if (ACTIVE.view === "FALTANV_VIEW") {
           let list;
           if (FALTANV_FILTER === "falta") {
@@ -1857,7 +1911,7 @@
 
           updateBlueCellsWarning();
           const cb = $("copyFaltamBtn");
-          if (cb) cb.style.display = "none";
+          if (cb) cb.style.display = (FALTANV_FILTER === "todos") ? "" : "none";
           const cbPend = $("copyPendentesBtn");
           if (cbPend) cbPend.style.display = "none";
           const tt = $("tableTitle");
@@ -2001,6 +2055,7 @@
               "FALTAM": "Faltam",
               "STATUS:CONFIRMADO": "Confirmados",
               "FALTANV": "Falta/Não Verificado",
+              "TENHO": "Tenho",
               "VIEW:ETIQUETAS": "Etiquetas Impressas",
               "PARCIAIS": "Produtos Parciais",
               "STATUS:CANCELADO": "Cancelados",
@@ -2036,6 +2091,8 @@
         $("sourceHint").textContent = hint;
         const _btnPF = $("btnProcessarFotos");
         if (_btnPF) _btnPF.style.display = (ACTIVE_SOURCE === "TODOS") ? "" : "none";
+        const _btnAM = $("btnAtualizarMarcacoes");
+        if (_btnAM) _btnAM.style.display = (ACTIVE_SOURCE === "TODOS") ? "" : "none";
       };
 
       const applySourceTheme = (src) => {
@@ -2098,6 +2155,7 @@
             ALL_PEDIDOS = res.pedidos || [];
             ALL_FALTAM = res.faltamItems || [];
             ALL_TODOS_NV = res.todosNvItems || [];
+            ALL_TENHO = res.tenhoItems || [];
             KPIS = res.kpis || null;
             google.script.run
               .withSuccessHandler(pr => {
@@ -2487,6 +2545,24 @@
       bindFaltanvControls_();
       bindParcialControls_();
       updateSourceUI();
+
+      $("btnAtualizarMarcacoes")?.addEventListener("click", () => {
+        $("btnAtualizarMarcacoes").disabled = true;
+        $("btnAtualizarMarcacoes").textContent = "⏳ Atualizando...";
+        google.script.run
+          .withSuccessHandler(res => {
+            $("btnAtualizarMarcacoes").disabled = false;
+            $("btnAtualizarMarcacoes").textContent = "⚡ Atualizar Marcações";
+            if (!res.ok) { alert("Erro ao atualizar: " + res.error); return; }
+            fetchPedidos();
+          })
+          .withFailureHandler(err => {
+            $("btnAtualizarMarcacoes").disabled = false;
+            $("btnAtualizarMarcacoes").textContent = "⚡ Atualizar Marcações";
+            alert("Erro: " + err);
+          })
+          .atualizarMarcacoesRapido();
+      });
 
       $("btnProcessarFotos")?.addEventListener("click", () => {
         $("loadingOverlay").style.display = "flex";

@@ -67,7 +67,9 @@ function getPedidos(source) {
     // FaltamItems: mantém ordem da planilha (ou ordena por produto se quiser)
     // faltamItems.sort((a,b)=>String(a.produtoPendentes).localeCompare(String(b.produtoPendentes)));
 
+    const tenhoItems = buildTenhoItems_();
     const kpis = buildKpis_(pedidos, faltamItems, todosNvItems);
+    kpis.tenho = tenhoItems.reduce((s, it) => s + Number(it.quantidade || 0), 0);
 
     const _todayCheck = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
     const _storedDate = PropertiesService.getScriptProperties().getProperty("COLLECTION_TIMES_DATE") || "";
@@ -95,6 +97,7 @@ function getPedidos(source) {
       pedidos,
       faltamItems,
       todosNvItems,
+      tenhoItems,
       kpis,
       collectionTimes: getCollectionTimes(),
       hasBlueCells,
@@ -729,6 +732,30 @@ function bm_readConferencia_() {
   };
 }
 
+function buildTenhoItems_() {
+  try {
+    const ss = SpreadsheetApp.openById(ML_IMPORT_CONFIG.ANDAMENTO_SOURCE_SPREADSHEET_ID);
+    const sh = ss.getSheetByName("Conferencia");
+    if (!sh) return [];
+    const last = sh.getLastRow();
+    if (last < 2) return [];
+    const n = last - 1;
+    const prods  = sh.getRange(2, 4, n, 1).getValues();
+    const qtds   = sh.getRange(2, 5, n, 1).getValues();
+    const stats  = sh.getRange(2, 6, n, 1).getValues();
+    const counts = new Map();
+    for (let i = 0; i < n; i++) {
+      const st = String(stats[i][0] ?? "").trim().toUpperCase();
+      if (!st.includes("TENHO")) continue;
+      const prod = String(prods[i][0] ?? "").trim();
+      if (!prod) continue;
+      const qty = pend_parseQtd_(qtds[i][0]);
+      counts.set(prod, (counts.get(prod) || 0) + qty);
+    }
+    return Array.from(counts.entries()).map(([produtoPendentes, quantidade]) => ({ produtoPendentes, quantidade }));
+  } catch(e) { return []; }
+}
+
 // Remove linhas da sheet Parciais por { orderId, componentName }
 function bm_removeParciais_(items, statusMap) {
   const sh = bm_getOrCreateParciais_();
@@ -1257,8 +1284,7 @@ function processarFotosPedidos() {
         }
 
         const rawCapture = matches[0][1].trim().replace(/^[#\s]+/, "").trim();
-        const idMatch = rawCapture.match(/^(\d{3}-\d{7}-\d{7}|\d+)/);
-        const orderId = idMatch ? idMatch[1] : rawCapture;
+        const orderId = rawCapture.split(/\s+/)[0];
 
         let found = false;
         for (let i = 0; i < conf.rows; i++) {
@@ -1325,5 +1351,28 @@ function processarFotosPedidos() {
 
   } catch (err) {
     return { ok: false, error: String(err.message || err) };
+  }
+}
+
+function atualizarMarcacoesRapido() {
+  try {
+    const ss           = SpreadsheetApp.getActiveSpreadsheet();
+    const mapSubseq     = pend_buildDadosMapSubseq_();
+    const confById      = pend_buildConferenciaById_();
+    const confTodosById = pend_buildTodosExcTenho_();
+    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt"];
+    for (const name of sheetNames) {
+      const sh = ss.getSheetByName(name);
+      if (!sh) continue;
+      if (name === "ML Coleta") {
+        pend_process_MLColeta_(sh, confById, mapSubseq);
+      } else {
+        pend_process_porAba_(sh, confById, mapSubseq);
+      }
+      pend_process_nv_porId_(sh, confTodosById, mapSubseq);
+    }
+    return { ok: true };
+  } catch(e) {
+    return { ok: false, error: String(e.message || e) };
   }
 }
