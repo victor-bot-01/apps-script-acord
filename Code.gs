@@ -1451,46 +1451,48 @@ function enviarInformacoesNaoMarcado(selections) {
     const newSt = conf.statuses.map(r => [r[0]]);
     let updated = 0;
     let parciaisAdded = 0;
-    const tenhoOrderProds    = new Map(); // orderId → [prodName, ...]
-    const kitOrderCompStatus = new Map(); // "orderId||kitKey" → Map<compNorm, status>
+    const tenhoOrderProds    = new Map();
+    const kitOrderCompStatus = new Map();
     const parcSh = bm_getOrCreateParciais_();
     const dashSS = SpreadsheetApp.getActiveSpreadsheet();
-
-    // Índice rápido: orderId → lista de índices em conf
-    const confIdxById = new Map();
-    for (let i = 0; i < conf.rows; i++) {
-      const id = String(conf.ids[i][0] ?? "").trim();
-      if (!id) continue;
-      if (!confIdxById.has(id)) confIdxById.set(id, []);
-      confIdxById.get(id).push(i);
-    }
 
     for (const sel of selections) {
       if (!sel.falta && !sel.tenho) continue;
       const normComp = pend_norm_(sel.prodName);
       const kitKeys  = rev.get(normComp) || [];
 
-      // Busca pedidos escaneando col M (TODOS_NV_PROD = col 13, índice 12) do dashboard
-      const seenIds = new Set();
-      const orders  = [];
+      // Varre Conferencia diretamente buscando match direto ou componente de kit
+      const matchedConf = [];
+      for (let i = 0; i < conf.rows; i++) {
+        if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
+        const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
+        const id = String(conf.ids[i][0] ?? "").trim();
+        if (!id) continue;
+        const isDirect = pk === normComp;
+        const isKit    = kitKeys.length > 0 && kitKeys.includes(pk);
+        if (!isDirect && !isKit) continue;
+        matchedConf.push({ confIdx: i, orderId: id, pk, isDirect, isKit });
+      }
+      if (!matchedConf.length) continue;
+
+      // Resolve source varrendo col A do dashboard (apenas 1 coluna)
+      const orderIdSet = new Set(matchedConf.map(r => r.orderId));
+      const idSource = new Map();
       for (const name of PRIORITY) {
         const sh = dashSS.getSheetByName(name);
         if (!sh || sh.getLastRow() < 2) continue;
-        const data = sh.getRange(2, 1, sh.getLastRow() - 1, 13).getValues();
-        for (const row of data) {
-          const id = String(row[0] ?? "").trim();
-          if (!id || seenIds.has(id)) continue;
-          const mCol = pend_norm_(String(row[12] ?? "").trim());
-          if (mCol === normComp) {
-            seenIds.add(id);
-            orders.push({ orderId: id, source: name });
-          }
+        const ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+        for (const r of ids) {
+          const id = String(r[0] ?? "").trim();
+          if (orderIdSet.has(id) && !idSource.has(id)) idSource.set(id, name);
         }
       }
 
-      if (!orders.length) continue;
+      // Ordena por prioridade e divide TENHO / FALTA
+      const orders = [...orderIdSet]
+        .map(id => ({ orderId: id, source: idSource.get(id) || "—" }))
+        .sort((a, b) => PRIORITY.indexOf(a.source) - PRIORITY.indexOf(b.source));
 
-      // Divide em TENHO e FALTA por prioridade (já ordenado pela iteração de PRIORITY)
       let tenhoOrders, faltaOrders;
       if (sel.falta && !sel.tenho) {
         tenhoOrders = []; faltaOrders = orders;
@@ -1503,32 +1505,24 @@ function enviarInformacoesNaoMarcado(selections) {
       const tenhoSet = new Set(tenhoOrders.map(o => o.orderId));
       const faltaSet  = new Set(faltaOrders.map(o  => o.orderId));
 
-      // Roteamento por pedido: verifica col D da Conferencia
-      for (const { orderId } of orders) {
+      // Processa linhas da Conferencia que foram encontradas
+      for (const { confIdx, orderId, isDirect, isKit, pk } of matchedConf) {
+        if (!tenhoSet.has(orderId) && !faltaSet.has(orderId)) continue;
         const status = tenhoSet.has(orderId) ? "TENHO" : "FALTA";
-        const confIndices = confIdxById.get(orderId) || [];
-
-        for (const i of confIndices) {
-          if (String(conf.statuses[i][0] ?? "").trim() !== "") continue; // já marcado
-          const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
-
-          if (pk === normComp) {
-            // Produto avulso → escreve Conferencia diretamente
-            newSt[i][0] = status;
-            updated++;
-            if (status === "TENHO") {
-              if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
-              tenhoOrderProds.get(orderId).push(sel.prodName);
-            }
-          } else if (kitKeys.includes(pk)) {
-            // Componente de kit → acumula para Parciais
-            const mapKey = orderId + "||" + pk;
-            if (!kitOrderCompStatus.has(mapKey)) kitOrderCompStatus.set(mapKey, new Map());
-            kitOrderCompStatus.get(mapKey).set(normComp, status);
-            if (status === "TENHO") {
-              if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
-              tenhoOrderProds.get(orderId).push(sel.prodName);
-            }
+        if (isDirect) {
+          newSt[confIdx][0] = status;
+          updated++;
+          if (status === "TENHO") {
+            if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
+            tenhoOrderProds.get(orderId).push(sel.prodName);
+          }
+        } else if (isKit) {
+          const mapKey = orderId + "||" + pk;
+          if (!kitOrderCompStatus.has(mapKey)) kitOrderCompStatus.set(mapKey, new Map());
+          kitOrderCompStatus.get(mapKey).set(normComp, status);
+          if (status === "TENHO") {
+            if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
+            tenhoOrderProds.get(orderId).push(sel.prodName);
           }
         }
       }
