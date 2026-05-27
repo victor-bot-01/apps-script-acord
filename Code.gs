@@ -1376,3 +1376,197 @@ function atualizarMarcacoesRapido() {
     return { ok: false, error: String(e.message || e) };
   }
 }
+
+function bm_getOrderDetails_(orderIds) {
+  const result = new Map();
+  const set = new Set(orderIds.map(id => String(id).trim()));
+  const dashSS = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetNames = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil"];
+  for (const name of sheetNames) {
+    const sh = dashSS.getSheetByName(name);
+    if (!sh || sh.getLastRow() < 2) continue;
+    const data = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues();
+    for (const row of data) {
+      const id = String(row[0] ?? "").trim();
+      if (set.has(id) && !result.has(id))
+        result.set(id, { id, cliente: String(row[1] ?? "").trim(), source: name });
+    }
+  }
+  return result;
+}
+
+function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
+  if (!tenhoOrderDetails.length) return null;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName("Etiquetas");
+  if (!sheet) sheet = ss.insertSheet("Etiquetas");
+  sheet.clearContents();
+  for (let i = 0; i < tenhoOrderDetails.length; i++) {
+    const d = tenhoOrderDetails[i];
+    const text = "Pedido: " + d.id +
+                 "\nCliente: " + d.cliente +
+                 "\nMarketplace: " + d.source +
+                 "\nProdutos: " + d.produtos.join(", ") +
+                 "\nPedido Incompleto";
+    sheet.getRange(i + 1, 1).setValue(text);
+  }
+  const ultimaLinha = sheet.getLastRow();
+  if (ultimaLinha === 0) return null;
+  sheet.getRange(1, 1, ultimaLinha, 1).setBorder(true, true, true, true, true, true);
+  const url_base = "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?";
+  const params = {
+    format:"pdf", size:"letter", portrait:true, fitw:false, scale:1,
+    top_margin:0, bottom_margin:0, left_margin:0, right_margin:0,
+    sheetnames:false, printtitle:false, pagenumbers:false, gridlines:false,
+    fzr:false, gid:sheet.getSheetId(), range:"A1:A"+ultimaLinha
+  };
+  const query = Object.entries(params).map(([k,v]) => k+"="+v).join("&");
+  const token = ScriptApp.getOAuthToken();
+  const response = UrlFetchApp.fetch(url_base + query,
+    { headers: { Authorization: "Bearer " + token } });
+  const folder = DriveApp.getFolderById(folderId);
+  const nome = "Etiqueta_Incompleto_" + new Date().toISOString().replace(/[:.]/g,"-") + ".pdf";
+  const arquivo = folder.createFile(response.getBlob().setName(nome));
+  sheet.clearContents();
+  return arquivo.getUrl();
+}
+
+function enviarInformacoesNaoMarcado(selections) {
+  try {
+    if (!selections?.length) return { ok: true, updated: 0, labels: 0 };
+    const PRIORITY = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil"];
+    const PDF_FOLDER = "1uhmWR9BRt09Ycwagd6g-jyEsulgtZiru";
+
+    const mapSubseq = pend_buildDadosMapSubseq_();
+    const rev = bm_buildReverseMap_(mapSubseq);
+    const fwd = new Map([...mapSubseq.entries()].map(([k,v]) =>
+      [k, v.split(";").map(s=>s.trim()).filter(Boolean)]));
+
+    const conf  = bm_readConferencia_();
+    const newSt = conf.statuses.map(r => [r[0]]);
+    let updated = 0;
+    let parciaisAdded = 0;
+    const tenhoOrderProds   = new Map(); // orderId → [prodName, ...]
+    const kitOrderCompStatus = new Map(); // "orderId||kitKey" → Map<compNorm, status>
+    const parcSh = bm_getOrCreateParciais_();
+
+    for (const sel of selections) {
+      if (!sel.falta && !sel.tenho) continue;
+      const normComp = pend_norm_(sel.prodName);
+      const kitKeys  = rev.get(normComp) || [];
+
+      const ordersRes = getOrdersByComponent(sel.prodName, false);
+      if (!ordersRes.ok || !ordersRes.orders.length) continue;
+
+      const orders = ordersRes.orders.slice().sort((a, b) => {
+        const pa = PRIORITY.indexOf(a.source), pb = PRIORITY.indexOf(b.source);
+        return (pa < 0 ? 999 : pa) - (pb < 0 ? 999 : pb);
+      });
+
+      let tenhoOrders, faltaOrders;
+      if (sel.falta && !sel.tenho) {
+        tenhoOrders = []; faltaOrders = orders;
+      } else {
+        const tq = (sel.tenhoQty > 0 && sel.tenhoQty < orders.length)
+          ? sel.tenhoQty : orders.length;
+        tenhoOrders = orders.slice(0, tq);
+        faltaOrders = orders.slice(tq);
+      }
+      const tenhoSet = new Set(tenhoOrders.map(o => o.orderId));
+      const faltaSet  = new Set(faltaOrders.map(o  => o.orderId));
+
+      if (!kitKeys.length) {
+        for (let i = 0; i < conf.rows; i++) {
+          const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
+          if (pk !== normComp) continue;
+          if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
+          const id = String(conf.ids[i][0] ?? "").trim();
+          if (!id) continue;
+          if (tenhoSet.has(id)) {
+            newSt[i][0] = "TENHO"; updated++;
+            if (!tenhoOrderProds.has(id)) tenhoOrderProds.set(id, []);
+            tenhoOrderProds.get(id).push(sel.prodName);
+          } else if (faltaSet.has(id)) {
+            newSt[i][0] = "FALTA"; updated++;
+          }
+        }
+      } else {
+        for (const kitKey of kitKeys) {
+          for (let i = 0; i < conf.rows; i++) {
+            const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
+            if (pk !== kitKey) continue;
+            if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
+            const id = String(conf.ids[i][0] ?? "").trim();
+            if (!id) continue;
+            const mapKey = id + "||" + kitKey;
+            if (!kitOrderCompStatus.has(mapKey)) kitOrderCompStatus.set(mapKey, new Map());
+            const compMap = kitOrderCompStatus.get(mapKey);
+            const status = tenhoSet.has(id) ? "TENHO" : faltaSet.has(id) ? "FALTA" : null;
+            if (status) {
+              compMap.set(normComp, status);
+              if (status === "TENHO") {
+                if (!tenhoOrderProds.has(id)) tenhoOrderProds.set(id, []);
+                tenhoOrderProds.get(id).push(sel.prodName);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (const [mapKey, compMap] of kitOrderCompStatus.entries()) {
+      const sepIdx = mapKey.indexOf("||");
+      const orderId = mapKey.substring(0, sepIdx);
+      const kitKey  = mapKey.substring(sepIdx + 2);
+      const comps = fwd.get(kitKey) || [];
+      const kitProdOriginal = (() => {
+        for (let i = 0; i < conf.rows; i++)
+          if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) === kitKey)
+            return String(conf.prods[i][0]).trim();
+        return kitKey;
+      })();
+      const source = bm_getOrderDetails_([orderId]).get(orderId)?.source || "";
+      for (const comp of comps) {
+        const cStatus = compMap.get(pend_norm_(comp)) || "PENDENTE";
+        parcSh.appendRow([source, orderId, kitProdOriginal, comp, cStatus, 1]);
+        parciaisAdded++;
+      }
+    }
+
+    if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+
+    let pdfUrl = null;
+    if (tenhoOrderProds.size > 0) {
+      const ids = [...tenhoOrderProds.keys()];
+      const detMap = bm_getOrderDetails_(ids);
+      const details = ids.map(id => ({
+        id,
+        cliente:  detMap.get(id)?.cliente || "—",
+        source:   detMap.get(id)?.source  || "—",
+        produtos: tenhoOrderProds.get(id) || [],
+      }));
+      try { pdfUrl = gerarEtiquetasPDF_(details, PDF_FOLDER); }
+      catch(e) { Logger.log("PDF err: " + e.message); }
+    }
+
+    const parcLast = parcSh.getLastRow();
+    if (parcLast >= 2) {
+      const pv = parcSh.getRange(2, 1, parcLast - 1, 6).getValues();
+      const pairPend = {};
+      for (const v of pv) {
+        const key = String(v[1]??"").trim() + "||" + String(v[2]??"").trim();
+        if (String(v[4]??"").trim() === "PENDENTE") pairPend[key] = true;
+      }
+      const del = [];
+      for (let i = 0; i < pv.length; i++) {
+        const key = String(pv[i][1]??"").trim() + "||" + String(pv[i][2]??"").trim();
+        if (!pairPend[key]) del.push(i + 2);
+      }
+      for (let k = del.length - 1; k >= 0; k--) parcSh.deleteRow(del[k]);
+    }
+
+    return { ok: true, updated, parciaisAdded, labels: tenhoOrderProds.size, pdfUrl };
+  } catch(err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+}

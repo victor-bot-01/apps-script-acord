@@ -1007,9 +1007,11 @@
           </div>
 
           <div class="faltanvActions" id="faltanvActions">
-            <button class="btn-action btn-falta"  id="btnMarcarFalta"  disabled>Marcar /Falta</button>
-            <button class="btn-action btn-parcial" id="btnFaltaParcial" disabled>Falta Parcial</button>
-            <span id="faltanvSelCount" style="font-size:12px;color:var(--text-muted);"></span>
+            <button id="btnEnviarInfo" onclick="abrirModalEnviarInfo_()"
+              style="display:none; margin-left:8px; padding:6px 14px; background:#F5C518;
+                     border:none; border-radius:7px; font-weight:600; cursor:pointer;">
+              Enviar Informações
+            </button>
           </div>
 
           <div class="faltanvActions" id="parcActions">
@@ -1132,6 +1134,7 @@
       let FILTER_ANDAMENTO = new Set(); // valores: "falta", "tenho", "vazio"
       let FILTER_FONTE     = new Set(); // valores: "ML Coleta", "ML 1", "Shopee", "Magalu", "Essência do Brasil"
       let FALTANV_FILTER   = "todos";  // "todos" | "falta" | "nao_marcado"
+      let NAO_MARCADO_SELS = new Map(); // key: produtoPendentes → { falta, tenho, tenhoQty }
 
       let ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
       const isActive = (type) => ACTIVE && ACTIVE.type === type;
@@ -1529,19 +1532,24 @@
         }
 
         if (ACTIVE.view === "FALTANV_VIEW") {
-          const showChk = (FALTANV_FILTER === "nao_marcado");
-          const tipoCol = (FALTANV_FILTER === "todos")
-            ? `<th style="width:90px;">Tipo</th>` : "";
-          const chkCol = showChk
-            ? `<th class="chk-col"><input type="checkbox" id="chkAllFaltanv" title="Marcar todos"></th>` : "";
-          $("thead").innerHTML = `
-            <tr>
-              ${chkCol}
-              <th data-sort="produtoPendentes">Produtos Pendentes <span class="sort-icon">↕</span></th>
-              <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
-              ${tipoCol}
-            </tr>
-          `;
+          if (FALTANV_FILTER === "nao_marcado") {
+            $("thead").innerHTML = `
+              <tr>
+                <th style="width:42px; text-align:center;">Falta</th>
+                <th style="width:42px; text-align:center;">Tenho</th>
+                <th style="width:64px; text-align:center;">Qty</th>
+                <th style="width:70px;">Quantidade</th>
+                <th>Produto</th>
+              </tr>
+            `;
+          } else {
+            $("thead").innerHTML = `
+              <tr>
+                <th>Produto</th>
+                <th style="width:70px;">Quantidade</th>
+              </tr>
+            `;
+          }
           return;
         }
 
@@ -1634,15 +1642,44 @@
         }
 
         if (ACTIVE.view === "FALTANV_VIEW") {
-          const showChk = (FALTANV_FILTER === "nao_marcado");
+          if (p._tipo === "nao_marcado") {
+            const key    = p.produtoPendentes;
+            const sel    = NAO_MARCADO_SELS.get(key) || {};
+            const faltaChk = sel.falta ? "checked" : "";
+            const tenhoChk = sel.tenho ? "checked" : "";
+            const tenhoQty = sel.tenhoQty || "";
+            const maxQty   = Number(p.quantidade) || 1;
+            const showQty  = (sel.tenho && maxQty > 1) ? "" : "none";
+            return `
+              <tr>
+                <td style="text-align:center;">
+                  <input type="checkbox" class="chk-falta-nm" data-prod="${safe(key)}" ${faltaChk}
+                    onchange="nmFaltaChange_(this)">
+                </td>
+                <td style="text-align:center;">
+                  <input type="checkbox" class="chk-tenho-nm" data-prod="${safe(key)}" ${tenhoChk}
+                    onchange="nmTenhoChange_(this)">
+                </td>
+                <td style="text-align:center;">
+                  <input type="number" class="qty-nm" data-prod="${safe(key)}"
+                    min="1" max="${maxQty - 1}" value="${tenhoQty}"
+                    style="width:52px; display:${showQty};"
+                    onchange="nmQtyChange_(this)">
+                </td>
+                <td>${safe(p.quantidade)}</td>
+                <td>${safe(p.produtoPendentes)}</td>
+              </tr>
+            `;
+          }
+          // _tipo === "falta" ou "todos": mantém clique para abrir modal
           const ignoreStatus = p._tipo === "falta" ? "true" : "false";
-          const tipoCol = (FALTANV_FILTER === "todos")
-            ? `<td><span class="badge b-outro" style="font-size:10px;">${p._tipo === "falta" ? "Falta" : "Não Marc."}</span></td>`
-            : "";
-          const chkCell = showChk
-            ? `<td class="chk-col"><input type="checkbox" class="chk-faltanv" data-prod="${safe(p.produtoPendentes)}" data-sheet="${safe(p.sheet)}" data-qty="${safe(p.quantidade)}"></td>`
-            : "";
-          return `<tr style="cursor:pointer;" onclick="openFaltaItemModal_(${JSON.stringify(p.produtoPendentes)}, ${ignoreStatus})">${chkCell}<td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td>${tipoCol}</tr>`;
+          return `
+            <tr style="cursor:pointer;"
+              onclick="openFaltaItemModal_(${JSON.stringify(p.produtoPendentes)}, ${ignoreStatus})">
+              <td>${safe(p.produtoPendentes)}</td>
+              <td>${safe(p.quantidade)}</td>
+            </tr>
+          `;
         }
 
         const isMulti = MULTI_IDS.has(String(p.id));
@@ -1700,10 +1737,7 @@
         if (ACTIVE.view === "TENHO_VIEW") return 2;
         if (ACTIVE.view === "PARCIAIS_VIEW") return 3;
         if (ACTIVE.view === "FALTANV_VIEW") {
-          let c = 2;
-          if (FALTANV_FILTER === "nao_marcado") c += 1;
-          if (FALTANV_FILTER === "todos") c += 1;
-          return c;
+          return FALTANV_FILTER === "nao_marcado" ? 5 : 2;
         }
         let cols = 5;
         if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // andamento
@@ -1927,6 +1961,8 @@
           updateFaltanvActionState_();
 
           renderTable(list);
+          const btnEI = $("btnEnviarInfo");
+          if (btnEI) btnEI.style.display = (FALTANV_FILTER === "nao_marcado") ? "" : "none";
           renderStatusline(list.length);
           return;
         }
@@ -2228,6 +2264,7 @@
             document.querySelectorAll(".faltanv-filter").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             FALTANV_FILTER = btn.getAttribute("data-faltanv") || "todos";
+            NAO_MARCADO_SELS = new Map();
             applyAllFilters();
           });
         });
@@ -2591,6 +2628,126 @@
       });
 
       fetchPedidos();
+
+      function nmFaltaChange_(el) {
+        const key = el.getAttribute("data-prod");
+        const sel = NAO_MARCADO_SELS.get(key) || {};
+        sel.falta = el.checked;
+        if (el.checked) { sel.tenho = false; sel.tenhoQty = 0; }
+        NAO_MARCADO_SELS.set(key, sel);
+        const row = el.closest("tr");
+        if (row) {
+          const tenhoEl = row.querySelector(".chk-tenho-nm");
+          if (tenhoEl) tenhoEl.checked = false;
+          const qtyEl = row.querySelector(".qty-nm");
+          if (qtyEl) qtyEl.style.display = "none";
+        }
+        nmAtualizarBotaoEnviar_();
+      }
+
+      function nmTenhoChange_(el) {
+        const key  = el.getAttribute("data-prod");
+        const row  = el.closest("tr");
+        const qtyEl = row ? row.querySelector(".qty-nm") : null;
+        const maxQty = qtyEl ? (Number(qtyEl.getAttribute("max")) + 1) : 1;
+        const sel  = NAO_MARCADO_SELS.get(key) || {};
+        sel.tenho  = el.checked;
+        if (el.checked) { sel.falta = false; }
+        else { sel.tenhoQty = 0; }
+        NAO_MARCADO_SELS.set(key, sel);
+        if (row) {
+          const faltaEl = row.querySelector(".chk-falta-nm");
+          if (faltaEl) faltaEl.checked = false;
+          if (qtyEl) qtyEl.style.display = (el.checked && maxQty > 1) ? "" : "none";
+        }
+        nmAtualizarBotaoEnviar_();
+      }
+
+      function nmQtyChange_(el) {
+        const key = el.getAttribute("data-prod");
+        const sel = NAO_MARCADO_SELS.get(key) || {};
+        sel.tenhoQty = parseInt(el.value, 10) || 0;
+        NAO_MARCADO_SELS.set(key, sel);
+      }
+
+      function nmAtualizarBotaoEnviar_() {
+        const btn = $("btnEnviarInfo");
+        if (!btn) return;
+        const hasAny = [...NAO_MARCADO_SELS.values()].some(s => s.falta || s.tenho);
+        btn.style.opacity       = hasAny ? "1" : "0.5";
+        btn.style.pointerEvents = hasAny ? "" : "none";
+      }
+
+      function abrirModalEnviarInfo_() {
+        const hasAny = [...NAO_MARCADO_SELS.values()].some(s => s.falta || s.tenho);
+        if (!hasAny) { showToast("Marque ao menos um item antes de enviar."); return; }
+        const input = document.getElementById("inputEnviarConfirm");
+        if (input) input.value = "";
+        const btn = document.getElementById("btnEnviarConfirm");
+        if (btn) btn.disabled = true;
+        document.getElementById("modalEnviarInfo").style.display = "flex";
+      }
+
+      function confirmarEnviarInformacoes_() {
+        document.getElementById("modalEnviarInfo").style.display = "none";
+
+        const aggMap = new Map();
+        for (const it of ALL_TODOS_NV) {
+          const k = normJs_(it.produtoPendentes);
+          if (!aggMap.has(k)) aggMap.set(k, { ...it, quantidade: 0 });
+          aggMap.get(k).quantidade += Number(it.quantidade || 0);
+        }
+
+        const selections = [];
+        for (const [, item] of aggMap) {
+          const key = item.produtoPendentes;
+          const sel = NAO_MARCADO_SELS.get(key);
+          if (!sel || (!sel.falta && !sel.tenho)) continue;
+          selections.push({
+            prodName: key,
+            totalQty: item.quantidade,
+            falta:    !!sel.falta,
+            tenho:    !!sel.tenho,
+            tenhoQty: sel.tenhoQty || 0,
+          });
+        }
+
+        if (!selections.length) { showToast("Nenhum item marcado."); return; }
+
+        showToast("Enviando informações…");
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.ok) { showToast("Erro: " + (res.error || "desconhecido")); return; }
+            NAO_MARCADO_SELS = new Map();
+            const msg = "✅ " + res.updated + " marcação(ões) • " +
+                        res.labels + " etiqueta(s)" +
+                        (res.pdfUrl ? " • PDF gerado" : "");
+            showToast(msg, 5000);
+            fetchPedidos();
+          })
+          .withFailureHandler(err => showToast("Falha: " + (err.message || err)))
+          .enviarInformacoesNaoMarcado(selections);
+      }
     </script>
+
+    <!-- Modal Enviar Informações Não Marcado -->
+    <div id="modalEnviarInfo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:12px; padding:28px 32px; max-width:380px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,.25);">
+        <h3 style="margin:0 0 12px; font-size:1.1rem;">Confirmar Envio</h3>
+        <p style="margin:0 0 16px; color:#555; font-size:.9rem;">
+          Para confirmar, digite <strong>/enviar</strong> no campo abaixo.
+        </p>
+        <input id="inputEnviarConfirm" type="text" placeholder="/enviar"
+          style="width:100%; box-sizing:border-box; padding:8px 10px; border:1.5px solid #ccc; border-radius:7px; font-size:1rem; margin-bottom:14px;"
+          oninput="document.getElementById('btnEnviarConfirm').disabled = this.value.trim() !== '/enviar';">
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onclick="document.getElementById('modalEnviarInfo').style.display='none';"
+            style="padding:7px 18px; border:1.5px solid #ccc; background:#fff; border-radius:7px; cursor:pointer;">Cancelar</button>
+          <button id="btnEnviarConfirm" disabled
+            onclick="confirmarEnviarInformacoes_()"
+            style="padding:7px 18px; background:#F5C518; border:none; border-radius:7px; font-weight:600; cursor:pointer;">Confirmar</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
