@@ -1412,20 +1412,25 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
   }
   const ultimaLinha = sheet.getLastRow();
   if (ultimaLinha === 0) return null;
-  sheet.getRange(1, 1, ultimaLinha, 1).setBorder(true, true, true, true, true, true);
+  sheet.setColumnWidth(1, 400);
+  sheet.getRange(1, 1, ultimaLinha, 1)
+    .setWrap(true)
+    .setBorder(true, true, true, true, true, true);
   const url_base = "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?";
   const params = {
-    format:"pdf", size:"letter", portrait:true, fitw:false, scale:1,
-    top_margin:0, bottom_margin:0, left_margin:0, right_margin:0,
-    sheetnames:false, printtitle:false, pagenumbers:false, gridlines:false,
-    fzr:false, gid:sheet.getSheetId(), range:"A1:A"+ultimaLinha
+    format: "pdf", size: "letter", portrait: true, fitw: true,
+    scale: 1, top_margin: 0.25, bottom_margin: 0.25,
+    left_margin: 0.25, right_margin: 0.25,
+    sheetnames: false, printtitle: false, pagenumbers: false,
+    gridlines: false, fzr: false,
+    gid: sheet.getSheetId(), range: "A1:A" + ultimaLinha
   };
-  const query = Object.entries(params).map(([k,v]) => k+"="+v).join("&");
+  const query = Object.entries(params).map(([k,v]) => k + "=" + v).join("&");
   const token = ScriptApp.getOAuthToken();
   const response = UrlFetchApp.fetch(url_base + query,
     { headers: { Authorization: "Bearer " + token } });
-  const folder = DriveApp.getFolderById(folderId);
-  const nome = "Etiqueta_Incompleto_" + new Date().toISOString().replace(/[:.]/g,"-") + ".pdf";
+  const folder  = DriveApp.getFolderById(folderId);
+  const nome    = "Etiqueta_Incompleto_" + new Date().toISOString().replace(/[:.]/g, "-") + ".pdf";
   const arquivo = folder.createFile(response.getBlob().setName(nome));
   sheet.clearContents();
   return arquivo.getUrl();
@@ -1446,23 +1451,46 @@ function enviarInformacoesNaoMarcado(selections) {
     const newSt = conf.statuses.map(r => [r[0]]);
     let updated = 0;
     let parciaisAdded = 0;
-    const tenhoOrderProds   = new Map(); // orderId → [prodName, ...]
+    const tenhoOrderProds    = new Map(); // orderId → [prodName, ...]
     const kitOrderCompStatus = new Map(); // "orderId||kitKey" → Map<compNorm, status>
     const parcSh = bm_getOrCreateParciais_();
+    const dashSS = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Índice rápido: orderId → lista de índices em conf
+    const confIdxById = new Map();
+    for (let i = 0; i < conf.rows; i++) {
+      const id = String(conf.ids[i][0] ?? "").trim();
+      if (!id) continue;
+      if (!confIdxById.has(id)) confIdxById.set(id, []);
+      confIdxById.get(id).push(i);
+    }
 
     for (const sel of selections) {
       if (!sel.falta && !sel.tenho) continue;
       const normComp = pend_norm_(sel.prodName);
       const kitKeys  = rev.get(normComp) || [];
 
-      const ordersRes = getOrdersByComponent(sel.prodName, false);
-      if (!ordersRes.ok || !ordersRes.orders.length) continue;
+      // Busca pedidos escaneando col M (TODOS_NV_PROD = col 13, índice 12) do dashboard
+      const seenIds = new Set();
+      const orders  = [];
+      for (const name of PRIORITY) {
+        const sh = dashSS.getSheetByName(name);
+        if (!sh || sh.getLastRow() < 2) continue;
+        const data = sh.getRange(2, 1, sh.getLastRow() - 1, 13).getValues();
+        for (const row of data) {
+          const id = String(row[0] ?? "").trim();
+          if (!id || seenIds.has(id)) continue;
+          const mCol = pend_norm_(String(row[12] ?? "").trim());
+          if (mCol === normComp) {
+            seenIds.add(id);
+            orders.push({ orderId: id, source: name });
+          }
+        }
+      }
 
-      const orders = ordersRes.orders.slice().sort((a, b) => {
-        const pa = PRIORITY.indexOf(a.source), pb = PRIORITY.indexOf(b.source);
-        return (pa < 0 ? 999 : pa) - (pb < 0 ? 999 : pb);
-      });
+      if (!orders.length) continue;
 
+      // Divide em TENHO e FALTA por prioridade (já ordenado pela iteração de PRIORITY)
       let tenhoOrders, faltaOrders;
       if (sel.falta && !sel.tenho) {
         tenhoOrders = []; faltaOrders = orders;
@@ -1475,50 +1503,43 @@ function enviarInformacoesNaoMarcado(selections) {
       const tenhoSet = new Set(tenhoOrders.map(o => o.orderId));
       const faltaSet  = new Set(faltaOrders.map(o  => o.orderId));
 
-      if (!kitKeys.length) {
-        for (let i = 0; i < conf.rows; i++) {
+      // Roteamento por pedido: verifica col D da Conferencia
+      for (const { orderId } of orders) {
+        const status = tenhoSet.has(orderId) ? "TENHO" : "FALTA";
+        const confIndices = confIdxById.get(orderId) || [];
+
+        for (const i of confIndices) {
+          if (String(conf.statuses[i][0] ?? "").trim() !== "") continue; // já marcado
           const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
-          if (pk !== normComp) continue;
-          if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
-          const id = String(conf.ids[i][0] ?? "").trim();
-          if (!id) continue;
-          if (tenhoSet.has(id)) {
-            newSt[i][0] = "TENHO"; updated++;
-            if (!tenhoOrderProds.has(id)) tenhoOrderProds.set(id, []);
-            tenhoOrderProds.get(id).push(sel.prodName);
-          } else if (faltaSet.has(id)) {
-            newSt[i][0] = "FALTA"; updated++;
-          }
-        }
-      } else {
-        for (const kitKey of kitKeys) {
-          for (let i = 0; i < conf.rows; i++) {
-            const pk = pend_norm_(String(conf.prods[i][0] ?? "").trim());
-            if (pk !== kitKey) continue;
-            if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
-            const id = String(conf.ids[i][0] ?? "").trim();
-            if (!id) continue;
-            const mapKey = id + "||" + kitKey;
+
+          if (pk === normComp) {
+            // Produto avulso → escreve Conferencia diretamente
+            newSt[i][0] = status;
+            updated++;
+            if (status === "TENHO") {
+              if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
+              tenhoOrderProds.get(orderId).push(sel.prodName);
+            }
+          } else if (kitKeys.includes(pk)) {
+            // Componente de kit → acumula para Parciais
+            const mapKey = orderId + "||" + pk;
             if (!kitOrderCompStatus.has(mapKey)) kitOrderCompStatus.set(mapKey, new Map());
-            const compMap = kitOrderCompStatus.get(mapKey);
-            const status = tenhoSet.has(id) ? "TENHO" : faltaSet.has(id) ? "FALTA" : null;
-            if (status) {
-              compMap.set(normComp, status);
-              if (status === "TENHO") {
-                if (!tenhoOrderProds.has(id)) tenhoOrderProds.set(id, []);
-                tenhoOrderProds.get(id).push(sel.prodName);
-              }
+            kitOrderCompStatus.get(mapKey).set(normComp, status);
+            if (status === "TENHO") {
+              if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
+              tenhoOrderProds.get(orderId).push(sel.prodName);
             }
           }
         }
       }
     }
 
+    // Escreve Parciais para os kits acumulados
     for (const [mapKey, compMap] of kitOrderCompStatus.entries()) {
-      const sepIdx = mapKey.indexOf("||");
+      const sepIdx  = mapKey.indexOf("||");
       const orderId = mapKey.substring(0, sepIdx);
       const kitKey  = mapKey.substring(sepIdx + 2);
-      const comps = fwd.get(kitKey) || [];
+      const comps   = fwd.get(kitKey) || [];
       const kitProdOriginal = (() => {
         for (let i = 0; i < conf.rows; i++)
           if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) === kitKey)
@@ -1535,9 +1556,10 @@ function enviarInformacoesNaoMarcado(selections) {
 
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
 
+    // Gera PDF para pedidos com TENHO
     let pdfUrl = null;
     if (tenhoOrderProds.size > 0) {
-      const ids = [...tenhoOrderProds.keys()];
+      const ids    = [...tenhoOrderProds.keys()];
       const detMap = bm_getOrderDetails_(ids);
       const details = ids.map(id => ({
         id,
@@ -1549,6 +1571,7 @@ function enviarInformacoesNaoMarcado(selections) {
       catch(e) { Logger.log("PDF err: " + e.message); }
     }
 
+    // Após PDF: remove linhas do Parciais de kits sem PENDENTE restante
     const parcLast = parcSh.getLastRow();
     if (parcLast >= 2) {
       const pv = parcSh.getRange(2, 1, parcLast - 1, 6).getValues();
