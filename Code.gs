@@ -1534,23 +1534,54 @@ function enviarInformacoesNaoMarcado(selections) {
       }
     }
 
-    // Escreve Parciais para os kits acumulados
+    // Resolve kits acumulados
     for (const [mapKey, compMap] of kitOrderCompStatus.entries()) {
       const sepIdx  = mapKey.indexOf("||");
       const orderId = mapKey.substring(0, sepIdx);
       const kitKey  = mapKey.substring(sepIdx + 2);
       const comps   = fwd.get(kitKey) || [];
+
       const kitProdOriginal = (() => {
         for (let i = 0; i < conf.rows; i++)
           if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) === kitKey)
             return String(conf.prods[i][0]).trim();
         return kitKey;
       })();
+
       const source = bm_getOrderDetails_([orderId]).get(orderId)?.source || "";
-      for (const comp of comps) {
-        const cStatus = compMap.get(pend_norm_(comp)) || "PENDENTE";
-        parcSh.appendRow([source, orderId, kitProdOriginal, comp, cStatus, 1]);
-        parciaisAdded++;
+
+      // Verifica se todos os componentes estão resolvidos (nenhum PENDENTE)
+      const allResolved = comps.length > 0 && comps.every(c =>
+        compMap.get(pend_norm_(c)) === "TENHO" || compMap.get(pend_norm_(c)) === "FALTA"
+      );
+
+      if (allResolved) {
+        // Kit completo → escreve Conferencia
+        const allTenho = comps.every(c => compMap.get(pend_norm_(c)) === "TENHO");
+        let finalStatus;
+        if (allTenho) {
+          finalStatus = "TENHO";
+        } else {
+          const faltaComps = comps.filter(c => compMap.get(pend_norm_(c)) === "FALTA");
+          const hasAnyTenho = comps.some(c => compMap.get(pend_norm_(c)) === "TENHO");
+          finalStatus = (hasAnyTenho && faltaComps.length > 0)
+            ? "FALTA - " + faltaComps.join(";")
+            : "FALTA";
+        }
+        for (let i = 0; i < conf.rows; i++) {
+          if (pend_norm_(String(conf.prods[i][0] ?? "").trim()) !== kitKey) continue;
+          if (String(conf.ids[i][0] ?? "").trim() !== orderId) continue;
+          if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
+          newSt[i][0] = finalStatus;
+          updated++;
+        }
+      } else {
+        // Kit incompleto → escreve Parciais
+        for (const comp of comps) {
+          const cStatus = compMap.get(pend_norm_(comp)) || "PENDENTE";
+          parcSh.appendRow([source, orderId, kitProdOriginal, comp, cStatus, 1]);
+          parciaisAdded++;
+        }
       }
     }
 
