@@ -1403,16 +1403,16 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
   sheet.clearContents();
   for (let i = 0; i < tenhoOrderDetails.length; i++) {
     const d = tenhoOrderDetails[i];
+    const statusLabel = d.isComplete ? "Pedido Completo" : "Pedido Incompleto";
     const text = "Pedido: " + d.id +
                  "\nCliente: " + d.cliente +
                  "\nMarketplace: " + d.source +
                  "\nProdutos: " + d.produtos.join(", ") +
-                 "\nPedido Incompleto";
+                 "\n" + statusLabel;
     sheet.getRange(i + 1, 1).setValue(text);
   }
   const ultimaLinha = sheet.getLastRow();
   if (ultimaLinha === 0) return null;
-  sheet.setColumnWidth(1, 400);
   sheet.getRange(1, 1, ultimaLinha, 1)
     .setWrap(true)
     .setBorder(true, true, true, true, true, true);
@@ -1430,7 +1430,7 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
   const response = UrlFetchApp.fetch(url_base + query,
     { headers: { Authorization: "Bearer " + token } });
   const folder  = DriveApp.getFolderById(folderId);
-  const nome    = "Etiqueta_Incompleto_" + new Date().toISOString().replace(/[:.]/g, "-") + ".pdf";
+  const nome    = "Etiqueta_" + new Date().toISOString().replace(/[:.]/g, "-") + ".pdf";
   const arquivo = folder.createFile(response.getBlob().setName(nome));
   sheet.clearContents();
   return arquivo.getUrl();
@@ -1461,7 +1461,7 @@ function enviarInformacoesNaoMarcado(selections) {
       const normComp = pend_norm_(sel.prodName);
       const kitKeys  = rev.get(normComp) || [];
 
-      // Varre Conferencia diretamente buscando match direto ou componente de kit
+      // Varre Conferencia diretamente: match direto ou componente de kit
       const matchedConf = [];
       for (let i = 0; i < conf.rows; i++) {
         if (String(conf.statuses[i][0] ?? "").trim() !== "") continue;
@@ -1475,7 +1475,7 @@ function enviarInformacoesNaoMarcado(selections) {
       }
       if (!matchedConf.length) continue;
 
-      // Resolve source varrendo col A do dashboard (apenas 1 coluna)
+      // Resolve source varrendo col A do dashboard (1 coluna)
       const orderIdSet = new Set(matchedConf.map(r => r.orderId));
       const idSource = new Map();
       for (const name of PRIORITY) {
@@ -1488,11 +1488,14 @@ function enviarInformacoesNaoMarcado(selections) {
         }
       }
 
-      // Ordena por prioridade e divide TENHO / FALTA
+      // Ignora pedidos que não existem no Dashboard
       const orders = [...orderIdSet]
-        .map(id => ({ orderId: id, source: idSource.get(id) || "—" }))
+        .filter(id => idSource.has(id))
+        .map(id => ({ orderId: id, source: idSource.get(id) }))
         .sort((a, b) => PRIORITY.indexOf(a.source) - PRIORITY.indexOf(b.source));
+      if (!orders.length) continue;
 
+      // Divide TENHO / FALTA por prioridade
       let tenhoOrders, faltaOrders;
       if (sel.falta && !sel.tenho) {
         tenhoOrders = []; faltaOrders = orders;
@@ -1505,7 +1508,7 @@ function enviarInformacoesNaoMarcado(selections) {
       const tenhoSet = new Set(tenhoOrders.map(o => o.orderId));
       const faltaSet  = new Set(faltaOrders.map(o  => o.orderId));
 
-      // Processa linhas da Conferencia que foram encontradas
+      // Processa linhas da Conferencia encontradas
       for (const { confIdx, orderId, isDirect, isKit, pk } of matchedConf) {
         if (!tenhoSet.has(orderId) && !faltaSet.has(orderId)) continue;
         const status = tenhoSet.has(orderId) ? "TENHO" : "FALTA";
@@ -1578,19 +1581,46 @@ function enviarInformacoesNaoMarcado(selections) {
 
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
 
-    // Gera PDF para pedidos TENHO
+    // Monta índice orderId → índices em conf (para verificar se pedido está completo)
+    const confByOrderId = new Map();
+    for (let i = 0; i < conf.rows; i++) {
+      const id = String(conf.ids[i][0] ?? "").trim();
+      if (!id) continue;
+      if (!confByOrderId.has(id)) confByOrderId.set(id, []);
+      confByOrderId.get(id).push(i);
+    }
+
+    // Gera etiqueta apenas para pedidos com TODOS os itens da Conferencia resolvidos
     let pdfUrl = null;
+    let labelsGenerated = 0;
     if (tenhoOrderProds.size > 0) {
       const ids    = [...tenhoOrderProds.keys()];
       const detMap = bm_getOrderDetails_(ids);
-      const details = ids.map(id => ({
-        id,
-        cliente:  detMap.get(id)?.cliente || "—",
-        source:   detMap.get(id)?.source  || "—",
-        produtos: tenhoOrderProds.get(id) || [],
-      }));
-      try { pdfUrl = gerarEtiquetasPDF_(details, PDF_FOLDER); }
-      catch(e) { Logger.log("PDF err: " + e.message); }
+      const details = [];
+
+      for (const id of ids) {
+        const confIdxs = confByOrderId.get(id) || [];
+        const allDone  = confIdxs.length > 0 &&
+          confIdxs.every(i => String(newSt[i][0] ?? "").trim() !== "");
+        if (!allDone) continue;
+
+        const isComplete = confIdxs.every(i =>
+          String(newSt[i][0] ?? "").trim() === "TENHO"
+        );
+        details.push({
+          id,
+          cliente:    detMap.get(id)?.cliente || "—",
+          source:     detMap.get(id)?.source  || "—",
+          produtos:   tenhoOrderProds.get(id) || [],
+          isComplete,
+        });
+      }
+
+      if (details.length > 0) {
+        labelsGenerated = details.length;
+        try { pdfUrl = gerarEtiquetasPDF_(details, PDF_FOLDER); }
+        catch(e) { Logger.log("PDF err: " + e.message); }
+      }
     }
 
     // Remove linhas do Parciais de kits sem PENDENTE restante
@@ -1610,7 +1640,7 @@ function enviarInformacoesNaoMarcado(selections) {
       for (let k = del.length - 1; k >= 0; k--) parcSh.deleteRow(del[k]);
     }
 
-    return { ok: true, updated, parciaisAdded, labels: tenhoOrderProds.size, pdfUrl };
+    return { ok: true, updated, parciaisAdded, labels: labelsGenerated, pdfUrl };
   } catch(err) {
     return { ok: false, error: String(err.message || err) };
   }
