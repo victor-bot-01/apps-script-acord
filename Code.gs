@@ -1544,13 +1544,11 @@ function enviarInformacoesNaoMarcado(selections) {
 
       const source = bm_getOrderDetails_([orderId]).get(orderId)?.source || "";
 
-      // Verifica se todos os componentes estão resolvidos (nenhum PENDENTE)
       const allResolved = comps.length > 0 && comps.every(c =>
         compMap.get(pend_norm_(c)) === "TENHO" || compMap.get(pend_norm_(c)) === "FALTA"
       );
 
       if (allResolved) {
-        // Kit completo → escreve Conferencia
         const allTenho = comps.every(c => compMap.get(pend_norm_(c)) === "TENHO");
         let finalStatus;
         if (allTenho) {
@@ -1570,7 +1568,6 @@ function enviarInformacoesNaoMarcado(selections) {
           updated++;
         }
       } else {
-        // Kit incompleto → escreve Parciais
         for (const comp of comps) {
           const cStatus = compMap.get(pend_norm_(comp)) || "PENDENTE";
           parcSh.appendRow([source, orderId, kitProdOriginal, comp, cStatus, 1]);
@@ -1581,7 +1578,7 @@ function enviarInformacoesNaoMarcado(selections) {
 
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
 
-    // Gera PDF para pedidos com TENHO
+    // Gera PDF para pedidos TENHO
     let pdfUrl = null;
     if (tenhoOrderProds.size > 0) {
       const ids    = [...tenhoOrderProds.keys()];
@@ -1596,7 +1593,7 @@ function enviarInformacoesNaoMarcado(selections) {
       catch(e) { Logger.log("PDF err: " + e.message); }
     }
 
-    // Após PDF: remove linhas do Parciais de kits sem PENDENTE restante
+    // Remove linhas do Parciais de kits sem PENDENTE restante
     const parcLast = parcSh.getLastRow();
     if (parcLast >= 2) {
       const pv = parcSh.getRange(2, 1, parcLast - 1, 6).getValues();
