@@ -1523,13 +1523,14 @@ function enviarInformacoesNaoMarcado(selections) {
           const mapKey = orderId + "||" + pk;
           if (!kitOrderCompStatus.has(mapKey)) kitOrderCompStatus.set(mapKey, new Map());
           kitOrderCompStatus.get(mapKey).set(normComp, status);
-          if (status === "TENHO") {
-            if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
-            tenhoOrderProds.get(orderId).push(sel.prodName);
-          }
         }
       }
     }
+
+    // Lê snapshot do Parciais antes de resolver kits (para merge com envios anteriores)
+    const parcSnapshot = parcSh.getLastRow() >= 2
+      ? parcSh.getRange(2, 1, parcSh.getLastRow() - 1, 5).getValues()
+      : [];
 
     // Resolve kits acumulados
     for (const [mapKey, compMap] of kitOrderCompStatus.entries()) {
@@ -1547,18 +1548,37 @@ function enviarInformacoesNaoMarcado(selections) {
 
       const source = bm_getOrderDetails_([orderId]).get(orderId)?.source || "";
 
+      // Lê linhas existentes desta combinação orderId+kit no Parciais
+      const existingRows = [];
+      for (let i = 0; i < parcSnapshot.length; i++) {
+        const pid   = String(parcSnapshot[i][1] ?? "").trim();
+        const pkitN = pend_norm_(String(parcSnapshot[i][2] ?? "").trim());
+        if (pid !== orderId || pkitN !== kitKey) continue;
+        const compN = pend_norm_(String(parcSnapshot[i][3] ?? "").trim());
+        const stat  = String(parcSnapshot[i][4] ?? "").trim();
+        existingRows.push({ rowIdx: i + 2, compNorm: compN, status: stat });
+      }
+
+      // Merge: existente (TENHO/FALTA) + atual, atual tem precedência
+      const mergedMap = new Map();
+      for (const r of existingRows) {
+        if (r.status === "TENHO" || r.status === "FALTA") mergedMap.set(r.compNorm, r.status);
+      }
+      for (const [k, v] of compMap) mergedMap.set(k, v);
+
       const allResolved = comps.length > 0 && comps.every(c =>
-        compMap.get(pend_norm_(c)) === "TENHO" || compMap.get(pend_norm_(c)) === "FALTA"
+        mergedMap.get(pend_norm_(c)) === "TENHO" || mergedMap.get(pend_norm_(c)) === "FALTA"
       );
 
       if (allResolved) {
-        const allTenho = comps.every(c => compMap.get(pend_norm_(c)) === "TENHO");
+        // Kit completo → escreve Conferencia
+        const allTenho = comps.every(c => mergedMap.get(pend_norm_(c)) === "TENHO");
         let finalStatus;
         if (allTenho) {
           finalStatus = "TENHO";
         } else {
-          const faltaComps = comps.filter(c => compMap.get(pend_norm_(c)) === "FALTA");
-          const hasAnyTenho = comps.some(c => compMap.get(pend_norm_(c)) === "TENHO");
+          const faltaComps  = comps.filter(c => mergedMap.get(pend_norm_(c)) === "FALTA");
+          const hasAnyTenho = comps.some(c => mergedMap.get(pend_norm_(c)) === "TENHO");
           finalStatus = (hasAnyTenho && faltaComps.length > 0)
             ? "FALTA - " + faltaComps.join(";")
             : "FALTA";
@@ -1570,11 +1590,29 @@ function enviarInformacoesNaoMarcado(selections) {
           newSt[i][0] = finalStatus;
           updated++;
         }
+        // Kit com qualquer TENHO → inclui na geração de etiqueta
+        const hasAnyTenhoKit = comps.some(c => mergedMap.get(pend_norm_(c)) === "TENHO");
+        if (hasAnyTenhoKit) {
+          if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
+          tenhoOrderProds.get(orderId).push(kitProdOriginal);
+        }
       } else {
+        // Kit incompleto → só insere/atualiza componentes desta seleção, sem duplicar
         for (const comp of comps) {
-          const cStatus = compMap.get(pend_norm_(comp)) || "PENDENTE";
-          parcSh.appendRow([source, orderId, kitProdOriginal, comp, cStatus, 1]);
-          parciaisAdded++;
+          const normC = pend_norm_(comp);
+          const newStatus  = compMap.get(normC);
+          const existingRow = existingRows.find(r => r.compNorm === normC);
+
+          if (existingRow) {
+            // Atualiza linha PENDENTE existente se chegou status novo
+            if (existingRow.status === "PENDENTE" && newStatus) {
+              parcSh.getRange(existingRow.rowIdx, 5).setValue(newStatus);
+            }
+          } else {
+            // Insere nova linha apenas para componentes sem linha ainda
+            parcSh.appendRow([source, orderId, kitProdOriginal, comp, newStatus || "PENDENTE", 1]);
+            parciaisAdded++;
+          }
         }
       }
     }

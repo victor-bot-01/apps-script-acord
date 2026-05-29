@@ -1410,6 +1410,7 @@
         clearInterval(AUTO_REFRESH_TIMER);
         AUTO_REFRESH_TIMER = setInterval(() => {
           if ($("q") && $("q").value.trim()) return;
+          if (FALTANV_FILTER === "nao_marcado" && NAO_MARCADO_SELS.size > 0) return;
           fetchPedidos();
         }, 10 * 60 * 1000);
       };
@@ -2197,6 +2198,17 @@
             google.script.run
               .withSuccessHandler(pr => {
                 ALL_PARCIAIS = (pr.ok && pr.items) ? pr.items : [];
+                // Remove da lista Não Marcado componentes já resolvidos no Parciais
+                const resolvedInParciais = new Set(
+                  ALL_PARCIAIS
+                    .filter(p => p.componentStatus === "TENHO" || p.componentStatus === "FALTA")
+                    .map(p => normJs_(p.componentName))
+                );
+                if (resolvedInParciais.size > 0) {
+                  ALL_TODOS_NV = ALL_TODOS_NV.filter(
+                    it => !resolvedInParciais.has(normJs_(it.produtoPendentes))
+                  );
+                }
                 if (KPIS) KPIS.parciais = ALL_PARCIAIS.reduce((acc, it) => acc + (Number(it.qty) || 0), 0);
                 $("kpis").innerHTML = kpiCards(KPIS);
                 bindKpiClicks();
