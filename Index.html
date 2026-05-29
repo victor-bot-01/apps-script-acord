@@ -2730,6 +2730,8 @@
         google.script.run
           .withSuccessHandler(res => {
             if (!res.ok) { showToast("Erro: " + (res.error || "desconhecido")); return; }
+            const sentKeys = new Set(selections.map(s => normJs_(s.prodName)));
+            ALL_TODOS_NV = ALL_TODOS_NV.filter(it => !sentKeys.has(normJs_(it.produtoPendentes)));
             NAO_MARCADO_SELS = new Map();
             const msg = "✅ " + res.updated + " marcação(ões) • " +
                         res.labels + " etiqueta(s)" +

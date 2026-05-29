@@ -1596,6 +1596,12 @@ function enviarInformacoesNaoMarcado(selections) {
           if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
           tenhoOrderProds.get(orderId).push(kitProdOriginal);
         }
+        // Atualiza linhas PENDENTE no Parciais para que o cleanup as remova
+        for (const r of existingRows) {
+          if (r.status === "PENDENTE") {
+            parcSh.getRange(r.rowIdx, 5).setValue(mergedMap.get(r.compNorm) || "TENHO");
+          }
+        }
       } else {
         // Kit incompleto → só insere/atualiza componentes desta seleção, sem duplicar
         for (const comp of comps) {
