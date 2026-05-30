@@ -49,6 +49,11 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
   };
 
   hb();
+  const _selTs = Number(PropertiesService.getScriptProperties().getProperty("USER_SELECTING") || 0);
+  if (Date.now() - _selTs < 10 * 60 * 1000) {
+    Logger.log("importarML_Coleta_e_ML1_v3: pausado — usuário está selecionando em Não Marcados.");
+    return;
+  }
   PropertiesService.getScriptProperties().setProperty("IMPORT_RUNNING", "ML Coleta + ML 1|" + Date.now());
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -914,6 +919,11 @@ function importarShopeeMagalu() {
     return;
   }
   try {
+    const _selTs = Number(PropertiesService.getScriptProperties().getProperty("USER_SELECTING") || 0);
+    if (Date.now() - _selTs < 10 * 60 * 1000) {
+      Logger.log("importarShopeeMagalu: pausado — usuário está selecionando em Não Marcados.");
+      return;
+    }
     PropertiesService.getScriptProperties().setProperty("IMPORT_RUNNING", "Shopee / Magalu|" + Date.now());
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const shShopee   = ss.getSheetByName("Shopee");

@@ -520,7 +520,10 @@
       #importIndicator {
         font-size: 12px;
         font-weight: 600;
-        color: var(--yellow);
+        color: #111;
+        background: rgba(0,0,0,0.08);
+        padding: 2px 8px;
+        border-radius: 4px;
         display: none;
         animation: impPulse 1.2s ease-in-out infinite;
       }
@@ -2310,6 +2313,7 @@
             btn.classList.add("active");
             FALTANV_FILTER = btn.getAttribute("data-faltanv") || "todos";
             NAO_MARCADO_SELS = new Map();
+            google.script.run.setUserSelecting(false);
             applyAllFilters();
           });
         });
@@ -2689,6 +2693,7 @@
       })();
 
       function nmFaltaChange_(el) {
+        google.script.run.setUserSelecting(true);
         const key = el.getAttribute("data-prod");
         const sel = NAO_MARCADO_SELS.get(key) || {};
         sel.falta = el.checked;
@@ -2705,6 +2710,7 @@
       }
 
       function nmTenhoChange_(el) {
+        google.script.run.setUserSelecting(true);
         const key  = el.getAttribute("data-prod");
         const row  = el.closest("tr");
         const qtyEl = row ? row.querySelector(".qty-nm") : null;
@@ -2748,6 +2754,7 @@
       }
 
       function confirmarEnviarInformacoes_() {
+        google.script.run.setUserSelecting(false);
         document.getElementById("modalEnviarInfo").style.display = "none";
 
         const aggMap = new Map();

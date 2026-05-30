@@ -61,6 +61,12 @@ function getPedidos(source) {
       todosNvItems.push(...out.todosNvItems);
     }
 
+    // Inclui todosNvItems de "Próximos Dias" mesmo quando não está em sheetsToRead
+    if (src === "TODOS") {
+      const pdOut = readFromSheet_(ss, "Próximos Dias");
+      todosNvItems.push(...pdOut.todosNvItems);
+    }
+
     // Ordena pedidos por ID (ajuda no visual e multi-item)
     pedidos.sort((a, b) => String(a.id).localeCompare(String(b.id)));
 
@@ -331,6 +337,15 @@ function readMonitorSnapshot_(key) {
 /*******************************
  * COLLECTION TIMES
  *******************************/
+function setUserSelecting(state) {
+  const props = PropertiesService.getScriptProperties();
+  if (state) {
+    props.setProperty("USER_SELECTING", String(Date.now()));
+  } else {
+    props.deleteProperty("USER_SELECTING");
+  }
+}
+
 function getImportStatus() {
   const raw = PropertiesService.getScriptProperties().getProperty("IMPORT_RUNNING") || "";
   if (!raw) return null;
@@ -1459,7 +1474,7 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
 function enviarInformacoesNaoMarcado(selections) {
   try {
     if (!selections?.length) return { ok: true, updated: 0, labels: 0 };
-    const PRIORITY = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil"];
+    const PRIORITY = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil","Próximos Dias"];
     const PDF_FOLDER = "1uhmWR9BRt09Ycwagd6g-jyEsulgtZiru";
 
     const mapSubseq = pend_buildDadosMapSubseq_();
