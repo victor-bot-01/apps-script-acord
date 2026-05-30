@@ -919,6 +919,7 @@
               <div class="segBtn" data-src="Essência do Brasil">Essência do Brasil</div>
               <div class="segBtn" data-src="Amazon">Amazon</div>
               <div class="segBtn" data-src="Flex/Vapt">Flex/Vapt</div>
+              <div class="segBtn" data-src="Próximos Dias">Próximos Dias</div>
             </div>
           </div>
 
@@ -1536,8 +1537,8 @@
           if (FALTANV_FILTER === "nao_marcado") {
             $("thead").innerHTML = `
               <tr>
-                <th style="width:42px; text-align:center; background-color:rgba(220,50,50,0.12);">Falta</th>
-                <th style="width:42px; text-align:center; background-color:rgba(40,180,40,0.12);">Tenho</th>
+                <th style="width:42px; text-align:center; background-color:rgba(220,50,50,0.30);">Falta</th>
+                <th style="width:42px; text-align:center; background-color:rgba(40,180,40,0.30);">Tenho</th>
                 <th style="width:64px; text-align:center;">Qty</th>
                 <th data-sort="quantidade" style="width:70px;">Quantidade <span class="sort-icon">↕</span></th>
                 <th data-sort="produtoPendentes">Produto <span class="sort-icon">↕</span></th>
@@ -1654,11 +1655,11 @@
             const showQty  = (sel.tenho && maxQty > 1) ? "" : "none";
             return `
               <tr>
-                <td style="text-align:center; background-color:rgba(220,50,50,0.07);">
+                <td style="text-align:center; background-color:rgba(220,50,50,0.18);">
                   <input type="checkbox" class="chk-falta-nm" data-prod="${safe(key)}" ${faltaChk}
                     onchange="nmFaltaChange_(this)">
                 </td>
-                <td style="text-align:center; background-color:rgba(40,180,40,0.07);">
+                <td style="text-align:center; background-color:rgba(40,180,40,0.18);">
                   <input type="checkbox" class="chk-tenho-nm" data-prod="${safe(key)}" ${tenhoChk}
                     onchange="nmTenhoChange_(this)">
                 </td>
@@ -2699,7 +2700,7 @@
         if (!hasAny) { showToast("Marque ao menos um item antes de enviar."); return; }
         const input = document.getElementById("inputEnviarConfirm");
         if (input) input.value = "";
-        const btn = document.getElementById("btnEnviarConfirm");
+        const btn = document.getElementById("btnEnviarNM");
         if (btn) btn.disabled = true;
         document.getElementById("modalEnviarInfo").style.display = "flex";
       }
@@ -2730,9 +2731,12 @@
 
         if (!selections.length) { showToast("Nenhum item marcado."); return; }
 
-        showToast("Enviando informações…");
+        const _btn = $("btnEnviarNM");
+        if (_btn) { _btn.disabled = true; _btn.textContent = "Enviando..."; }
+
         google.script.run
           .withSuccessHandler(res => {
+            if (_btn) { _btn.disabled = false; _btn.textContent = "Confirmar"; }
             if (!res.ok) { showToast("Erro: " + (res.error || "desconhecido")); return; }
             const sentKeys = new Set(selections.map(s => normJs_(s.prodName)));
             ALL_TODOS_NV = ALL_TODOS_NV.filter(it => !sentKeys.has(normJs_(it.produtoPendentes)));
@@ -2743,7 +2747,10 @@
             showToast(msg, 5000);
             fetchPedidos();
           })
-          .withFailureHandler(err => showToast("Falha: " + (err.message || err)))
+          .withFailureHandler(err => {
+            if (_btn) { _btn.disabled = false; _btn.textContent = "Confirmar"; }
+            showToast("Falha: " + (err.message || err));
+          })
           .enviarInformacoesNaoMarcado(selections);
       }
     </script>
@@ -2754,11 +2761,11 @@
         <h3 style="margin:0 0 16px; font-size:1.1rem;">Confirmar Envio</h3>
         <input id="inputEnviarConfirm" type="text"
           style="width:100%; box-sizing:border-box; padding:8px 10px; border:1.5px solid #ccc; border-radius:7px; font-size:1rem; margin-bottom:14px;"
-          oninput="document.getElementById('btnEnviarConfirm').disabled = this.value.trim() !== '/enviar';">
+          oninput="document.getElementById('btnEnviarNM').disabled = this.value.trim() !== '/enviar';">
         <div style="display:flex; gap:10px; justify-content:flex-end;">
           <button onclick="document.getElementById('modalEnviarInfo').style.display='none';"
             style="padding:7px 18px; border:1.5px solid #ccc; background:#fff; border-radius:7px; cursor:pointer;">Cancelar</button>
-          <button id="btnEnviarConfirm" disabled
+          <button id="btnEnviarNM" disabled
             onclick="confirmarEnviarInformacoes_()"
             style="padding:7px 18px; background:#F5C518; border:none; border-radius:7px; font-weight:600; cursor:pointer;">Confirmar</button>
         </div>

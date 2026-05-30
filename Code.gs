@@ -40,6 +40,9 @@ function doGet() {
  *******************************/
 function getPedidos(source) {
   try {
+    if (source === "Próximos Dias") {
+      return getProximosDias_();
+    }
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const src = normalizeSource_(source);
 
@@ -1691,6 +1694,89 @@ function enviarInformacoesNaoMarcado(selections) {
     }
 
     return { ok: true, updated, parciaisAdded, labels: labelsGenerated, pdfUrl };
+  } catch(err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+}
+
+function getProximosDias_() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Coleta todos os IDs já presentes em ML Coleta e ML 1
+    const existingIds = new Set();
+    for (const sheetName of ["ML Coleta", "ML 1"]) {
+      const sh = ss.getSheetByName(sheetName);
+      if (!sh || sh.getLastRow() < 2) continue;
+      const vals = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+      for (const r of vals) {
+        const id = String(r[0] ?? "").trim();
+        if (id) existingIds.add(id);
+      }
+    }
+
+    const ssSrc = SpreadsheetApp.openById(ML_IMPORT_CONFIG.STATUS_SOURCE_SPREADSHEET_ID);
+    const pedidos = [];
+
+    for (const sheetName of ["Maio", "Abril"]) {
+      const sh = ssSrc.getSheetByName(sheetName);
+      if (!sh || sh.getLastRow() < 2) continue;
+
+      const n      = sh.getLastRow() - 1;
+      const values = sh.getRange(2, 1, n, 7).getValues();
+      const bgs    = sh.getRange(2, 7, n, 1).getBackgrounds();
+
+      for (let i = 0; i < n; i++) {
+        // Filtro col C: somente "ML" ou "ML 1"
+        const colC = String(values[i][2] ?? "").trim().toLowerCase();
+        if (colC !== "ml" && colC !== "ml 1") continue;
+
+        // Filtro col G: excluir ok (texto ou cor verde), cancelado, flex
+        const colG = String(values[i][6] ?? "").trim().toLowerCase();
+        const bgG  = String(bgs[i][0]    ?? "").trim().toLowerCase();
+        if (colG.includes("ok") || bgG === ML_IMPORT_CONFIG.OK_GREEN) continue;
+        if (colG.includes("cancelado")) continue;
+        if (colG.includes("flex"))      continue;
+
+        const id = String(values[i][1] ?? "").trim();
+        if (!id) continue;
+
+        // Filtro: ID não pode estar em ML Coleta nem ML 1
+        if (existingIds.has(id)) continue;
+
+        pedidos.push({
+          id,
+          cliente:   String(values[i][3] ?? "").trim(),
+          produto:   String(values[i][5] ?? "").trim(),
+          qtd:       String(values[i][4] ?? "").trim(),
+          status:    "PENDENTE",
+          bipado:    "",
+          etiquetas: "",
+          andamento: "",
+          sheet:     "Próximos Dias"
+        });
+      }
+    }
+
+    pedidos.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    const kpis = buildKpis_(pedidos, []);
+
+    return {
+      ok: true,
+      pedidos,
+      faltamItems: [],
+      kpis,
+      meta: {
+        pedidosRows: pedidos.length,
+        faltamRows:  0,
+        perSheet:    { "Próximos Dias": { pedidos: pedidos.length, faltam: 0 } }
+      },
+      hasBlueCells:    false,
+      hasReviewCells:  false,
+      monitorPaused:   false,
+      monitorSnapshot: {},
+      collectionTimes: {}
+    };
   } catch(err) {
     return { ok: false, error: String(err.message || err) };
   }
