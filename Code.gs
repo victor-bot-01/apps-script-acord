@@ -44,7 +44,7 @@ function getPedidos(source) {
     const src = normalizeSource_(source);
 
     const sheetsToRead = (src === "TODOS")
-      ? CONFIG.SHEET_NAMES.filter(n => n !== "Próximos Dias")
+      ? CONFIG.SHEET_NAMES
       : [src];
 
     const pedidos = [];
@@ -59,12 +59,6 @@ function getPedidos(source) {
       pedidos.push(...out.pedidos);
       faltamItems.push(...out.faltamItems);
       todosNvItems.push(...out.todosNvItems);
-    }
-
-    // Inclui todosNvItems de "Próximos Dias" mesmo quando não está em sheetsToRead
-    if (src === "TODOS") {
-      const pdOut = readFromSheet_(ss, "Próximos Dias");
-      todosNvItems.push(...pdOut.todosNvItems);
     }
 
     // Ordena pedidos por ID (ajuda no visual e multi-item)
@@ -1416,7 +1410,7 @@ function bm_getOrderDetails_(orderIds) {
   const result = new Map();
   const set = new Set(orderIds.map(id => String(id).trim()));
   const dashSS = SpreadsheetApp.getActiveSpreadsheet();
-  const sheetNames = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil"];
+  const sheetNames = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil","Próximos Dias"];
   for (const name of sheetNames) {
     const sh = dashSS.getSheetByName(name);
     if (!sh || sh.getLastRow() < 2) continue;
