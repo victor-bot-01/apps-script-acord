@@ -1407,7 +1407,7 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
     const text = "Pedido: " + d.id +
                  "\nCliente: " + d.cliente +
                  "\nMarketplace: " + d.source +
-                 "\nProdutos: " + d.produtos.join(", ") +
+                 "\nProdutos:\n" + d.produtos.join("\n") +
                  "\n" + statusLabel;
     sheet.getRange(i + 1, 1).setValue(text);
   }
@@ -1656,15 +1656,15 @@ function enviarInformacoesNaoMarcado(selections) {
         const isComplete = confIdxs.every(i =>
           String(newSt[i][0] ?? "").trim() === "TENHO"
         );
-        // Produtos simples TENHO já gravados na Conferencia (desta ou de chamadas anteriores)
         const tenhoFromConf = confIdxs
           .filter(i => String(newSt[i][0] ?? "").trim() === "TENHO")
           .map(i => String(conf.prods[i][0] ?? "").trim())
           .filter(Boolean);
-        // Componentes de kit TENHO desta chamada
-        const kitTenhoComps = tenhoOrderProds.get(id) || [];
-        // União sem duplicatas
-        const allTenhoProds = [...new Set([...tenhoFromConf, ...kitTenhoComps])];
+        const partialKitProds = confIdxs
+          .filter(i => String(newSt[i][0] ?? "").trim().startsWith("FALTA - "))
+          .map(i => String(conf.prods[i][0] ?? "").trim())
+          .filter(Boolean);
+        const allTenhoProds = [...new Set([...tenhoFromConf, ...partialKitProds])];
         details.push({
           id,
           cliente:    detMap.get(id)?.cliente || "—",

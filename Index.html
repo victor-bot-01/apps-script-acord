@@ -1541,6 +1541,7 @@
                 <th style="width:64px; text-align:center;">Qty</th>
                 <th data-sort="quantidade" style="width:70px;">Quantidade <span class="sort-icon">↕</span></th>
                 <th data-sort="produtoPendentes">Produto <span class="sort-icon">↕</span></th>
+                <th>Fonte</th>
               </tr>
             `;
           } else {
@@ -1669,6 +1670,7 @@
                 </td>
                 <td>${safe(p.quantidade)}</td>
                 <td>${safe(p.produtoPendentes)}</td>
+                <td>${safe([...p._sources||[]].join(" - "))}</td>
               </tr>
             `;
           }
@@ -1926,9 +1928,11 @@
           for (const it of list) {
             const key = normJs_(it.produtoPendentes) + "||" + it._tipo;
             if (!_nvAggMap.has(key)) {
-              _nvAggMap.set(key, { ...it, quantidade: 0 });
+              _nvAggMap.set(key, { ...it, quantidade: 0, _sources: new Set() });
             }
-            _nvAggMap.get(key).quantidade += Number(it.quantidade || 0);
+            const agg = _nvAggMap.get(key);
+            agg.quantidade += Number(it.quantidade || 0);
+            if (it.sheet) agg._sources.add(it.sheet);
           }
           list = [..._nvAggMap.values()];
 
