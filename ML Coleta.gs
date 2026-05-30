@@ -1015,6 +1015,7 @@ function importarShopeeMagalu() {
     pend_process_porAba_(shEssencia, confById, mapSubseq);
     pend_process_porAba_(shAmazon,   confById, mapSubseq);
     pend_process_porAba_(shFlexVapt, confById, mapSubseq);
+    importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubseq);
 
     // Falta/Não Verificado (M/N)
     const confTodosById = pend_buildTodosExcTenho_();
@@ -1065,4 +1066,65 @@ function aplicarAndamento_porAba_(byIdQueue, sheetName) {
     return [(fila && fila.length) ? fila.shift() : ""];
   });
   sh.getRange(2, ML_IMPORT_CONFIG.COL_ANDAMENTO, n, 1).setValues(out);
+}
+
+function importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubseq) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shProximos = ss.getSheetByName("Próximos Dias");
+  if (!shProximos) { Logger.log("importarProximosDias_: aba não encontrada."); return; }
+
+  // IDs já presentes em ML Coleta e ML 1
+  const existingIds = new Set();
+  for (const name of ["ML Coleta", "ML 1"]) {
+    const sh = ss.getSheetByName(name);
+    if (!sh || sh.getLastRow() < 2) continue;
+    sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues()
+      .forEach(r => { const id = String(r[0] ?? "").trim(); if (id) existingIds.add(id); });
+  }
+
+  limparAbaExcetoCabecalho_(shProximos);
+
+  const ssSrc = SpreadsheetApp.openById(ML_IMPORT_CONFIG.STATUS_SOURCE_SPREADSHEET_ID);
+  const rows4 = []; // cols A-D
+  const rowsM = []; // col M (marketplace: ML ou ML 1)
+
+  for (const sheetName of ["Maio", "Abril"]) {
+    const sh = ssSrc.getSheetByName(sheetName);
+    if (!sh || sh.getLastRow() < 2) continue;
+
+    const n      = sh.getLastRow() - 1;
+    const values = sh.getRange(2, 1, n, 7).getValues();
+    const bgs    = sh.getRange(2, 7, n, 1).getBackgrounds();
+
+    for (let i = 0; i < n; i++) {
+      const colC      = String(values[i][2] ?? "").trim();
+      const colCLower = colC.toLowerCase();
+      if (colCLower !== "ml" && colCLower !== "ml 1") continue;
+
+      const colG = String(values[i][6] ?? "").trim().toLowerCase();
+      const bgG  = String(bgs[i][0]    ?? "").trim().toLowerCase();
+      if (colG.includes("ok") || bgG === ML_IMPORT_CONFIG.OK_GREEN) continue;
+      if (colG.includes("cancelado")) continue;
+      if (colG.includes("flex"))      continue;
+      if (colG.includes("full"))      continue;
+
+      const id = String(values[i][1] ?? "").trim();
+      if (!id || existingIds.has(id)) continue;
+
+      rows4.push([values[i][1], values[i][3], values[i][5], values[i][4]]);
+      rowsM.push([colC]);
+    }
+  }
+
+  if (rows4.length) {
+    shProximos.getRange(2, 1,  rows4.length, 4).setValues(rows4);
+    shProximos.getRange(2, 13, rowsM.length, 1).setValues(rowsM);
+  }
+
+  const noop = () => {};
+  aplicarStatus_porAba_(statusById || construirStatusById_(noop), "Próximos Dias");
+  aplicarAndamento_porAba_(andamentoByIdQueue || construirFilaAndamentoPorId_(noop), "Próximos Dias");
+  pend_process_porAba_(shProximos, confById || pend_buildConferenciaById_(), mapSubseq || pend_buildDadosMapSubseq_());
+
+  Logger.log("importarProximosDias_: " + rows4.length + " pedidos importados.");
 }

@@ -2740,13 +2740,12 @@
 
         if (!selections.length) { showToast("Nenhum item marcado."); return; }
 
-        const _btn = $("btnEnviarNM");
-        if (_btn) { _btn.disabled = true; _btn.textContent = "Enviando..."; }
+        $("loadingOverlay").style.display = "flex";
 
         setTimeout(() => {
           google.script.run
             .withSuccessHandler(res => {
-              if (_btn) { _btn.disabled = false; _btn.textContent = "Enviar Informações"; }
+              $("loadingOverlay").style.display = "none";
               if (!res.ok) { showToast("Erro: " + (res.error || "desconhecido")); return; }
               const sentKeys = new Set(selections.map(s => normJs_(s.prodName)));
               ALL_TODOS_NV = ALL_TODOS_NV.filter(it => !sentKeys.has(normJs_(it.produtoPendentes)));
@@ -2758,7 +2757,7 @@
               fetchPedidos();
             })
             .withFailureHandler(err => {
-              if (_btn) { _btn.disabled = false; _btn.textContent = "Enviar Informações"; }
+              $("loadingOverlay").style.display = "none";
               showToast("Falha: " + (err.message || err));
             })
             .enviarInformacoesNaoMarcado(selections);
