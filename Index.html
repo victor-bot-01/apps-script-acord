@@ -1536,8 +1536,8 @@
           if (FALTANV_FILTER === "nao_marcado") {
             $("thead").innerHTML = `
               <tr>
-                <th style="width:42px; text-align:center;">Falta</th>
-                <th style="width:42px; text-align:center;">Tenho</th>
+                <th style="width:42px; text-align:center; background-color:rgba(220,50,50,0.12);">Falta</th>
+                <th style="width:42px; text-align:center; background-color:rgba(40,180,40,0.12);">Tenho</th>
                 <th style="width:64px; text-align:center;">Qty</th>
                 <th data-sort="quantidade" style="width:70px;">Quantidade <span class="sort-icon">↕</span></th>
                 <th data-sort="produtoPendentes">Produto <span class="sort-icon">↕</span></th>
@@ -1654,11 +1654,11 @@
             const showQty  = (sel.tenho && maxQty > 1) ? "" : "none";
             return `
               <tr>
-                <td style="text-align:center;">
+                <td style="text-align:center; background-color:rgba(220,50,50,0.07);">
                   <input type="checkbox" class="chk-falta-nm" data-prod="${safe(key)}" ${faltaChk}
                     onchange="nmFaltaChange_(this)">
                 </td>
-                <td style="text-align:center;">
+                <td style="text-align:center; background-color:rgba(40,180,40,0.07);">
                   <input type="checkbox" class="chk-tenho-nm" data-prod="${safe(key)}" ${tenhoChk}
                     onchange="nmTenhoChange_(this)">
                 </td>

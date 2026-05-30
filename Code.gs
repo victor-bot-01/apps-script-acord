@@ -1656,15 +1656,7 @@ function enviarInformacoesNaoMarcado(selections) {
         const isComplete = confIdxs.every(i =>
           String(newSt[i][0] ?? "").trim() === "TENHO"
         );
-        const tenhoFromConf = confIdxs
-          .filter(i => String(newSt[i][0] ?? "").trim() === "TENHO")
-          .map(i => String(conf.prods[i][0] ?? "").trim())
-          .filter(Boolean);
-        const partialKitProds = confIdxs
-          .filter(i => String(newSt[i][0] ?? "").trim().startsWith("FALTA - "))
-          .map(i => String(conf.prods[i][0] ?? "").trim())
-          .filter(Boolean);
-        const allTenhoProds = [...new Set([...tenhoFromConf, ...partialKitProds])];
+        const allTenhoProds = [...new Set(tenhoOrderProds.get(id) || [])];
         details.push({
           id,
           cliente:    detMap.get(id)?.cliente || "—",
