@@ -2212,7 +2212,7 @@
                 if (KPIS) KPIS.parciais = ALL_PARCIAIS.reduce((acc, it) => acc + (Number(it.qty) || 0), 0);
                 $("kpis").innerHTML = kpiCards(KPIS);
                 bindKpiClicks();
-                if (ACTIVE.view === "PARCIAIS_VIEW") applyAllFilters();
+                if (ACTIVE.view === "PARCIAIS_VIEW" || ACTIVE.view === "FALTANV_VIEW") applyAllFilters();
               })
               .withFailureHandler(err => {
                 showToast("Falha ao carregar parciais: " + (err && err.message ? err.message : err));

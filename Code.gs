@@ -1590,11 +1590,16 @@ function enviarInformacoesNaoMarcado(selections) {
           newSt[i][0] = finalStatus;
           updated++;
         }
-        // Kit com qualquer TENHO → inclui na geração de etiqueta
+        // Kit com qualquer TENHO → inclui na geração de etiqueta com apenas os componentes TENHO
         const hasAnyTenhoKit = comps.some(c => mergedMap.get(pend_norm_(c)) === "TENHO");
         if (hasAnyTenhoKit) {
           if (!tenhoOrderProds.has(orderId)) tenhoOrderProds.set(orderId, []);
-          tenhoOrderProds.get(orderId).push(kitProdOriginal);
+          const tenhoComps = comps.filter(c => mergedMap.get(pend_norm_(c)) === "TENHO");
+          for (const tc of tenhoComps) {
+            if (!tenhoOrderProds.get(orderId).includes(tc)) {
+              tenhoOrderProds.get(orderId).push(tc);
+            }
+          }
         }
         // Atualiza linhas PENDENTE no Parciais para que o cleanup as remova
         for (const r of existingRows) {
