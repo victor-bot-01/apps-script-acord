@@ -517,6 +517,17 @@
         font-weight: 600;
       }
       .sourceHint { font-size: 12px; color: var(--text-muted); }
+      #importIndicator {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--yellow);
+        display: none;
+        animation: impPulse 1.2s ease-in-out infinite;
+      }
+      @keyframes impPulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.35; }
+      }
       .seg { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
       .segBtn {
         cursor: pointer;
@@ -894,6 +905,7 @@
 
         <div class="controls">
           <button class="btnDark" id="btnDark" title="Alternar tema">&#x263D;</button>
+          <span id="importIndicator">⟳ Importando...</span>
           <div class="chip" title="Buscar...">
             <span style="color: var(--gray-500);">&#x2315;</span>
             <input id="q" placeholder="Buscar..." autocomplete="off" />
@@ -1407,13 +1419,13 @@
         });
       };
 
-      const startAutoRefresh = () => {
+      const startAutoRefresh = (intervalMs) => {
         clearInterval(AUTO_REFRESH_TIMER);
         AUTO_REFRESH_TIMER = setInterval(() => {
           if ($("q") && $("q").value.trim()) return;
           if (FALTANV_FILTER === "nao_marcado" && NAO_MARCADO_SELS.size > 0) return;
           fetchPedidos();
-        }, 10 * 60 * 1000);
+        }, intervalMs || 10 * 60 * 1000);
       };
 
       const safe = (v) => String(v == null ? "" : v)
@@ -2245,7 +2257,14 @@
             updateMarketStatus();
             updatePauseButtons();
             updateMonitorSnapshot();
-            startAutoRefresh();
+            if (res.importRunning) {
+              $("importIndicator").style.display = "inline";
+              $("importIndicator").textContent   = "⟳ " + res.importRunning;
+              startAutoRefresh(30 * 1000);
+            } else {
+              $("importIndicator").style.display = "none";
+              startAutoRefresh();
+            }
 
             renderMeta();
             applyAllFilters();

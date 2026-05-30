@@ -91,6 +91,14 @@ function getPedidos(source) {
       "ML 1": sProps.getProperty("MONITOR_PAUSED_ML_1") === "true"
     };
 
+    const _impRaw = PropertiesService.getScriptProperties().getProperty("IMPORT_RUNNING") || "";
+    let _importRunning = null;
+    if (_impRaw) {
+      const _parts = _impRaw.split("|");
+      const _ts    = Number(_parts[1] || 0);
+      if (Date.now() - _ts < 30 * 60 * 1000) _importRunning = _parts[0];
+    }
+
     return {
       ok: true,
       source: src,
@@ -104,6 +112,7 @@ function getPedidos(source) {
       hasReviewCells,
       monitorSnapshot,
       monitorPaused,
+      importRunning: _importRunning,
       meta: {
         updatedAt: new Date().toISOString(),
         pedidosRows: pedidos.length,
@@ -129,7 +138,7 @@ function readFromSheet_(ss, sheetName) {
   if (lastRow < CONFIG.DATA_START_ROW) return { pedidos: [], faltamItems: [], todosNvItems: [] };
 
   const isProximosDias = sheetName === "Próximos Dias";
-  const lastCol = isProximosDias ? 13 : CONFIG.COLS.TODOS_NV_QTD; // 13 = col M (marketplace)
+  const lastCol = isProximosDias ? 15 : CONFIG.COLS.TODOS_NV_QTD; // 15 = col O (marketplace)
 
   const range = sh.getRange(
     CONFIG.DATA_START_ROW,
@@ -185,7 +194,7 @@ function readFromSheet_(ss, sheetName) {
       id, cliente, produto, qtd,
       status, bipado, etiquetas, andamento,
       sheet: sheetName,
-      marketplace: isProximosDias ? String(r[12] ?? "").trim() : ""
+      marketplace: isProximosDias ? String(r[14] ?? "").trim() : ""
     });
   }
 

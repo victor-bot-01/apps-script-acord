@@ -49,6 +49,7 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
   };
 
   hb();
+  PropertiesService.getScriptProperties().setProperty("IMPORT_RUNNING", "ML Coleta + ML 1|" + Date.now());
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -125,6 +126,7 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
   hb();
 
   Logger.log("Processo completo: limpeza/import condicional + status + andamento (novo) + pendentes.");
+  PropertiesService.getScriptProperties().deleteProperty("IMPORT_RUNNING");
 }
 
 /******************* WRAPPER MANUAL *******************/
@@ -912,6 +914,7 @@ function importarShopeeMagalu() {
     return;
   }
   try {
+    PropertiesService.getScriptProperties().setProperty("IMPORT_RUNNING", "Shopee / Magalu|" + Date.now());
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const shShopee   = ss.getSheetByName("Shopee");
     const shMagalu   = ss.getSheetByName("Magalu");
@@ -975,7 +978,7 @@ function importarShopeeMagalu() {
         if (colG.includes("ok"))                   continue;
         if (bgG === ML_IMPORT_CONFIG.OK_GREEN)     continue;
         if (colG.includes("cancelado"))            continue;
-        if (colG.includes("full"))                 continue;
+        if (colG.includes("full") || colG.includes("fulfil")) continue;
 
         // B→ID, D→CLIENTE, F→PRODUTO, E→QTD
         const row = [values[i][1], values[i][3], values[i][5], values[i][4]];
@@ -1027,6 +1030,7 @@ function importarShopeeMagalu() {
 
     Logger.log("importarShopeeMagalu: concluído. Shopee=" + rowsShopee.length + " | Magalu=" + rowsMagalu.length + " | Essência do Brasil=" + rowsEssencia.length + " | Amazon=" + rowsAmazon.length + " | Flex/Vapt=" + rowsFlexVapt.length);
   } finally {
+    PropertiesService.getScriptProperties().deleteProperty("IMPORT_RUNNING");
     lock.releaseLock();
   }
 }
@@ -1105,8 +1109,8 @@ function importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubs
       const bgG  = String(bgs[i][0]    ?? "").trim().toLowerCase();
       if (colG.includes("ok") || bgG === ML_IMPORT_CONFIG.OK_GREEN) continue;
       if (colG.includes("cancelado")) continue;
-      if (colG.includes("flex"))      continue;
-      if (colG.includes("full"))      continue;
+      if (colG.includes("flex"))                            continue;
+      if (colG.includes("full") || colG.includes("fulfil")) continue;
 
       const id = String(values[i][1] ?? "").trim();
       if (!id || existingIds.has(id)) continue;
@@ -1118,7 +1122,8 @@ function importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubs
 
   if (rows4.length) {
     shProximos.getRange(2, 1,  rows4.length, 4).setValues(rows4);
-    shProximos.getRange(2, 13, rowsM.length, 1).setValues(rowsM);
+    shProximos.getRange(1, 15).setValue("Fonte");
+    shProximos.getRange(2, 15, rowsM.length, 1).setValues(rowsM);
   }
 
   const noop = () => {};
