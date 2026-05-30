@@ -1737,6 +1737,7 @@ function getProximosDias_() {
         if (colG.includes("ok") || bgG === ML_IMPORT_CONFIG.OK_GREEN) continue;
         if (colG.includes("cancelado")) continue;
         if (colG.includes("flex"))      continue;
+        if (colG.includes("full"))      continue;
 
         const id = String(values[i][1] ?? "").trim();
         if (!id) continue;
@@ -1746,14 +1747,15 @@ function getProximosDias_() {
 
         pedidos.push({
           id,
-          cliente:   String(values[i][3] ?? "").trim(),
-          produto:   String(values[i][5] ?? "").trim(),
-          qtd:       String(values[i][4] ?? "").trim(),
-          status:    "PENDENTE",
-          bipado:    "",
-          etiquetas: "",
-          andamento: "",
-          sheet:     "Próximos Dias"
+          cliente:     String(values[i][3] ?? "").trim(),
+          produto:     String(values[i][5] ?? "").trim(),
+          qtd:         String(values[i][4] ?? "").trim(),
+          status:      "PENDENTE",
+          bipado:      "",
+          etiquetas:   "",
+          andamento:   "",
+          marketplace: String(values[i][2] ?? "").trim(),
+          sheet:       "Próximos Dias"
         });
       }
     }

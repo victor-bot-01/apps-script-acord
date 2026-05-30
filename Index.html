@@ -1567,6 +1567,9 @@
           const chkCol = (ACTIVE.type === "STATUS:PENDENTE")
             ? `<th class="chk-col"><input type="checkbox" id="chkAll" class="chk-row" title="Marcar todos"></th>`
             : "";
+          const marketplaceCol = (ACTIVE_SOURCE === "Próximos Dias")
+            ? `<th data-sort="marketplace" style="width:80px;">Fonte <span class="sort-icon">↕</span></th>`
+            : "";
           $("thead").innerHTML = `
             <tr>
               ${chkCol}
@@ -1575,6 +1578,7 @@
               <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
               <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
               <th data-sort="status" style="width:180px;">Status <span class="sort-icon">↕</span></th>
+              ${marketplaceCol}
               ${andamentoCol}
               ${fonteCol}
             </tr>
@@ -1706,11 +1710,15 @@
           const chkCell = (ACTIVE.type === "STATUS:PENDENTE")
             ? `<td class="chk-col"><input type="checkbox" class="chk-row chk-pedido" data-id="${safe(p.id)}"></td>`
             : "";
+          const marketplaceCell = (ACTIVE_SOURCE === "Próximos Dias")
+            ? `<td>${safe(p.marketplace || "—")}</td>`
+            : "";
           return `
             <tr class="${trClass}">
               ${chkCell}
               ${base}
               <td><span class="badge ${badgeClassStatus(p.status)}">${safe(p.status)}</span></td>
+              ${marketplaceCell}
               ${andamentoCell}
               ${fonteCell}
             </tr>
@@ -1747,6 +1755,7 @@
         if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // andamento
         if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // checkbox
         if (showTodos()) cols += 1; // fonte
+        if (ACTIVE_SOURCE === "Próximos Dias") cols += 1;
         return cols;
       };
 
@@ -2734,24 +2743,26 @@
         const _btn = $("btnEnviarNM");
         if (_btn) { _btn.disabled = true; _btn.textContent = "Enviando..."; }
 
-        google.script.run
-          .withSuccessHandler(res => {
-            if (_btn) { _btn.disabled = false; _btn.textContent = "Confirmar"; }
-            if (!res.ok) { showToast("Erro: " + (res.error || "desconhecido")); return; }
-            const sentKeys = new Set(selections.map(s => normJs_(s.prodName)));
-            ALL_TODOS_NV = ALL_TODOS_NV.filter(it => !sentKeys.has(normJs_(it.produtoPendentes)));
-            NAO_MARCADO_SELS = new Map();
-            const msg = "✅ " + res.updated + " marcação(ões) • " +
-                        res.labels + " etiqueta(s)" +
-                        (res.pdfUrl ? " • PDF gerado" : "");
-            showToast(msg, 5000);
-            fetchPedidos();
-          })
-          .withFailureHandler(err => {
-            if (_btn) { _btn.disabled = false; _btn.textContent = "Confirmar"; }
-            showToast("Falha: " + (err.message || err));
-          })
-          .enviarInformacoesNaoMarcado(selections);
+        setTimeout(() => {
+          google.script.run
+            .withSuccessHandler(res => {
+              if (_btn) { _btn.disabled = false; _btn.textContent = "Enviar Informações"; }
+              if (!res.ok) { showToast("Erro: " + (res.error || "desconhecido")); return; }
+              const sentKeys = new Set(selections.map(s => normJs_(s.prodName)));
+              ALL_TODOS_NV = ALL_TODOS_NV.filter(it => !sentKeys.has(normJs_(it.produtoPendentes)));
+              NAO_MARCADO_SELS = new Map();
+              const msg = "✅ " + res.updated + " marcação(ões) • " +
+                          res.labels + " etiqueta(s)" +
+                          (res.pdfUrl ? " • PDF gerado" : "");
+              showToast(msg, 5000);
+              fetchPedidos();
+            })
+            .withFailureHandler(err => {
+              if (_btn) { _btn.disabled = false; _btn.textContent = "Enviar Informações"; }
+              showToast("Falha: " + (err.message || err));
+            })
+            .enviarInformacoesNaoMarcado(selections);
+        }, 0);
       }
     </script>
 

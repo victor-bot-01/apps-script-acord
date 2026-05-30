@@ -975,6 +975,7 @@ function importarShopeeMagalu() {
         if (colG.includes("ok"))                   continue;
         if (bgG === ML_IMPORT_CONFIG.OK_GREEN)     continue;
         if (colG.includes("cancelado"))            continue;
+        if (colG.includes("full"))                 continue;
 
         // B→ID, D→CLIENTE, F→PRODUTO, E→QTD
         const row = [values[i][1], values[i][3], values[i][5], values[i][4]];
