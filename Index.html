@@ -2674,6 +2674,20 @@
 
       fetchPedidos();
 
+      (function() {
+        setInterval(function() {
+          google.script.run
+            .withSuccessHandler(function(status) {
+              var el = $("importIndicator");
+              if (!el) return;
+              el.style.display = status ? "inline" : "none";
+              if (status) el.textContent = "⟳ " + status;
+            })
+            .withFailureHandler(function() {})
+            .getImportStatus();
+        }, 20 * 1000);
+      })();
+
       function nmFaltaChange_(el) {
         const key = el.getAttribute("data-prod");
         const sel = NAO_MARCADO_SELS.get(key) || {};

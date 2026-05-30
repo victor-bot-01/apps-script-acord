@@ -1130,6 +1130,7 @@ function importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubs
   aplicarStatus_porAba_(statusById || construirStatusById_(noop), "Próximos Dias");
   aplicarAndamento_porAba_(andamentoByIdQueue || construirFilaAndamentoPorId_(noop), "Próximos Dias");
   pend_process_porAba_(shProximos, confById || pend_buildConferenciaById_(), mapSubseq || pend_buildDadosMapSubseq_());
+  pend_process_nv_porId_(shProximos, pend_buildTodosExcTenho_(), mapSubseq || pend_buildDadosMapSubseq_());
 
   Logger.log("importarProximosDias_: " + rows4.length + " pedidos importados.");
 }

@@ -331,6 +331,15 @@ function readMonitorSnapshot_(key) {
 /*******************************
  * COLLECTION TIMES
  *******************************/
+function getImportStatus() {
+  const raw = PropertiesService.getScriptProperties().getProperty("IMPORT_RUNNING") || "";
+  if (!raw) return null;
+  const parts = raw.split("|");
+  const ts = Number(parts[1] || 0);
+  if (Date.now() - ts > 30 * 60 * 1000) return null;
+  return parts[0];
+}
+
 function getCollectionTimes() {
   try {
     const props = PropertiesService.getScriptProperties();
