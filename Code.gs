@@ -1389,7 +1389,7 @@ function atualizarMarcacoesRapido() {
     const mapSubseq     = pend_buildDadosMapSubseq_();
     const confById      = pend_buildConferenciaById_();
     const confTodosById = pend_buildTodosExcTenho_();
-    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt"];
+    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt","Próximos Dias"];
     for (const name of sheetNames) {
       const sh = ss.getSheetByName(name);
       if (!sh) continue;
@@ -1697,8 +1697,39 @@ function enviarInformacoesNaoMarcado(selections) {
 
       if (details.length > 0) {
         labelsGenerated = details.length;
-        try { pdfUrl = gerarEtiquetasPDF_(details, PDF_FOLDER); }
-        catch(e) { Logger.log("PDF err: " + e.message); }
+        const incompletos = details.filter(d => !d.isComplete);
+        const completos   = details.filter(d =>  d.isComplete);
+
+        // PDF somente para pedidos incompletos
+        if (incompletos.length > 0) {
+          try { pdfUrl = gerarEtiquetasPDF_(incompletos, PDF_FOLDER); }
+          catch(e) { Logger.log("PDF err: " + e.message); }
+        }
+
+        // E-mail para pedidos completos, agrupados por marketplace
+        if (completos.length > 0) {
+          const grupos = {};
+          for (const d of completos) {
+            const src = d.source || "—";
+            if (!grupos[src]) grupos[src] = [];
+            grupos[src].push(d);
+          }
+          const linhas = [];
+          for (const src of Object.keys(grupos).sort()) {
+            linhas.push(src + ":");
+            for (const d of grupos[src]) {
+              linhas.push(d.id + "   " + d.cliente);
+            }
+            linhas.push("");
+          }
+          try {
+            MailApp.sendEmail({
+              to: "victor@gigaimports.com",
+              subject: "Pedidos Completos — " + completos.length + " pedido(s)",
+              body: linhas.join("\n")
+            });
+          } catch(e) { Logger.log("Email err: " + e.message); }
+        }
       }
     }
 

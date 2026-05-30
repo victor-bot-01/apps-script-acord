@@ -1089,7 +1089,7 @@ function importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubs
 
   // IDs já presentes em ML Coleta e ML 1
   const existingIds = new Set();
-  for (const name of ["ML Coleta", "ML 1"]) {
+  for (const name of ["ML Coleta", "ML 1", "Flex/Vapt"]) {
     const sh = ss.getSheetByName(name);
     if (!sh || sh.getLastRow() < 2) continue;
     sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues()
