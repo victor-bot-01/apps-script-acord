@@ -1517,6 +1517,8 @@
 
       const showTodos = () => ACTIVE_SOURCE === "TODOS" && ACTIVE.view !== "FALTAM_VIEW" && ACTIVE.view !== "FALTANV_VIEW" && ACTIVE.view !== "TENHO_VIEW";
 
+      const DIAS_ABAS = ["Shopee","Magalu","Essência do Brasil","Amazon"];
+
       const setThead = () => {
         if (ACTIVE.view === "FALTAM_VIEW") {
           $("thead").innerHTML = `
@@ -1583,7 +1585,6 @@
           const chkCol = (ACTIVE.type === "STATUS:PENDENTE")
             ? `<th class="chk-col"><input type="checkbox" id="chkAll" class="chk-row" title="Marcar todos"></th>`
             : "";
-          const DIAS_ABAS = ["Shopee","Magalu","Essência do Brasil","Amazon"];
           const diasCol = (DIAS_ABAS.includes(ACTIVE_SOURCE))
             ? `<th data-sort="diasPendente" style="width:55px;">Dias <span class="sort-icon">↕</span></th>`
             : "";
