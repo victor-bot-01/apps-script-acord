@@ -1005,6 +1005,33 @@ function importarShopeeMagalu() {
     if (rowsAmazon.length)   shAmazon.getRange(2, 1, rowsAmazon.length, 4).setValues(rowsAmazon);
     if (rowsFlexVapt.length) shFlexVapt.getRange(2, 1, rowsFlexVapt.length, 4).setValues(rowsFlexVapt);
 
+    // Atualizar datas de entrada (contador de dias)
+    (function() {
+      const dates = pendDates_load_();
+      const hoje  = pendDates_hoje_();
+      const abas  = [
+        { sh: shShopee,   rows: rowsShopee   },
+        { sh: shMagalu,   rows: rowsMagalu   },
+        { sh: shEssencia, rows: rowsEssencia },
+        { sh: shAmazon,   rows: rowsAmazon   }
+      ];
+      const idsAtivos = new Set();
+      for (const { rows } of abas) {
+        for (const r of rows) {
+          const id = String(r[0] ?? "").trim();
+          if (id) {
+            idsAtivos.add(id);
+            if (!dates[id]) dates[id] = hoje;
+          }
+        }
+      }
+      // Limpar IDs que não existem mais em nenhuma das 4 abas
+      for (const id of Object.keys(dates)) {
+        if (!idsAtivos.has(id)) delete dates[id];
+      }
+      pendDates_save_(dates);
+    })();
+
     const noop = () => {};
     const statusById = construirStatusById_(noop);
     aplicarStatus_porAba_(statusById, "Shopee");

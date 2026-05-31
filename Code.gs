@@ -194,7 +194,15 @@ function readFromSheet_(ss, sheetName) {
       id, cliente, produto, qtd,
       status, bipado, etiquetas, andamento,
       sheet: sheetName,
-      marketplace: isProximosDias ? String(r[14] ?? "").trim() : ""
+      marketplace: isProximosDias ? String(r[14] ?? "").trim() : "",
+      diasPendente: (["Shopee","Magalu","Essência do Brasil","Amazon"].includes(sheetName))
+        ? (() => {
+            try {
+              const _pd = pendDates_load_();
+              return pendDates_diasDesde_(_pd[id]);
+            } catch(e) { return null; }
+          })()
+        : null
     });
   }
 
@@ -906,7 +914,7 @@ function getOrdersByComponent(componentName, ignoreStatus) {
 
     // Resolve source (aba do dashboard) por ID
     const dashSS = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt"];
+    const sheetNames = ["ML Coleta","ML 1","Shopee","Magalu","Essência do Brasil","Amazon","Flex/Vapt","Próximos Dias"];
     const idSource = new Map();
     for (const name of sheetNames) {
       const sh = dashSS.getSheetByName(name);
@@ -1754,4 +1762,98 @@ function enviarInformacoesNaoMarcado(selections) {
   } catch(err) {
     return { ok: false, error: String(err.message || err) };
   }
+}
+
+/******************* PEND DATES — contador de dias pendente *******************/
+function pendDates_load_() {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty("PENDING_DATES");
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+function pendDates_save_(map) {
+  PropertiesService.getScriptProperties().setProperty("PENDING_DATES", JSON.stringify(map));
+}
+
+function pendDates_hoje_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+}
+
+function pendDates_diasDesde_(isoDate) {
+  if (!isoDate) return null;
+  const hoje = new Date();
+  const entrada = new Date(isoDate);
+  return Math.floor((hoje - entrada) / (1000 * 60 * 60 * 24));
+}
+
+/******************* RELATÓRIO DIÁRIO DE PENDENTES *******************/
+function enviarRelatorioPendentes_() {
+  try {
+    const EMAIL = "victor@gigaimports.com";
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const dates = pendDates_load_();
+    const hoje  = pendDates_hoje_();
+    const abas  = ["Shopee","Magalu","Essência do Brasil","Amazon"];
+
+    const grupos = {};
+    for (const nome of abas) {
+      const sh = ss.getSheetByName(nome);
+      if (!sh || sh.getLastRow() < 2) continue;
+      const data = sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues();
+      const linhas = [];
+      for (const r of data) {
+        const id      = String(r[0] ?? "").trim();
+        const cliente = String(r[1] ?? "").trim();
+        const status  = String(r[4] ?? "").trim();
+        if (!id || status === "Confirmado" || status === "Cancelado") continue;
+        const dias = pendDates_diasDesde_(dates[id]);
+        linhas.push({ id, cliente, dias: dias !== null ? dias : 0 });
+      }
+      if (linhas.length) {
+        linhas.sort((a, b) => b.dias - a.dias);
+        grupos[nome] = linhas;
+      }
+    }
+
+    if (!Object.keys(grupos).length) {
+      Logger.log("enviarRelatorioPendentes_: nenhum pedido pendente.");
+      return;
+    }
+
+    const partes = [];
+    for (const [nome, linhas] of Object.entries(grupos)) {
+      partes.push(nome + " (" + linhas.length + " pedido(s)):");
+      partes.push("Dias   ID                     Cliente");
+      partes.push("-----  ---------------------  --------");
+      for (const l of linhas) {
+        const d = String(l.dias).padStart(5);
+        partes.push(d + "  " + l.id.padEnd(22) + " " + l.cliente);
+      }
+      partes.push("");
+    }
+
+    MailApp.sendEmail({
+      to: EMAIL,
+      subject: "Relatório de Pedidos Pendentes — " + hoje,
+      body: partes.join("\n")
+    });
+    Logger.log("Relatório de pendentes enviado.");
+  } catch(e) {
+    Logger.log("enviarRelatorioPendentes_: erro — " + e.message);
+  }
+}
+
+function criarGatilhoRelatorio_() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === "enviarRelatorioPendentes_")
+    .forEach(t => ScriptApp.deleteTrigger(t));
+
+  ScriptApp.newTrigger("enviarRelatorioPendentes_")
+    .timeBased()
+    .everyDays(1)
+    .atHour(5)
+    .create();
+
+  Logger.log("Gatilho criado: enviarRelatorioPendentes_ às 5h.");
 }
