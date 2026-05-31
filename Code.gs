@@ -153,6 +153,10 @@ function readFromSheet_(ss, sheetName) {
   const faltamItems = [];
   const todosNvItems = [];
 
+  const _pendDates = (["Shopee","Magalu","Essência do Brasil","Amazon"].includes(sheetName))
+    ? pendDates_load_()
+    : null;
+
   for (const r of values) {
     // ====== FALTAM LIST (independente) ======
     const produtoPendentes = String(r[CONFIG.COLS.PRODUTOS_PENDENTES - 1] ?? "").trim();
@@ -195,14 +199,7 @@ function readFromSheet_(ss, sheetName) {
       status, bipado, etiquetas, andamento,
       sheet: sheetName,
       marketplace: isProximosDias ? String(r[14] ?? "").trim() : "",
-      diasPendente: (["Shopee","Magalu","Essência do Brasil","Amazon"].includes(sheetName))
-        ? (() => {
-            try {
-              const _pd = pendDates_load_();
-              return pendDates_diasDesde_(_pd[id]);
-            } catch(e) { return null; }
-          })()
-        : null
+      diasPendente: _pendDates ? pendDates_diasDesde_(_pendDates[id]) : null
     });
   }
 
@@ -1844,7 +1841,7 @@ function enviarRelatorioPendentes_() {
   }
 }
 
-function criarGatilhoRelatorio_() {
+function criarGatilhoRelatorio() {
   ScriptApp.getProjectTriggers()
     .filter(t => t.getHandlerFunction() === "enviarRelatorioPendentes_")
     .forEach(t => ScriptApp.deleteTrigger(t));

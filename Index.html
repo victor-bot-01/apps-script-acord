@@ -1583,6 +1583,10 @@
           const chkCol = (ACTIVE.type === "STATUS:PENDENTE")
             ? `<th class="chk-col"><input type="checkbox" id="chkAll" class="chk-row" title="Marcar todos"></th>`
             : "";
+          const DIAS_ABAS = ["Shopee","Magalu","Essência do Brasil","Amazon"];
+          const diasCol = (DIAS_ABAS.includes(ACTIVE_SOURCE))
+            ? `<th data-sort="diasPendente" style="width:55px;">Dias <span class="sort-icon">↕</span></th>`
+            : "";
           const marketplaceCol = (ACTIVE_SOURCE === "Próximos Dias")
             ? `<th data-sort="marketplace" style="width:80px;">Fonte <span class="sort-icon">↕</span></th>`
             : "";
@@ -1595,6 +1599,7 @@
               <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
               <th data-sort="status" style="width:180px;">Status <span class="sort-icon">↕</span></th>
               ${marketplaceCol}
+              ${diasCol}
               ${andamentoCol}
               ${fonteCol}
             </tr>
@@ -1729,12 +1734,16 @@
           const marketplaceCell = (ACTIVE_SOURCE === "Próximos Dias")
             ? `<td>${safe(p.marketplace || "—")}</td>`
             : "";
+          const diasCell = (DIAS_ABAS.includes(ACTIVE_SOURCE) && p.diasPendente != null)
+            ? `<td style="text-align:center; font-size:12px; font-weight:600; color:${p.diasPendente >= 3 ? '#DC2626' : 'var(--text-muted)'};">${p.diasPendente}d</td>`
+            : (DIAS_ABAS.includes(ACTIVE_SOURCE) ? `<td>—</td>` : "");
           return `
             <tr class="${trClass}">
               ${chkCell}
               ${base}
               <td><span class="badge ${badgeClassStatus(p.status)}">${safe(p.status)}</span></td>
               ${marketplaceCell}
+              ${diasCell}
               ${andamentoCell}
               ${fonteCell}
             </tr>
