@@ -1435,7 +1435,7 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
   let sheet = ss.getSheetByName("Etiquetas");
   if (!sheet) sheet = ss.insertSheet("Etiquetas");
   sheet.clearContents();
-  sheet.setColumnWidth(1, 160);
+  sheet.setColumnWidth(1, 120);
   for (let i = 0; i < tenhoOrderDetails.length; i++) {
     const d = tenhoOrderDetails[i];
     const text = "*** ETIQUETA PROVISÓRIA DE UM PEDIDO INCOMPLETO ***\n" +
@@ -1474,6 +1474,7 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
 
 function enviarInformacoesNaoMarcado(selections) {
   try {
+    console.log("enviarInformacoesNaoMarcado: início — selections recebidas: " + (selections ? selections.length : 0));
     if (!selections?.length) return { ok: true, updated: 0, labels: 0 };
     const PRIORITY = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil","Próximos Dias"];
     const PDF_FOLDER = "1uhmWR9BRt09Ycwagd6g-jyEsulgtZiru";
@@ -1670,6 +1671,7 @@ function enviarInformacoesNaoMarcado(selections) {
     }
 
     if (updated > 0) conf.sh.getRange(2, 6, conf.rows, 1).setValues(newSt);
+    console.log("enviarInformacoesNaoMarcado: updated=" + updated + " parciaisAdded=" + parciaisAdded);
 
     // Monta índice orderId → índices em conf (para verificar se pedido está completo)
     const confByOrderId = new Map();
@@ -1762,9 +1764,10 @@ function enviarInformacoesNaoMarcado(selections) {
       for (let k = del.length - 1; k >= 0; k--) parcSh.deleteRow(del[k]);
     }
 
+    console.log("enviarInformacoesNaoMarcado: concluído — labels=" + labelsGenerated + " pdfUrl=" + pdfUrl);
     return { ok: true, updated, parciaisAdded, labels: labelsGenerated, pdfUrl };
   } catch(err) {
-    Logger.log("enviarInformacoesNaoMarcado: ERRO — " + (err.message || String(err)) + "\nStack: " + (err.stack || "n/a"));
+    console.log("enviarInformacoesNaoMarcado: ERRO — " + (err.message || String(err)) + "\nStack: " + (err.stack || "n/a"));
     return { ok: false, error: String(err.message || err) };
   }
 }
