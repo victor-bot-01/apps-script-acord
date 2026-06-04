@@ -890,11 +890,28 @@
         cursor: pointer;
         accent-color: var(--dark);
       }
+
+      #alertaBanner {
+        display: none;
+        background: #DC2626;
+        color: #fff;
+        text-align: center;
+        padding: 10px 20px;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        position: sticky;
+        top: 56px;
+        z-index: 9;
+        line-height: 1.6;
+      }
     </style>
   </head>
 
   <body>
     <div id="toast" class="toast" aria-live="polite"></div>
+
+    <div id="alertaBanner"></div>
 
     <div class="wrap">
       <header>
@@ -2688,6 +2705,28 @@
       });
 
       fetchPedidos();
+
+      (function() {
+        function checkBanner() {
+          google.script.run
+            .withSuccessHandler(function(alerts) {
+              var el = $("alertaBanner");
+              if (!el) return;
+              if (!alerts || alerts.length === 0) {
+                el.style.display = "none";
+                return;
+              }
+              el.style.display = "block";
+              el.innerHTML = alerts.map(function(name) {
+                return "⚠ Ainda não foi adicionada a última tabela do dia do <strong>" + name + "</strong>";
+              }).join("<br>");
+            })
+            .withFailureHandler(function() {})
+            .getAlertaBanner();
+        }
+        checkBanner();
+        setInterval(checkBanner, 2 * 60 * 1000);
+      })();
 
       (function() {
         setInterval(function() {

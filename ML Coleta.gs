@@ -119,12 +119,14 @@ function importarML_Coleta_e_ML1_v3(props, runId, TTL_MS) {
   if (didImport["ML Coleta"]) {
     try {
       PropertiesService.getScriptProperties().setProperty("LAST_IMPORT_DATE_ML_COLETA", today_);
+      PropertiesService.getScriptProperties().setProperty("LAST_IMPORT_TS_ML_COLETA", String(Date.now()));
       enviarStatusMonitor_("ML Coleta");
     } catch (err) { Logger.log("Aviso: erro no monitor ML Coleta: " + err.message); }
   }
   if (didImport["ML 1"]) {
     try {
       PropertiesService.getScriptProperties().setProperty("LAST_IMPORT_DATE_ML_1", today_);
+      PropertiesService.getScriptProperties().setProperty("LAST_IMPORT_TS_ML_1", String(Date.now()));
       enviarStatusMonitor_("ML 1");
     } catch (err) { Logger.log("Aviso: erro no monitor ML 1: " + err.message); }
   }

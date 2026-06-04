@@ -1435,26 +1435,28 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
   let sheet = ss.getSheetByName("Etiquetas");
   if (!sheet) sheet = ss.insertSheet("Etiquetas");
   sheet.clearContents();
+  sheet.setColumnWidth(1, 160);
   for (let i = 0; i < tenhoOrderDetails.length; i++) {
     const d = tenhoOrderDetails[i];
-    const statusLabel = d.isComplete ? "Pedido Completo" : "Pedido Incompleto";
-    const text = "Pedido: " + d.id +
+    const text = "*** ETIQUETA PROVISÓRIA DE UM PEDIDO INCOMPLETO ***\n" +
+                 "Pedido: " + d.id +
                  "\nCliente: " + d.cliente +
                  "\nMarketplace: " + d.source +
                  "\nProdutos:\n" + d.produtos.join("\n") +
-                 "\n" + statusLabel;
+                 "\nPedido Incompleto";
     sheet.getRange(i + 1, 1).setValue(text);
   }
   const ultimaLinha = sheet.getLastRow();
   if (ultimaLinha === 0) return null;
   sheet.getRange(1, 1, ultimaLinha, 1)
     .setWrap(true)
+    .setHorizontalAlignment("left")
     .setBorder(true, true, true, true, true, true);
   const url_base = "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?";
   const params = {
-    format: "pdf", size: "letter", portrait: true, fitw: true,
-    scale: 1, top_margin: 0.25, bottom_margin: 0.25,
-    left_margin: 0.25, right_margin: 0.25,
+    format: "pdf", size: "a5", portrait: true, fitw: false,
+    scale: 1, top_margin: 0.1, bottom_margin: 0.1,
+    left_margin: 0.05, right_margin: 0.05,
     sheetnames: false, printtitle: false, pagenumbers: false,
     gridlines: false, fzr: false,
     gid: sheet.getSheetId(), range: "A1:A" + ultimaLinha
@@ -1490,6 +1492,17 @@ function enviarInformacoesNaoMarcado(selections) {
     const parcSh = bm_getOrCreateParciais_();
     const dashSS = SpreadsheetApp.getActiveSpreadsheet();
 
+    const _idSourcePreload = new Map();
+    for (const _nm of PRIORITY) {
+      const _sh = dashSS.getSheetByName(_nm);
+      if (!_sh || _sh.getLastRow() < 2) continue;
+      const _rows = _sh.getRange(2, 1, _sh.getLastRow() - 1, 1).getValues();
+      for (const _r of _rows) {
+        const _id = String(_r[0] ?? "").trim();
+        if (_id && !_idSourcePreload.has(_id)) _idSourcePreload.set(_id, _nm);
+      }
+    }
+
     for (const sel of selections) {
       if (!sel.falta && !sel.tenho) continue;
       const normComp = pend_norm_(sel.prodName);
@@ -1509,17 +1522,11 @@ function enviarInformacoesNaoMarcado(selections) {
       }
       if (!matchedConf.length) continue;
 
-      // Resolve source varrendo col A do dashboard (1 coluna)
+      // Resolve source usando mapa pré-carregado
       const orderIdSet = new Set(matchedConf.map(r => r.orderId));
       const idSource = new Map();
-      for (const name of PRIORITY) {
-        const sh = dashSS.getSheetByName(name);
-        if (!sh || sh.getLastRow() < 2) continue;
-        const ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
-        for (const r of ids) {
-          const id = String(r[0] ?? "").trim();
-          if (orderIdSet.has(id) && !idSource.has(id)) idSource.set(id, name);
-        }
+      for (const id of orderIdSet) {
+        if (_idSourcePreload.has(id)) idSource.set(id, _idSourcePreload.get(id));
       }
 
       // Ignora pedidos que não existem no Dashboard
@@ -1757,6 +1764,7 @@ function enviarInformacoesNaoMarcado(selections) {
 
     return { ok: true, updated, parciaisAdded, labels: labelsGenerated, pdfUrl };
   } catch(err) {
+    Logger.log("enviarInformacoesNaoMarcado: ERRO — " + (err.message || String(err)) + "\nStack: " + (err.stack || "n/a"));
     return { ok: false, error: String(err.message || err) };
   }
 }
@@ -1799,11 +1807,14 @@ function enviarRelatorioPendentes_() {
       if (!sh || sh.getLastRow() < 2) continue;
       const data = sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues();
       const linhas = [];
+      const _seenRel = new Set();
       for (const r of data) {
         const id      = String(r[0] ?? "").trim();
         const cliente = String(r[1] ?? "").trim();
         const status  = String(r[4] ?? "").trim();
         if (!id || status === "Confirmado" || status === "Cancelado") continue;
+        if (_seenRel.has(id)) continue;
+        _seenRel.add(id);
         const dias = pendDates_diasDesde_(dates[id]);
         linhas.push({ id, cliente, dias: dias !== null ? dias : 0 });
       }
@@ -1853,4 +1864,164 @@ function criarGatilhoRelatorio() {
     .create();
 
   Logger.log("Gatilho criado: enviarRelatorioPendentes_ às 5h.");
+}
+
+function getAlertaBanner() {
+  try {
+    const props  = PropertiesService.getScriptProperties();
+    const times  = getCollectionTimes();
+    const now    = new Date();
+    const alerts = [];
+
+    const checks = [
+      { name: "ML Coleta", tsKey: "LAST_IMPORT_TS_ML_COLETA", folderId: "1L1wISlKCaTgZ713TlVI16qN6u20KV2vv" },
+      { name: "ML 1",      tsKey: "LAST_IMPORT_TS_ML_1",      folderId: "1TxvlZusR0ilCNjyUmMV_yZsomjDZ7y8d" }
+    ];
+
+    for (const { name, tsKey, folderId } of checks) {
+      const ct = times[name] || "";
+      if (!ct) continue;
+      const [h, m] = ct.split(":").map(Number);
+      const collectionToday = new Date(now);
+      collectionToday.setHours(h, m, 0, 0);
+      if (now < collectionToday) continue;
+      const lastTs = Number(props.getProperty(tsKey) || 0);
+      if (lastTs >= collectionToday.getTime()) continue;
+      try { if (pastaTemXlsx_(folderId)) continue; } catch(e) {}
+      alerts.push(name);
+    }
+    return alerts;
+  } catch(e) {
+    return [];
+  }
+}
+
+function avisoSegurancaShopee() {
+  try {
+    const now = new Date();
+    if (now.getDay() === 0 || now.getDay() === 6) return;
+    const props = PropertiesService.getScriptProperties();
+    const today = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    if (props.getProperty("AVISO_SHOPEE_DATE") === today) return;
+
+    const spacesRaw = String(props.getProperty("CHAT_SPACE_SHOPEE") || "").trim();
+    if (!spacesRaw) { Logger.log("avisoSegurancaShopee: CHAT_SPACE_SHOPEE não configurado."); return; }
+
+    const ssSrc = SpreadsheetApp.openById(ML_IMPORT_CONFIG.STATUS_SOURCE_SPREADSHEET_ID);
+    const pendentes = [];
+    const seenIds   = new Set();
+
+    for (const sheetName of ["Junho", "Maio"]) {
+      const sh = ssSrc.getSheetByName(sheetName);
+      if (!sh || sh.getLastRow() < 2) continue;
+      const n      = sh.getLastRow() - 1;
+      const values = sh.getRange(2, 1, n, 7).getValues();
+      const bgs    = sh.getRange(2, 7, n, 1).getBackgrounds();
+      for (let i = 0; i < n; i++) {
+        const colC = String(values[i][2] ?? "").toLowerCase();
+        if (!colC.includes("shopee")) continue;
+        const colG = String(values[i][6] ?? "").trim().toLowerCase();
+        const bgG  = String(bgs[i][0]    ?? "").trim().toLowerCase();
+        if (colG.includes("ok") || bgG === ML_IMPORT_CONFIG.OK_GREEN.toLowerCase()) continue;
+        if (colG.includes("cancelado")) continue;
+        if (colG.includes("full") || colG.includes("fulfil")) continue;
+        const id      = String(values[i][1] ?? "").trim();
+        const cliente = String(values[i][3] ?? "").trim();
+        if (!id || seenIds.has(id)) continue;
+        seenIds.add(id);
+        pendentes.push({ id, cliente });
+      }
+    }
+
+    props.setProperty("AVISO_SHOPEE_DATE", today);
+
+    if (!pendentes.length) { Logger.log("avisoSegurancaShopee: nenhum pedido Shopee pendente."); return; }
+
+    const text =
+      "⚠ *Shopee* — Pedidos Pendentes às 14:00\n" +
+      "Ainda há " + pendentes.length + " pedido(s) pendente(s). Verificar se já foram enviados ou preparados:\n" +
+      pendentes.map(p => "• " + p.id + " — " + p.cliente).join("\n");
+
+    const normalize = id => id.startsWith("spaces/") ? id : "spaces/" + id;
+    for (const spaceId of spacesRaw.split(",").map(s => s.trim()).filter(Boolean)) {
+      try { callChatApi_("post", normalize(spaceId) + "/messages", { text }); }
+      catch(e) { Logger.log("avisoSegurancaShopee chat err: " + e.message); }
+    }
+    Logger.log("avisoSegurancaShopee: mensagem enviada. " + pendentes.length + " pedido(s).");
+  } catch(e) {
+    Logger.log("avisoSegurancaShopee: ERRO — " + e.message);
+  }
+}
+
+function avisoSegurancaMagalu() {
+  try {
+    const now = new Date();
+    if (now.getDay() === 0 || now.getDay() === 6) return;
+    const props = PropertiesService.getScriptProperties();
+    const today = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    if (props.getProperty("AVISO_MAGALU_DATE") === today) return;
+
+    const spacesRaw = String(props.getProperty("CHAT_SPACE_MAGALU") || "").trim();
+    if (!spacesRaw) { Logger.log("avisoSegurancaMagalu: CHAT_SPACE_MAGALU não configurado."); return; }
+
+    const ssSrc = SpreadsheetApp.openById(ML_IMPORT_CONFIG.STATUS_SOURCE_SPREADSHEET_ID);
+    const pendentes = [];
+    const seenIds   = new Set();
+
+    for (const sheetName of ["Junho", "Maio"]) {
+      const sh = ssSrc.getSheetByName(sheetName);
+      if (!sh || sh.getLastRow() < 2) continue;
+      const n      = sh.getLastRow() - 1;
+      const values = sh.getRange(2, 1, n, 7).getValues();
+      const bgs    = sh.getRange(2, 7, n, 1).getBackgrounds();
+      for (let i = 0; i < n; i++) {
+        const colC = String(values[i][2] ?? "").toLowerCase();
+        if (!colC.includes("magalu")) continue;
+        const colG = String(values[i][6] ?? "").trim().toLowerCase();
+        const bgG  = String(bgs[i][0]    ?? "").trim().toLowerCase();
+        if (colG.includes("ok") || bgG === ML_IMPORT_CONFIG.OK_GREEN.toLowerCase()) continue;
+        if (colG.includes("cancelado")) continue;
+        if (colG.includes("full") || colG.includes("fulfil")) continue;
+        const id      = String(values[i][1] ?? "").trim();
+        const cliente = String(values[i][3] ?? "").trim();
+        if (!id || seenIds.has(id)) continue;
+        seenIds.add(id);
+        pendentes.push({ id, cliente });
+      }
+    }
+
+    props.setProperty("AVISO_MAGALU_DATE", today);
+
+    if (!pendentes.length) { Logger.log("avisoSegurancaMagalu: nenhum pedido Magalu pendente."); return; }
+
+    const text =
+      "⚠ *Magalu* — Pedidos Pendentes às 13:00\n" +
+      "Ainda há " + pendentes.length + " pedido(s) pendente(s). Verificar se já foram enviados ou preparados:\n" +
+      pendentes.map(p => "• " + p.id + " — " + p.cliente).join("\n");
+
+    const normalize = id => id.startsWith("spaces/") ? id : "spaces/" + id;
+    for (const spaceId of spacesRaw.split(",").map(s => s.trim()).filter(Boolean)) {
+      try { callChatApi_("post", normalize(spaceId) + "/messages", { text }); }
+      catch(e) { Logger.log("avisoSegurancaMagalu chat err: " + e.message); }
+    }
+    Logger.log("avisoSegurancaMagalu: mensagem enviada. " + pendentes.length + " pedido(s).");
+  } catch(e) {
+    Logger.log("avisoSegurancaMagalu: ERRO — " + e.message);
+  }
+}
+
+function criarGatilhoAvisoShopee() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === "avisoSegurancaShopee")
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger("avisoSegurancaShopee").timeBased().everyDays(1).atHour(14).create();
+  Logger.log("Gatilho criado: avisoSegurancaShopee às 14h.");
+}
+
+function criarGatilhoAvisoMagalu() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === "avisoSegurancaMagalu")
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger("avisoSegurancaMagalu").timeBased().everyDays(1).atHour(13).create();
+  Logger.log("Gatilho criado: avisoSegurancaMagalu às 13h.");
 }
