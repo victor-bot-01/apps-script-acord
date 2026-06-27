@@ -900,9 +900,11 @@
         font-size: 15px;
         font-weight: 700;
         letter-spacing: 0.2px;
-        position: sticky;
-        top: 56px;
-        z-index: 9;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 9999;
         line-height: 1.6;
       }
     </style>
@@ -2714,12 +2716,14 @@
               if (!el) return;
               if (!alerts || alerts.length === 0) {
                 el.style.display = "none";
+                document.body.style.paddingTop = "0px";
                 return;
               }
               el.style.display = "block";
               el.innerHTML = alerts.map(function(name) {
                 return "⚠ Ainda não foi adicionada a última tabela do dia do <strong>" + name + "</strong>";
               }).join("<br>");
+              document.body.style.paddingTop = el.offsetHeight + "px";
             })
             .withFailureHandler(function() {})
             .getAlertaBanner();

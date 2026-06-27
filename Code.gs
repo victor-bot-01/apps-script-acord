@@ -1435,7 +1435,7 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
   let sheet = ss.getSheetByName("Etiquetas");
   if (!sheet) sheet = ss.insertSheet("Etiquetas");
   sheet.clearContents();
-  sheet.setColumnWidth(1, 120);
+  sheet.setColumnWidth(1, 140);
   for (let i = 0; i < tenhoOrderDetails.length; i++) {
     const d = tenhoOrderDetails[i];
     const text = "*** ETIQUETA PROVISÓRIA DE UM PEDIDO INCOMPLETO ***\n" +
@@ -1941,7 +1941,7 @@ function avisoSegurancaShopee() {
     if (!pendentes.length) { Logger.log("avisoSegurancaShopee: nenhum pedido Shopee pendente."); return; }
 
     const text =
-      "⚠ *Shopee* — Pedidos Pendentes às 14:00\n" +
+      "⚠ *Shopee* — Pedidos Pendentes às 13:30\n" +
       "Ainda há " + pendentes.length + " pedido(s) pendente(s). Verificar se já foram enviados ou preparados:\n" +
       pendentes.map(p => "• " + p.id + " — " + p.cliente).join("\n");
 
@@ -2017,8 +2017,8 @@ function criarGatilhoAvisoShopee() {
   ScriptApp.getProjectTriggers()
     .filter(t => t.getHandlerFunction() === "avisoSegurancaShopee")
     .forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger("avisoSegurancaShopee").timeBased().everyDays(1).atHour(14).create();
-  Logger.log("Gatilho criado: avisoSegurancaShopee às 14h.");
+  ScriptApp.newTrigger("avisoSegurancaShopee").timeBased().everyDays(1).atHour(13).create();
+  Logger.log("Gatilho criado: avisoSegurancaShopee às 13h.");
 }
 
 function criarGatilhoAvisoMagalu() {
