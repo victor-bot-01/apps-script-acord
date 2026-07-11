@@ -2714,16 +2714,20 @@
             .withSuccessHandler(function(alerts) {
               var el = $("alertaBanner");
               if (!el) return;
+              var hdr = document.querySelector("header");
               if (!alerts || alerts.length === 0) {
                 el.style.display = "none";
                 document.body.style.paddingTop = "0px";
+                if (hdr) hdr.style.top = "0px";
                 return;
               }
               el.style.display = "block";
               el.innerHTML = alerts.map(function(name) {
                 return "⚠ Ainda não foi adicionada a última tabela do dia do <strong>" + name + "</strong>";
               }).join("<br>");
-              document.body.style.paddingTop = el.offsetHeight + "px";
+              var bannerH = el.offsetHeight;
+              document.body.style.paddingTop = bannerH + "px";
+              if (hdr) hdr.style.top = bannerH + "px";
             })
             .withFailureHandler(function() {})
             .getAlertaBanner();

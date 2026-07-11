@@ -1435,7 +1435,7 @@ function gerarEtiquetasPDF_(tenhoOrderDetails, folderId) {
   let sheet = ss.getSheetByName("Etiquetas");
   if (!sheet) sheet = ss.insertSheet("Etiquetas");
   sheet.clearContents();
-  sheet.setColumnWidth(1, 140);
+  sheet.setColumnWidth(1, 150);
   for (let i = 0; i < tenhoOrderDetails.length; i++) {
     const d = tenhoOrderDetails[i];
     const text = "*** ETIQUETA PROVISÓRIA DE UM PEDIDO INCOMPLETO ***\n" +
@@ -1887,9 +1887,10 @@ function getAlertaBanner() {
       const [h, m] = ct.split(":").map(Number);
       const collectionToday = new Date(now);
       collectionToday.setHours(h, m, 0, 0);
-      if (now < collectionToday) continue;
+      const closeToday = new Date(collectionToday.getTime() - 3 * 60 * 60 * 1000);
+      if (now < closeToday) continue;
       const lastTs = Number(props.getProperty(tsKey) || 0);
-      if (lastTs >= collectionToday.getTime()) continue;
+      if (lastTs >= closeToday.getTime()) continue;
       try { if (pastaTemXlsx_(folderId)) continue; } catch(e) {}
       alerts.push(name);
     }
@@ -1938,12 +1939,11 @@ function avisoSegurancaShopee() {
 
     props.setProperty("AVISO_SHOPEE_DATE", today);
 
-    if (!pendentes.length) { Logger.log("avisoSegurancaShopee: nenhum pedido Shopee pendente."); return; }
-
-    const text =
-      "⚠ *Shopee* — Pedidos Pendentes às 13:30\n" +
-      "Ainda há " + pendentes.length + " pedido(s) pendente(s). Verificar se já foram enviados ou preparados:\n" +
-      pendentes.map(p => "• " + p.id + " — " + p.cliente).join("\n");
+    const text = pendentes.length > 0
+      ? "⚠ *Shopee* — Pedidos Pendentes às 13:30\n" +
+        "Ainda há " + pendentes.length + " pedido(s) pendente(s). Verificar se já foram enviados ou preparados:\n" +
+        pendentes.map(p => "• " + p.id + " — " + p.cliente).join("\n")
+      : "✅ Shopee — Nenhum pedido pendente. Tudo certo!";
 
     const normalize = id => id.startsWith("spaces/") ? id : "spaces/" + id;
     for (const spaceId of spacesRaw.split(",").map(s => s.trim()).filter(Boolean)) {
@@ -1995,12 +1995,11 @@ function avisoSegurancaMagalu() {
 
     props.setProperty("AVISO_MAGALU_DATE", today);
 
-    if (!pendentes.length) { Logger.log("avisoSegurancaMagalu: nenhum pedido Magalu pendente."); return; }
-
-    const text =
-      "⚠ *Magalu* — Pedidos Pendentes às 13:00\n" +
-      "Ainda há " + pendentes.length + " pedido(s) pendente(s). Verificar se já foram enviados ou preparados:\n" +
-      pendentes.map(p => "• " + p.id + " — " + p.cliente).join("\n");
+    const text = pendentes.length > 0
+      ? "⚠ *Magalu* — Pedidos Pendentes às 13:00\n" +
+        "Ainda há " + pendentes.length + " pedido(s) pendente(s). Verificar se já foram enviados ou preparados:\n" +
+        pendentes.map(p => "• " + p.id + " — " + p.cliente).join("\n")
+      : "✅ Magalu — Nenhum pedido pendente. Tudo certo!";
 
     const normalize = id => id.startsWith("spaces/") ? id : "spaces/" + id;
     for (const spaceId of spacesRaw.split(",").map(s => s.trim()).filter(Boolean)) {
