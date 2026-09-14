@@ -1,0 +1,3020 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard | Pedidos ML</title>
+
+    <style>
+      :root {
+        --yellow:       #F5C518;
+        --yellow-dark:  #C9A000;
+        --yellow-deep:  #A88000;
+        --yellow-light: #FFF8DC;
+        --yellow-pale:  #FFFDE7;
+        --yellow-muted: rgba(245,197,24,.15);
+
+        --bg:       #FFFEF5;
+        --surface:  #FFFFFF;
+        --surface2: #FEFCE8;
+
+        --header-bg:     #F5C518;
+        --header-text:   #1A1500;
+        --header-border: #C9A000;
+
+        --dark:  #1A1500;
+        --dark2: #2C2500;
+
+        --text:       #1A1500;
+        --text-muted: #6B5E00;
+
+        --border:  #E5D860;
+        --border2: #F0E890;
+
+        --gray-50:  #FAFAF0;
+        --gray-100: #F5F0D0;
+        --gray-200: #EDE8C0;
+        --gray-300: #E0D890;
+        --gray-500: #B0A050;
+        --gray-700: #665C00;
+
+        --multi-bg:       #FFF3A0;
+        --multi-bg-hover: #FFE870;
+
+        --badge-pending-bg:  #FFF3CD; --badge-pending-text:  #7D5200;
+        --badge-confirm-bg:  #D1FAE5; --badge-confirm-text:  #065F46;
+        --badge-cancel-bg:   #FFE4E4; --badge-cancel-text:   #7D0000;
+        --badge-pronto-bg:   #DBEAFE; --badge-pronto-text:   #1E3A8A;
+        --badge-naofin-bg:   #FEF3C7; --badge-naofin-text:   #78350F;
+        --badge-outro-bg:    #F5F0D0; --badge-outro-text:    #665C00;
+
+        --shadow-sm: 0 1px 3px rgba(160,130,0,.12), 0 1px 2px rgba(160,130,0,.08);
+        --shadow-md: 0 4px 12px rgba(160,130,0,.18), 0 2px 6px rgba(160,130,0,.10);
+        --shadow-hd: 0 4px 24px rgba(200,160,0,.30);
+
+        --radius:  10px;
+        --radius2: 8px;
+      }
+
+      [data-theme="dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+
+        --header-bg:     #1A1A1A;
+        --header-text:   #F5C518;
+        --header-border: #F5C518;
+
+        --dark:  #F5C518;
+        --dark2: #E0B000;
+
+        --text:       #F0ECC0;
+        --text-muted: #A09060;
+
+        --border:  #3A3520;
+        --border2: #2A2510;
+
+        --gray-50:  #161610;
+        --gray-100: #1E1E15;
+        --gray-200: #252518;
+        --gray-300: #333320;
+        --gray-500: #666650;
+        --gray-700: #AAAAAA;
+
+        --multi-bg:       rgba(245,197,24,.15);
+        --multi-bg-hover: rgba(245,197,24,.23);
+
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="dark"] .badgeLogo { background: #2A2500; }
+      [data-theme="dark"] .chip { border-color: var(--yellow); background: rgba(30,30,20,.90); }
+      [data-theme="dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #1A1500; }
+      [data-theme="dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="dark"] thead th { background: #2A2510; }
+      [data-theme="dark"] thead th:hover { background: #333220; }
+      [data-theme="dark"] tbody tr:hover { background: rgba(245,197,24,.06); }
+      [data-theme="dark"] .kpi-active { background: rgba(245,197,24,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      /* Tema Shopee */
+      [data-theme="shopee"] {
+        --yellow:       #D32F2F;
+        --yellow-dark:  #B71C1C;
+        --yellow-deep:  #8B0000;
+        --yellow-light: #FFEBEE;
+        --yellow-pale:  #FFF0F0;
+        --yellow-muted: rgba(211,47,47,.15);
+
+        --bg:       #FFF8F8;
+        --surface2: #FFF0F0;
+
+        --header-bg:     #8B0000;
+        --header-text:   #FFE5E5;
+        --header-border: #6B0000;
+
+        --text:       #1A0000;
+        --text-muted: #6B2020;
+
+        --border:  #F0B0B0;
+        --border2: #F8D0D0;
+
+        --gray-50:  #FAF5F5;
+        --gray-100: #F5EDED;
+        --gray-200: #EDD8D8;
+        --gray-300: #E0B8B8;
+        --gray-500: #B06060;
+        --gray-700: #6B2020;
+
+        --multi-bg:       #FFE0E0;
+        --multi-bg-hover: #FFD0D0;
+
+        --badge-outro-bg:  #FFEBEE; --badge-outro-text: #7D0000;
+
+        --shadow-sm: 0 1px 3px rgba(139,0,0,.12), 0 1px 2px rgba(139,0,0,.08);
+        --shadow-md: 0 4px 12px rgba(139,0,0,.18), 0 2px 6px rgba(139,0,0,.10);
+        --shadow-hd: 0 4px 24px rgba(139,0,0,.30);
+      }
+      [data-theme="shopee"] .badgeLogo { background: #1A0000; border-left-color: var(--yellow); }
+      [data-theme="shopee"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="shopee"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      /* Tema Magalu */
+      [data-theme="magalu"] {
+        --yellow:       #1565C0;
+        --yellow-dark:  #0D47A1;
+        --yellow-deep:  #083380;
+        --yellow-light: #E3F2FD;
+        --yellow-pale:  #EEF5FF;
+        --yellow-muted: rgba(21,101,192,.15);
+
+        --bg:       #F8FAFE;
+        --surface2: #F0F5FF;
+
+        --header-bg:     #0D47A1;
+        --header-text:   #E3F2FD;
+        --header-border: #0A3880;
+
+        --text:       #00001A;
+        --text-muted: #203060;
+
+        --border:  #B0C8F0;
+        --border2: #D0DCF8;
+
+        --gray-50:  #F8F9FE;
+        --gray-100: #EEF2FA;
+        --gray-200: #D8E2F5;
+        --gray-300: #C0D0EE;
+        --gray-500: #6080B8;
+        --gray-700: #203060;
+
+        --multi-bg:       #DCE8FF;
+        --multi-bg-hover: #CCDCFF;
+
+        --badge-outro-bg:  #E3F2FD; --badge-outro-text: #0D47A1;
+
+        --shadow-sm: 0 1px 3px rgba(13,71,161,.12), 0 1px 2px rgba(13,71,161,.08);
+        --shadow-md: 0 4px 12px rgba(13,71,161,.18), 0 2px 6px rgba(13,71,161,.10);
+        --shadow-hd: 0 4px 24px rgba(13,71,161,.30);
+      }
+      [data-theme="magalu"] .badgeLogo { background: #00001A; border-left-color: var(--yellow); }
+      [data-theme="magalu"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="magalu"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      [data-theme="essencia"] {
+        --yellow:       #2E7D32;
+        --yellow-dark:  #1B5E20;
+        --yellow-deep:  #145214;
+        --yellow-light: #E8F5E9;
+        --yellow-pale:  #F1F8F1;
+        --yellow-muted: rgba(46,125,50,.15);
+
+        --bg:       #F6FAF6;
+        --surface2: #EDF5ED;
+
+        --header-bg:     #1B5E20;
+        --header-text:   #E8F5E9;
+        --header-border: #145214;
+
+        --text:       #001A00;
+        --text-muted: #1A4D1A;
+
+        --border:  #A5D6A7;
+        --border2: #C8E6C9;
+
+        --gray-50:  #F6FAF6;
+        --gray-100: #EDF5ED;
+        --gray-200: #D7EDD7;
+        --gray-300: #B8D8B8;
+        --gray-500: #5A9A5A;
+        --gray-700: #1A4D1A;
+
+        --multi-bg:       #DCEDC8;
+        --multi-bg-hover: #C5E1A5;
+
+        --badge-outro-bg:  #E8F5E9; --badge-outro-text: #1B5E20;
+
+        --shadow-sm: 0 1px 3px rgba(27,94,32,.12), 0 1px 2px rgba(27,94,32,.08);
+        --shadow-md: 0 4px 12px rgba(27,94,32,.18), 0 2px 6px rgba(27,94,32,.10);
+        --shadow-hd: 0 4px 24px rgba(27,94,32,.30);
+      }
+      [data-theme="essencia"] .badgeLogo { background: #001A00; border-left-color: var(--yellow); }
+      [data-theme="essencia"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="essencia"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      [data-theme="shopee-dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+        --header-bg:     #1A1A1A;
+        --header-text:   #E53935;
+        --header-border: #C62828;
+        --dark:  #E53935;
+        --dark2: #C62828;
+        --text:       #F5E8E8;
+        --text-muted: #AA8080;
+        --border:  #3A1515;
+        --border2: #2A1010;
+        --gray-50:  #161010;
+        --gray-100: #1E1515;
+        --gray-200: #251818;
+        --gray-300: #332020;
+        --gray-500: #665050;
+        --gray-700: #AAAAAA;
+        --yellow:       #E53935;
+        --yellow-light: #3A1515;
+        --yellow-dark:  #C62828;
+        --yellow-muted: rgba(229,57,53,.15);
+        --multi-bg:       rgba(229,57,53,.15);
+        --multi-bg-hover: rgba(229,57,53,.23);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="shopee-dark"] .badgeLogo { background: #2A0505; }
+      [data-theme="shopee-dark"] .chip { border-color: var(--yellow); background: rgba(30,20,20,.90); }
+      [data-theme="shopee-dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #FFF5F5; }
+      [data-theme="shopee-dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="shopee-dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="shopee-dark"] thead th { background: #2A1010; }
+      [data-theme="shopee-dark"] thead th:hover { background: #332020; }
+      [data-theme="shopee-dark"] tbody tr:hover { background: rgba(229,57,53,.06); }
+      [data-theme="shopee-dark"] .kpi-active { background: rgba(229,57,53,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      [data-theme="magalu-dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+        --header-bg:     #1A1A1A;
+        --header-text:   #42A5F5;
+        --header-border: #1565C0;
+        --dark:  #42A5F5;
+        --dark2: #1565C0;
+        --text:       #E8EEF5;
+        --text-muted: #8090AA;
+        --border:  #151535;
+        --border2: #101025;
+        --gray-50:  #101016;
+        --gray-100: #15151E;
+        --gray-200: #181825;
+        --gray-300: #202033;
+        --gray-500: #505065;
+        --gray-700: #AAAAAA;
+        --yellow:       #42A5F5;
+        --yellow-light: #151535;
+        --yellow-dark:  #1565C0;
+        --yellow-muted: rgba(66,165,245,.15);
+        --multi-bg:       rgba(66,165,245,.15);
+        --multi-bg-hover: rgba(66,165,245,.23);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="magalu-dark"] .badgeLogo { background: #050518; }
+      [data-theme="magalu-dark"] .chip { border-color: var(--yellow); background: rgba(20,20,30,.90); }
+      [data-theme="magalu-dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #F0F4FF; }
+      [data-theme="magalu-dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="magalu-dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="magalu-dark"] thead th { background: #101025; }
+      [data-theme="magalu-dark"] thead th:hover { background: #202033; }
+      [data-theme="magalu-dark"] tbody tr:hover { background: rgba(66,165,245,.06); }
+      [data-theme="magalu-dark"] .kpi-active { background: rgba(66,165,245,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      [data-theme="essencia-dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+        --header-bg:     #1A1A1A;
+        --header-text:   #4CAF50;
+        --header-border: #2E7D32;
+        --dark:  #F5C518;
+        --dark2: #E0B000;
+        --text:       #E8F5E8;
+        --text-muted: #80A880;
+        --border:  #153515;
+        --border2: #102510;
+        --gray-50:  #101610;
+        --gray-100: #15201A;
+        --gray-200: #182518;
+        --gray-300: #203320;
+        --gray-500: #506550;
+        --gray-700: #AAAAAA;
+        --yellow:       #4CAF50;
+        --yellow-light: #153515;
+        --yellow-dark:  #2E7D32;
+        --yellow-muted: rgba(76,175,80,.15);
+        --multi-bg:       rgba(76,175,80,.15);
+        --multi-bg-hover: rgba(76,175,80,.23);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="essencia-dark"] .badgeLogo { background: #051005; border-left-color: var(--yellow); }
+      [data-theme="essencia-dark"] .chip { border-color: var(--yellow); background: rgba(20,30,20,.90); }
+      [data-theme="essencia-dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #F0FFF0; }
+      [data-theme="essencia-dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="essencia-dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="essencia-dark"] thead th { background: #102010; }
+      [data-theme="essencia-dark"] thead th:hover { background: #203320; }
+      [data-theme="essencia-dark"] tbody tr:hover { background: rgba(76,175,80,.06); }
+      [data-theme="essencia-dark"] .kpi-active { background: rgba(76,175,80,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      [data-theme="amazon"] {
+        --yellow:       #546E7A;
+        --yellow-dark:  #37474F;
+        --yellow-deep:  #263238;
+        --yellow-light: #ECEFF1;
+        --yellow-pale:  #F5F7F8;
+        --yellow-muted: rgba(84,110,122,.15);
+
+        --bg:       #F7F8F9;
+        --surface2: #ECEFF1;
+
+        --header-bg:     #37474F;
+        --header-text:   #ECEFF1;
+        --header-border: #263238;
+
+        --text:       #0A0F12;
+        --text-muted: #546E7A;
+
+        --border:  #B0BEC5;
+        --border2: #CFD8DC;
+
+        --gray-50:  #F7F8F9;
+        --gray-100: #ECEFF1;
+        --gray-200: #CFD8DC;
+        --gray-300: #B0BEC5;
+        --gray-500: #78909C;
+        --gray-700: #455A64;
+
+        --multi-bg:       #E0E6EA;
+        --multi-bg-hover: #CFD8DC;
+
+        --badge-outro-bg:  #ECEFF1; --badge-outro-text: #37474F;
+
+        --shadow-sm: 0 1px 3px rgba(55,71,79,.12), 0 1px 2px rgba(55,71,79,.08);
+        --shadow-md: 0 4px 12px rgba(55,71,79,.18), 0 2px 6px rgba(55,71,79,.10);
+        --shadow-hd: 0 4px 24px rgba(55,71,79,.30);
+      }
+      [data-theme="amazon"] .badgeLogo { background: #0A1520; border-left-color: var(--yellow); }
+      [data-theme="amazon"] tbody tr:hover { background: var(--yellow-pale); }
+      [data-theme="amazon"] .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      [data-theme="amazon-dark"] {
+        --bg:       #111111;
+        --surface:  #1E1E1E;
+        --surface2: #252525;
+        --header-bg:     #1A1A1A;
+        --header-text:   #90A4AE;
+        --header-border: #37474F;
+        --dark:  #F5C518;
+        --dark2: #E0B000;
+        --text:       #E8ECED;
+        --text-muted: #78909C;
+        --border:  #1A2025;
+        --border2: #151A1E;
+        --gray-50:  #111518;
+        --gray-100: #161C20;
+        --gray-200: #1C2428;
+        --gray-300: #253035;
+        --gray-500: #455A64;
+        --gray-700: #AAAAAA;
+        --yellow:       #90A4AE;
+        --yellow-light: #1A2530;
+        --yellow-dark:  #546E7A;
+        --yellow-muted: rgba(144,164,174,.15);
+        --multi-bg:       rgba(144,164,174,.15);
+        --multi-bg-hover: rgba(144,164,174,.23);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.5);
+        --shadow-md: 0 4px 12px rgba(0,0,0,.6);
+        --shadow-hd: 0 4px 24px rgba(0,0,0,.7);
+      }
+      [data-theme="amazon-dark"] .badgeLogo { background: #0A1015; border-left-color: var(--yellow); }
+      [data-theme="amazon-dark"] .chip { border-color: var(--yellow); background: rgba(20,25,30,.90); }
+      [data-theme="amazon-dark"] .btn { border-color: var(--yellow); background: var(--yellow); color: #0A1015; }
+      [data-theme="amazon-dark"] .btn:hover { background: var(--yellow-dark); border-color: var(--yellow-dark); }
+      [data-theme="amazon-dark"] .btnDark { border-color: var(--yellow); color: var(--yellow); }
+      [data-theme="amazon-dark"] thead th { background: #161C20; }
+      [data-theme="amazon-dark"] thead th:hover { background: #253035; }
+      [data-theme="amazon-dark"] tbody tr:hover { background: rgba(144,164,174,.06); }
+      [data-theme="amazon-dark"] .kpi-active { background: rgba(144,164,174,.12) !important; border-color: var(--yellow) !important; border-left: 3px solid var(--yellow) !important; }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        overflow-x: hidden;
+      }
+
+      .wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px 48px; }
+
+      header {
+        display: flex; gap: 14px; align-items: center; justify-content: space-between;
+        padding: 12px 20px;
+        background: var(--header-bg);
+        border-bottom: 2px solid var(--header-border);
+        box-shadow: var(--shadow-hd);
+        position: sticky; top: 0; z-index: 10;
+      }
+
+      .brand { display: flex; gap: 12px; align-items: center; min-width: 240px; }
+      .badgeLogo {
+        width: 40px; height: 40px;
+        background: #1A1500;
+        border-left: 4px solid var(--yellow);
+        border-radius: 8px;
+        box-shadow: none;
+      }
+      .brand h1 { margin: 0; font-size: 14px; font-weight: 700; color: var(--header-text); letter-spacing: 0; text-transform: none; }
+      .brand .sub { font-size: 12px; color: var(--header-text); opacity: .65; margin-top: 4px; }
+
+      .controls { display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+
+      .btnDark {
+        cursor: pointer;
+        border: 2px solid var(--dark);
+        background: transparent;
+        color: var(--dark);
+        padding: 8px 10px;
+        border-radius: var(--radius);
+        font-size: 14px; line-height: 1;
+        transition: all .15s;
+      }
+      .btnDark:hover { background: rgba(26,21,0,.1); }
+
+      .chip {
+        display: flex; gap: 10px; align-items: center;
+        padding: 10px 12px;
+        border-radius: var(--radius);
+        border: 2px solid var(--dark);
+        background: rgba(255,255,255,.90);
+        box-shadow: none;
+      }
+      .chip input {
+        background: transparent; border: none; outline: none;
+        color: var(--text);
+        width: 220px;
+        font-size: 13px;
+      }
+
+      .btn {
+        cursor: pointer;
+        border: 2px solid var(--dark);
+        background: var(--dark);
+        color: var(--yellow);
+        padding: 10px 16px;
+        border-radius: var(--radius);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+        box-shadow: none;
+        transition: background .15s;
+      }
+      .btn:hover { background: var(--dark2); }
+
+      .row { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+
+      .sourceBar {
+        display: flex; flex-direction: column; gap: 10px;
+        padding: 10px 12px;
+        border-radius: var(--radius);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+      }
+      .sourceLeft { display: flex; flex-direction: column; gap: 4px; }
+      .sourceTitle {
+        font-size: 11px;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      .sourceHint { font-size: 12px; color: var(--text-muted); }
+      #importIndicator {
+        font-size: 12px;
+        font-weight: 600;
+        color: #111;
+        background: rgba(0,0,0,0.08);
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: none;
+        animation: impPulse 1.2s ease-in-out infinite;
+      }
+      @keyframes impPulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.35; }
+      }
+      .seg { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      .segBtn {
+        cursor: pointer;
+        border-radius: 6px;
+        padding: 9px 12px;
+        font-size: 13px;
+        letter-spacing: 0;
+        text-transform: none;
+        border: 1px solid var(--border);
+        background: var(--gray-100);
+        color: var(--text-muted);
+        user-select: none;
+        box-shadow: none;
+      }
+      .segBtn.active {
+        background: var(--yellow);
+        color: var(--dark);
+        border-color: var(--yellow-dark);
+        font-weight: 700;
+        box-shadow: none;
+      }
+
+      .ctBar {
+        display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+        padding-top: 8px;
+        border-top: 1px solid var(--border2);
+        margin-top: 2px;
+      }
+      .ctBarLabel { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+      .ctSheet { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+      .ctSheetName { font-weight: 600; color: var(--text); }
+      .ctTime {
+        background: var(--yellow-muted); color: var(--dark);
+        padding: 3px 8px; border-radius: 4px;
+        font-weight: 600; font-size: 12px;
+        min-width: 40px; text-align: center;
+        border: 1px solid var(--border);
+      }
+      .ctInput { padding: 3px 6px; border-radius: 4px; border: 1px solid var(--yellow-dark); background: var(--surface); color: var(--text); font-size: 12px; }
+      .ctEditBtn, .ctSaveBtn, .ctCancelBtn {
+        cursor: pointer; background: transparent;
+        border: 1px solid var(--border); border-radius: 4px;
+        padding: 3px 7px; font-size: 11px; color: var(--text-muted); transition: all .12s;
+      }
+      .ctSaveBtn { border-color: #065F46; color: #065F46; }
+      .ctSaveBtn:hover { background: #D1FAE5; }
+      .ctCancelBtn:hover, .ctEditBtn:hover { background: var(--gray-100); }
+
+      .ctSendBtn {
+        cursor: pointer; background: transparent;
+        border: 1px solid #1E3A8A; border-radius: 4px;
+        padding: 3px 7px; font-size: 11px; color: #1E3A8A; transition: all .12s;
+      }
+      .ctSendBtn:hover { background: #DBEAFE; }
+      .ctSendBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        position: relative;
+        border-radius: var(--radius);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      .kpi { padding: 14px 14px 12px; min-height: 86px; display: flex; flex-direction: column; justify-content: space-between; }
+      .kpi .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+      .kpi .value { font-size: 30px; font-weight: 700; color: var(--text); }
+      .kpi .hint { font-size: 11px; color: var(--gray-500); }
+      .kpi-active { background: var(--yellow-pale) !important; border-color: var(--yellow-dark) !important; border-left: 3px solid var(--yellow-dark) !important; box-shadow: var(--shadow-md) !important; }
+
+      .tableWrap { padding: 14px; }
+      .tableHeader { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+      .tableHeader h2 { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: 0; text-transform: none; }
+      .meta { font-size: 12px; color: var(--text-muted); }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      thead th {
+        text-align: left;
+        font-size: 12px;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var(--yellow);
+        background: var(--dark);
+        border-bottom: 1px solid var(--dark2);
+        padding: 11px 14px;
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+      }
+      thead th:hover { background: var(--dark2); }
+      tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border2);
+        font-size: 13px;
+        color: var(--text);
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+      tbody tr { background: var(--surface); }
+      tbody tr:hover { background: var(--yellow-pale); }
+      tbody tr.row-multi { background: var(--multi-bg) !important; }
+      tbody tr.row-multi:hover { background: var(--multi-bg-hover) !important; }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        border: none;
+        white-space: nowrap;
+      }
+
+      .b-pendente  { background: var(--badge-pending-bg); color: var(--badge-pending-text); }
+      .b-pago      { background: var(--badge-confirm-bg); color: var(--badge-confirm-text); }
+      .b-entregue  { background: var(--badge-pronto-bg);  color: var(--badge-pronto-text);  }
+      .b-enviado   { background: var(--badge-naofin-bg);  color: var(--badge-naofin-text);  }
+      .b-cancelado { background: var(--badge-cancel-bg);  color: var(--badge-cancel-text);  }
+      .b-outro     { background: var(--badge-outro-bg);   color: var(--badge-outro-text);   }
+
+      .statusline {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--gray-100);
+        color: var(--text-muted);
+      }
+      .pill strong { color: var(--text); font-weight: 600; }
+
+      .toast {
+        position: fixed; bottom: 24px; right: 24px; z-index: 999;
+        background: #C92A2A; color: #fff; padding: 12px 18px; border-radius: 8px;
+        font-size: 13px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,.25);
+        opacity: 0; pointer-events: none; transition: opacity .25s; max-width: 360px;
+      }
+      .toast.show { opacity: 1; pointer-events: auto; }
+
+      .loading-overlay {
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; padding: 48px 16px;
+        color: var(--text-muted); font-size: 13px;
+      }
+      .spinner {
+        width: 20px; height: 20px;
+        border: 2px solid var(--border);
+        border-top-color: var(--yellow-dark);
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .sort-icon { opacity: .4; font-size: 10px; margin-left: 4px; }
+      th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity: 1; }
+
+      .mktBadge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 8px; border-radius: 999px;
+        font-size: 11px; font-weight: 600; white-space: nowrap;
+      }
+      .mkt-open   { background: #D1FAE5; color: #065F46; }
+      .mkt-closed { background: #FFE4E4; color: #7D0000; }
+
+      .ctPauseBtn {
+        cursor: pointer; background: transparent;
+        border: 1px solid #7D5200; border-radius: 4px;
+        padding: 3px 7px; font-size: 11px; color: #7D5200; transition: all .12s;
+      }
+      .ctPauseBtn.paused { border-color: #065F46; color: #065F46; }
+      .ctPauseBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+      .blueCellsWarning {
+        display: none;
+        background: #FFF3CD; border: 1px solid #F5C518;
+        border-radius: 6px; padding: 8px 12px;
+        font-size: 12px; color: #7D5200; font-weight: 500;
+        margin-bottom: 10px;
+      }
+      .blueCellsWarning.show { display: block; }
+
+      .review-warning {
+        background: #FFF3CD;
+        color: #7D5200;
+        border: 1px solid #F5C518;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      .snapshotBar {
+        display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+        padding: 6px 0; font-size: 11px; color: var(--text-muted);
+        border-top: 1px solid var(--border2); margin-top: 6px; padding-top: 8px;
+      }
+      .snapshotPill {
+        padding: 3px 8px; border-radius: 4px;
+        background: var(--gray-100); border: 1px solid var(--border);
+        font-size: 11px; color: var(--text);
+      }
+
+      .copyFaltamBtn {
+        cursor: pointer; background: var(--dark); color: var(--yellow);
+        border: none; border-radius: var(--radius2);
+        padding: 6px 12px; font-size: 12px; font-weight: 600;
+      }
+      .copyFaltamBtn:hover { opacity: .85; }
+
+      .autoRefreshInfo {
+        font-size: 11px; color: var(--text-muted); padding: 2px 0;
+      }
+
+      .todosFilters {
+        display: none;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        margin-bottom: 12px;
+      }
+      .todosFilters.visible { display: flex; }
+      .filterGroup { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .filterLabel { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+      .filterBtn {
+        cursor: pointer;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        background: var(--gray-100);
+        color: var(--text);
+        transition: background .12s;
+        user-select: none;
+      }
+      .filterBtn.active {
+        background: var(--dark);
+        color: var(--yellow);
+        border-color: var(--dark);
+      }
+
+      .faltanvBar {
+        display: none;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        margin-bottom: 8px;
+      }
+      .faltanvBar.visible { display: flex; }
+
+      .faltanvActions {
+        display: none;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 14px;
+        margin-bottom: 8px;
+      }
+      .faltanvActions.visible { display: flex; }
+
+      .btn-action {
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: var(--radius2);
+        font-size: 12px;
+        font-weight: 700;
+        border: none;
+      }
+      .btn-falta  { background: #DC2626; color: #fff; }
+      .btn-falta:hover  { opacity: .88; }
+      .btn-falta:disabled  { opacity: .4; cursor: not-allowed; }
+      .btn-parcial { background: var(--yellow-dark); color: var(--dark); }
+      .btn-parcial:hover { opacity: .88; }
+      .btn-parcial:disabled { opacity: .4; cursor: not-allowed; }
+
+      .modal-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.open { display: flex; }
+      .modal-box {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 24px;
+        min-width: 320px;
+        max-width: 480px;
+        width: 90%;
+        box-shadow: var(--shadow-md);
+      }
+      .modal-box h3 { margin: 0 0 12px; font-size: 15px; }
+      .modal-box p  { font-size: 13px; color: var(--text-muted); margin: 0 0 14px; }
+      .modal-input {
+        width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+        border-radius: var(--radius2); font-size: 13px; box-sizing: border-box;
+        margin-bottom: 14px;
+      }
+      .modal-orders-list {
+        max-height: 220px; overflow-y: auto;
+        border: 1px solid var(--border2);
+        border-radius: var(--radius2);
+        margin-bottom: 14px;
+        padding: 6px 0;
+      }
+      .modal-order-row {
+        display: flex; align-items: center; gap: 8px;
+        padding: 5px 10px; font-size: 13px; cursor: pointer;
+      }
+      .modal-order-row:hover { background: var(--gray-50); }
+      .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+      .btn-modal-cancel {
+        cursor: pointer; padding: 6px 14px; border-radius: var(--radius2);
+        font-size: 12px; border: 1px solid var(--border); background: transparent;
+      }
+      .btn-modal-ok {
+        cursor: pointer; padding: 6px 14px; border-radius: var(--radius2);
+        font-size: 12px; font-weight: 700; border: none;
+        background: var(--dark); color: var(--yellow);
+      }
+
+      .chk-col { width: 36px; text-align: center; }
+      .chk-row {
+        width: 16px; height: 16px;
+        cursor: pointer;
+        accent-color: var(--dark);
+      }
+
+      #alertaBanner {
+        display: none;
+        background: #DC2626;
+        color: #fff;
+        text-align: center;
+        padding: 10px 20px;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 9999;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <div id="alertaBanner"></div>
+
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <div class="badgeLogo"></div>
+          <div>
+            <h1>Pedidos — HUD Mercado Livre</h1>
+            <div class="sub">Web App (Apps Script) + Google Planilhas (base de dados)</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="btnDark" id="btnDark" title="Alternar tema">&#x263D;</button>
+          <span id="importIndicator">⟳ Importando...</span>
+          <div class="chip" title="Buscar...">
+            <span style="color: var(--gray-500);">&#x2315;</span>
+            <input id="q" placeholder="Buscar..." autocomplete="off" />
+          </div>
+          <button class="btn" id="btnReload">Atualizar</button>
+        </div>
+      </header>
+
+      <div class="row">
+        <section class="sourceBar">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div class="sourceLeft">
+              <div class="sourceTitle">Fonte de dados</div>
+              <div class="sourceHint" id="sourceHint">&#x2014;</div>
+            </div>
+
+            <div class="seg" id="seg">
+              <div class="segBtn" data-src="ML Coleta">ML Coleta</div>
+              <div class="segBtn" data-src="ML 1">ML 1</div>
+              <div class="segBtn" data-src="TODOS">Todos</div>
+              <div class="segBtn" data-src="Shopee">Shopee</div>
+              <div class="segBtn" data-src="Magalu">Magalu</div>
+              <div class="segBtn" data-src="Essência do Brasil">Essência do Brasil</div>
+              <div class="segBtn" data-src="Amazon">Amazon</div>
+              <div class="segBtn" data-src="Flex/Vapt">Flex/Vapt</div>
+              <div class="segBtn" data-src="Próximos Dias">Próximos Dias</div>
+            </div>
+          </div>
+
+          <div class="ctBar">
+            <span class="ctBarLabel">&#x23F0; Hor&#xe1;rios de coleta</span>
+            <div class="ctSheet">
+              <span class="ctSheetName">ML Coleta:</span>
+              <span class="ctTime" id="ctTime0">&#x2014;</span>
+              <span class="mktBadge" id="mktBadge0">&#x2014;</span>
+              <button class="ctEditBtn" data-idx="0" title="Editar">&#x270F;</button>
+              <input type="time" class="ctInput" id="ctInput0" style="display:none" />
+              <button class="ctSaveBtn" data-idx="0" style="display:none">&#x2713;</button>
+              <button class="ctCancelBtn" data-idx="0" style="display:none">&#x2715;</button>
+              <button class="ctSendBtn" data-idx="0" title="Enviar hor&#xe1;rio no Chat">&#x1F4AC;</button>
+              <button class="ctPauseBtn" data-idx="0" title="Pausar monitor">&#x23F8;</button>
+            </div>
+            <div class="ctSheet">
+              <span class="ctSheetName">ML 1:</span>
+              <span class="ctTime" id="ctTime1">&#x2014;</span>
+              <span class="mktBadge" id="mktBadge1">&#x2014;</span>
+              <button class="ctEditBtn" data-idx="1" title="Editar">&#x270F;</button>
+              <input type="time" class="ctInput" id="ctInput1" style="display:none" />
+              <button class="ctSaveBtn" data-idx="1" style="display:none">&#x2713;</button>
+              <button class="ctCancelBtn" data-idx="1" style="display:none">&#x2715;</button>
+              <button class="ctSendBtn" data-idx="1" title="Enviar hor&#xe1;rio no Chat">&#x1F4AC;</button>
+              <button class="ctPauseBtn" data-idx="1" title="Pausar monitor">&#x23F8;</button>
+            </div>
+            <div class="autoRefreshInfo" id="autoRefreshInfo"></div>
+            <div class="snapshotBar" id="snapshotBar"></div>
+          </div>
+        </section>
+
+        <div id="confBtns" style="display:none; gap:8px; margin-bottom:10px; flex-wrap:wrap; padding:0 0 4px 0;">
+          <button onclick="importarConf()" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">&#x1F4E5; Importar</button>
+          <button onclick="limparConf()" style="padding:8px 16px;background:#DC2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">&#x1F5D1;&#xFE0F; Limpar</button>
+          <span id="confBtnMsg" style="font-size:13px;color:#555;align-self:center;"></span>
+        </div>
+
+        <section class="kpis" id="kpis"></section>
+
+        <section class="card tableWrap">
+          <div class="tableHeader">
+            <h2 id="tableTitle">Lista de pedidos</h2>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button id="copyFaltamBtn" class="copyFaltamBtn" style="display:none">&#x1F4CB; Copiar lista</button>
+              <button id="copyPendentesBtn" class="copyFaltamBtn" style="display:none">&#x1F4CB; Copiar IDs</button>
+              <button id="btnProcessarFotos"
+                style="display:none;font-size:12px;padding:5px 12px;cursor:pointer;">
+                📷 Processar Fotos
+              </button>
+              <button id="btnAtualizarMarcacoes" style="display:none;font-size:12px;padding:5px 12px;cursor:pointer;">
+                ⚡ Atualizar Marcações
+              </button>
+              <div class="meta" id="meta">&#x2014;</div>
+            </div>
+          </div>
+
+          <div id="reviewWarning" class="review-warning" style="display:none;">
+            ⚠️ Revisar pedidos na planilha
+          </div>
+
+          <div id="blueCellsWarning" class="blueCellsWarning">
+            &#x26A0;&#xFE0F; H&#xe1; produtos faltantes que n&#xe3;o entraram nessa lista &#x2014; confirme na aba Pendentes
+          </div>
+
+          <div class="todosFilters" id="todosFilters">
+            <div class="filterGroup filterGroup-andamento">
+              <span class="filterLabel">Andamento:</span>
+              <div class="filterBtn" data-filter-andamento="falta">Falta</div>
+              <div class="filterBtn" data-filter-andamento="tenho">Tenho</div>
+              <div class="filterBtn" data-filter-andamento="vazio">—</div>
+            </div>
+            <div class="filterGroup filterGroup-fonte">
+              <span class="filterLabel">Fonte:</span>
+              <div class="filterBtn" data-filter-fonte="ML Coleta">ML Coleta</div>
+              <div class="filterBtn" data-filter-fonte="ML 1">ML 1</div>
+              <div class="filterBtn" data-filter-fonte="Shopee">Shopee</div>
+              <div class="filterBtn" data-filter-fonte="Magalu">Magalu</div>
+              <div class="filterBtn" data-filter-fonte="Essência do Brasil">Essência do Brasil</div>
+              <div class="filterBtn" data-filter-fonte="Amazon">Amazon</div>
+              <div class="filterBtn" data-filter-fonte="Flex/Vapt">Flex/Vapt</div>
+              <div class="filterBtn" data-filter-fonte="Próximos Dias">Próximos Dias</div>
+            </div>
+          </div>
+
+          <div class="faltanvBar" id="faltanvBar">
+            <div class="filterGroup">
+              <span class="filterLabel">Visualizar:</span>
+              <div class="filterBtn faltanv-filter active" data-faltanv="todos">Todos</div>
+              <div class="filterBtn faltanv-filter" data-faltanv="falta">Falta</div>
+              <div class="filterBtn faltanv-filter" data-faltanv="nao_marcado">Não Marcado</div>
+            </div>
+          </div>
+
+          <div class="faltanvActions" id="faltanvActions">
+            <button id="btnEnviarInfo" onclick="abrirModalEnviarInfo_()"
+              style="display:none; margin-left:8px; padding:6px 14px; background:#F5C518;
+                     border:none; border-radius:7px; font-weight:600; cursor:pointer;">
+              Enviar Informações
+            </button>
+          </div>
+
+          <div class="faltanvActions" id="parcActions">
+            <button class="btn-action btn-falta"  id="btnParcialFalta"  disabled>Marcar /Falta</button>
+            <button class="btn-action btn-parcial" id="btnParcialTenho"  disabled>Tenho</button>
+            <span id="parcSelCount" style="font-size:12px;color:var(--text-muted);"></span>
+          </div>
+
+          <div id="loadingOverlay" class="loading-overlay" style="display:none">
+            <div class="spinner"></div><span>Carregando dados...</span>
+          </div>
+
+          <div style="width:100%; overflow:auto;">
+            <table>
+              <thead id="thead"></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="statusline" id="statusline"></div>
+        </section>
+      </div>
+    </div>
+
+      <!-- Modal: confirmar /Falta -->
+      <div class="modal-overlay" id="modalFalta">
+        <div class="modal-box">
+          <h3>Confirmação</h3>
+          <input type="text" class="modal-input" id="modalFaltaInput" autocomplete="off">
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalFaltaCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalFaltaOk" disabled>Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Falta Parcial (seleção de pedidos) -->
+      <div class="modal-overlay" id="modalParcial">
+        <div class="modal-box">
+          <h3 id="modalParcialTitle">Falta Parcial</h3>
+          <p>Selecione os pedidos onde você <strong>TEM</strong> este produto. Os demais serão marcados como FALTA.</p>
+          <div class="modal-orders-list" id="modalParcialList"></div>
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalParcialCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalParcialOk">Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Tenho (Parciais) -->
+      <div class="modal-overlay" id="modalTenho">
+        <div class="modal-box">
+          <h3 id="modalTenhoTitle">Marcar como Tenho</h3>
+          <p>Selecione os pedidos onde você <strong>TEM</strong> este componente. Os demais serão marcados como FALTA.</p>
+          <div class="modal-orders-list" id="modalTenhoList"></div>
+          <div class="modal-btns">
+            <button class="btn-modal-cancel" id="modalTenhoCancel">Cancelar</button>
+            <button class="btn-modal-ok"    id="modalTenhoOk">Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+  <div id="modalFaltaItem" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <div class="modal-title" id="modalFaltaItemTitle"></div>
+      <div id="modalFaltaItemList" style="max-height:320px;overflow-y:auto;margin:12px 0"></div>
+      <div class="modal-actions">
+        <button id="btnFaltaItemCopy" disabled onclick="copyFaltaItemIds_()">Copiar IDs</button>
+        <button onclick="closeFaltaItemModal_()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      const applyDarkMode = (isDark) => {
+        localStorage.setItem("theme", isDark ? "dark" : "light");
+        const src = ACTIVE_SOURCE;
+        if (isDark) {
+          if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee-dark");
+          else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu-dark");
+          else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia-dark");
+          else if (src === "Amazon") document.documentElement.setAttribute("data-theme", "amazon-dark");
+          else document.documentElement.setAttribute("data-theme", "dark");
+        } else {
+          applySourceTheme(src);
+        }
+      };
+
+      const initTheme = () => {
+        const saved = localStorage.getItem("theme") || "light";
+        applyDarkMode(saved === "dark");
+        $("btnDark").textContent = saved === "dark" ? "☀" : "☽";
+      };
+      const toggleDark = () => {
+        const isDark = localStorage.getItem("theme") !== "dark";
+        applyDarkMode(isDark);
+        $("btnDark").textContent = isDark ? "☀" : "☽";
+      };
+      $("btnDark").addEventListener("click", toggleDark);
+
+      let ALL_PEDIDOS = [];
+      let ALL_FALTAM = [];
+      let ALL_TODOS_NV = [];
+      let ALL_TENHO = [];
+      let ALL_PARCIAIS = [];
+      let _parcialFaltaPending = null;
+      let _modalOrders = null;
+      let _faltaItemOrders = null;
+      let _faltaParcialPendente = null;
+      let _parcialTenhoPending = null;
+      let KPIS = null;
+      let META = null;
+
+      let MULTI_IDS = new Set();
+      let ACTIVE_SOURCE = "ML Coleta";
+      let SORT = { col: null, dir: 1 };
+
+      let FILTER_ANDAMENTO = new Set(); // valores: "falta", "tenho", "vazio"
+      let FILTER_FONTE     = new Set(); // valores: "ML Coleta", "ML 1", "Shopee", "Magalu", "Essência do Brasil"
+      let FALTANV_FILTER   = "todos";  // "todos" | "falta" | "nao_marcado"
+      let NAO_MARCADO_SELS = new Map(); // key: produtoPendentes → { falta, tenho, tenhoQty }
+
+      let ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
+      const isActive = (type) => ACTIVE && ACTIVE.type === type;
+
+      let COLLECTION_TIMES = { "ML Coleta": "", "ML 1": "" };
+      const CT_SHEETS = ["ML Coleta", "ML 1"];
+
+      let HAS_BLUE_CELLS = false;
+      let HAS_REVIEW_CELLS = false;
+      let MONITOR_PAUSED   = { "ML Coleta": false, "ML 1": false };
+      let MONITOR_SNAPSHOT = { "ML Coleta": null,  "ML 1": null  };
+      let LAST_UPDATE_TIME = null;
+      let AUTO_REFRESH_TIMER = null;
+      let CURRENT_FILTERED_LIST = [];
+
+      const updateCtDisplay = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          $("ctTime" + i).textContent = COLLECTION_TIMES[sheet] || "—";
+        });
+      };
+
+      const bindCtEdit = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const timeEl    = $("ctTime" + i);
+          const input     = $("ctInput" + i);
+          const editBtn   = document.querySelector('.ctEditBtn[data-idx="' + i + '"]');
+          const saveBtn   = document.querySelector('.ctSaveBtn[data-idx="' + i + '"]');
+          const cancelBtn = document.querySelector('.ctCancelBtn[data-idx="' + i + '"]');
+
+          const open = () => {
+            timeEl.style.display    = "none";
+            editBtn.style.display   = "none";
+            input.value             = COLLECTION_TIMES[sheet] || "";
+            input.style.display     = "";
+            saveBtn.style.display   = "";
+            cancelBtn.style.display = "";
+            input.focus();
+          };
+          const close = () => {
+            timeEl.style.display    = "";
+            editBtn.style.display   = "";
+            input.style.display     = "none";
+            saveBtn.style.display   = "none";
+            cancelBtn.style.display = "none";
+          };
+          const save = () => {
+            const time = input.value;
+            saveBtn.disabled = true;
+            google.script.run
+              .withSuccessHandler((res) => {
+                saveBtn.disabled = false;
+                if (res && res.ok) { COLLECTION_TIMES[sheet] = time; updateCtDisplay(); close(); }
+                else showToast("Erro ao salvar hor\xe1rio.");
+              })
+              .withFailureHandler((err) => {
+                saveBtn.disabled = false;
+                showToast("Falha ao salvar: " + (err && err.message ? err.message : err));
+              })
+              .saveCollectionTime(sheet, time);
+          };
+          editBtn.addEventListener("click", open);
+          saveBtn.addEventListener("click", save);
+          cancelBtn.addEventListener("click", close);
+        });
+      };
+
+      const bindCtSend = () => {
+        const fns = ["enviarHorarioMLColeta", "enviarHorarioML1"];
+        CT_SHEETS.forEach((sheet, i) => {
+          const btn = document.querySelector('.ctSendBtn[data-idx="' + i + '"]');
+          if (!btn) return;
+          btn.addEventListener("click", () => {
+            btn.disabled = true;
+            btn.textContent = "...";
+            google.script.run
+              .withSuccessHandler((res) => {
+                btn.disabled = false;
+                btn.textContent = "💬";
+                if (res && res.ok) showToast("Mensagem enviada: " + sheet, 3000, "success");
+                else showToast("Erro ao enviar: " + ((res && res.error) || "desconhecido"));
+              })
+              .withFailureHandler((err) => {
+                btn.disabled = false;
+                btn.textContent = "💬";
+                showToast("Falha ao enviar: " + ((err && err.message) || err));
+              })
+              [fns[i]]();
+          });
+        });
+      };
+
+      const updateMarketStatus = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const badge = $("mktBadge" + i);
+          if (!badge) return;
+          const ct = COLLECTION_TIMES[sheet] || "";
+          if (!ct) { badge.textContent = "—"; badge.className = "mktBadge"; return; }
+          const [h, m] = ct.split(":").map(Number);
+          const now = new Date();
+          const col = new Date(now); col.setHours(h, m, 0, 0);
+          const close = new Date(col.getTime() - 3 * 60 * 60 * 1000);
+          const open = now < close;
+          badge.textContent = open ? "🟢 Marketplace Aberto" : "🔴 Marketplace Fechado";
+          badge.className = "mktBadge " + (open ? "mkt-open" : "mkt-closed");
+        });
+      };
+
+      const updatePauseButtons = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const btn = document.querySelector('.ctPauseBtn[data-idx="' + i + '"]');
+          if (!btn) return;
+          const paused = MONITOR_PAUSED[sheet];
+          btn.textContent = paused ? "▶" : "⏸";
+          btn.title = paused ? "Retomar monitor" : "Pausar monitor";
+          btn.classList.toggle("paused", paused);
+        });
+      };
+
+      const updateMonitorSnapshot = () => {
+        const bar = $("snapshotBar");
+        if (!bar) return;
+        const sheet = ACTIVE_SOURCE === "TODOS" ? null : ACTIVE_SOURCE;
+        const snap  = sheet ? MONITOR_SNAPSHOT[sheet] : null;
+        if (!snap) { bar.innerHTML = ""; return; }
+        bar.innerHTML =
+          `<span style="color:var(--text-muted)">Última msg (${safe(snap.sentAt)}):</span>` +
+          `<span class="snapshotPill">Total: <strong>${snap.total}</strong></span>` +
+          `<span class="snapshotPill">Pendentes: <strong>${snap.pendentes}</strong></span>` +
+          `<span class="snapshotPill">Confirmados: <strong>${snap.confirmados}</strong></span>` +
+          `<span class="snapshotPill">Cancelados: <strong>${snap.cancelados}</strong></span>`;
+      };
+
+      const updateBlueCellsWarning = () => {
+        const warn = $("blueCellsWarning");
+        if (!warn) return;
+        warn.classList.toggle("show", HAS_BLUE_CELLS && ACTIVE.view === "FALTAM_VIEW");
+      };
+
+      const updateTodosFilters = () => {
+        const bar = $("todosFilters");
+        if (!bar) return;
+
+        const isPendentes = ACTIVE.type === "STATUS:PENDENTE";
+        bar.querySelector(".filterGroup-andamento").style.display = isPendentes ? "" : "none";
+
+        const isTodos = ACTIVE_SOURCE === "TODOS";
+        bar.querySelector(".filterGroup-fonte").style.display = isTodos ? "" : "none";
+
+        const anyVisible = isPendentes || isTodos;
+        if (anyVisible) bar.classList.add("visible");
+        else {
+          bar.classList.remove("visible");
+          if (!isPendentes) {
+            FILTER_ANDAMENTO.clear();
+            bar.querySelectorAll("[data-filter-andamento]").forEach(b => b.classList.remove("active"));
+          }
+          if (!isTodos) {
+            FILTER_FONTE.clear();
+            bar.querySelectorAll("[data-filter-fonte]").forEach(b => b.classList.remove("active"));
+          }
+        }
+      };
+
+      const bindTodosFilters = () => {
+        document.querySelectorAll("[data-filter-andamento]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const val = btn.getAttribute("data-filter-andamento");
+            if (FILTER_ANDAMENTO.has(val)) { FILTER_ANDAMENTO.delete(val); btn.classList.remove("active"); }
+            else { FILTER_ANDAMENTO.add(val); btn.classList.add("active"); }
+            applyAllFilters();
+          });
+        });
+        document.querySelectorAll("[data-filter-fonte]").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const val = btn.getAttribute("data-filter-fonte");
+            if (FILTER_FONTE.has(val)) { FILTER_FONTE.delete(val); btn.classList.remove("active"); }
+            else { FILTER_FONTE.add(val); btn.classList.add("active"); }
+            applyAllFilters();
+          });
+        });
+      };
+
+      const updateAutoRefreshIndicator = () => {
+        const el = $("autoRefreshInfo");
+        if (!el || !LAST_UPDATE_TIME) return;
+        const hh = String(LAST_UPDATE_TIME.getHours()).padStart(2, "0");
+        const mm = String(LAST_UPDATE_TIME.getMinutes()).padStart(2, "0");
+        el.textContent = "Atualizado às " + hh + ":" + mm + " • próxima atualização em 10 min";
+      };
+
+      const copyPendentesIds = () => {
+        const checked = [...document.querySelectorAll(".chk-pedido:checked")];
+        const seen  = new Set();
+        const parts = [];
+
+        if (checked.length > 0) {
+          for (const cb of checked) {
+            const id = String(cb.getAttribute("data-id") || "");
+            if (!seen.has(id)) {
+              seen.add(id);
+              parts.push(id.slice(-5));
+            }
+          }
+        } else {
+          for (const p of CURRENT_FILTERED_LIST) {
+            const id = String(p.id);
+            if (!seen.has(id)) {
+              seen.add(id);
+              parts.push(id.slice(-5));
+            }
+          }
+        }
+
+        const text = parts.join("/");
+        navigator.clipboard.writeText(text)
+          .then(() => showToast("IDs copiados!", 2500, "success"))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = text; document.body.appendChild(ta);
+            ta.select(); document.execCommand("copy");
+            document.body.removeChild(ta);
+          });
+      };
+
+      const copyFaltamList = () => {
+        let _copySource;
+        if (ACTIVE.view === "FALTANV_VIEW" && FALTANV_FILTER === "todos") {
+          _copySource = [...ALL_FALTAM, ...ALL_TODOS_NV];
+        } else {
+          _copySource = ALL_FALTAM;
+        }
+        const lines = _copySource.map(it => it.produtoPendentes + " - " + it.quantidade).join("\n");
+        if (!lines) { showToast("Lista vazia."); return; }
+        navigator.clipboard.writeText(lines)
+          .then(() => showToast("Lista copiada!", 2500, "success"))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = lines; ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand("copy"); showToast("Lista copiada!", 2500, "success"); }
+            catch(e) { showToast("Erro ao copiar."); }
+            document.body.removeChild(ta);
+          });
+      };
+
+      const bindPauseButtons = () => {
+        CT_SHEETS.forEach((sheet, i) => {
+          const btn = document.querySelector('.ctPauseBtn[data-idx="' + i + '"]');
+          if (!btn) return;
+          btn.addEventListener("click", () => {
+            const isPaused = MONITOR_PAUSED[sheet];
+            const fn = isPaused
+              ? (i === 0 ? "resumirMonitorMLColeta" : "resumirMonitorML1")
+              : (i === 0 ? "pausarMonitorMLColeta"  : "pausarMonitorML1");
+            btn.disabled = true;
+            google.script.run
+              .withSuccessHandler(() => {
+                btn.disabled = false;
+                MONITOR_PAUSED[sheet] = !isPaused;
+                updatePauseButtons();
+                showToast((isPaused ? "Monitor retomado: " : "Monitor pausado: ") + sheet, 2500, "success");
+              })
+              .withFailureHandler((err) => {
+                btn.disabled = false;
+                showToast("Erro: " + ((err && err.message) || err));
+              })
+              [fn]();
+          });
+        });
+      };
+
+      const startAutoRefresh = (intervalMs) => {
+        clearInterval(AUTO_REFRESH_TIMER);
+        AUTO_REFRESH_TIMER = setInterval(() => {
+          if ($("q") && $("q").value.trim()) return;
+          if (FALTANV_FILTER === "nao_marcado" && NAO_MARCADO_SELS.size > 0) return;
+          fetchPedidos();
+        }, intervalMs || 10 * 60 * 1000);
+      };
+
+      const safe = (v) => String(v == null ? "" : v)
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+
+      const formatAndamento = (raw) => {
+        if (!raw || raw === "—") return "—";
+        const parts = raw.split(/\s*[\|\/;,]\s*/);
+        return parts.map(part => {
+          const lower = part.toLowerCase();
+          if (lower.includes("tenho")) {
+            return `<span class="badge b-pago" style="font-size:11px;">${safe(part)}</span>`;
+          }
+          if (lower.includes("falta")) {
+            return `<span class="badge b-pendente" style="font-size:11px;">${safe(part)}</span>`;
+          }
+          return `<span style="font-size:11px;">${safe(part)}</span>`;
+        }).join(" ");
+      };
+
+      const showToast = (msg, duration = 4500, type = "error") => {
+        const t = $("toast");
+        t.textContent = msg;
+        t.style.background = type === "success" ? "#2F9E44" : "#C92A2A";
+        t.classList.add("show");
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), duration);
+      };
+
+      const badgeClassStatus = (v) => {
+        const s = (v || "").toUpperCase();
+        if (s === "PENDENTE") return "b-pendente";
+        if (s === "CONFIRMADO") return "b-pago";
+        if (s === "CANCELADO") return "b-cancelado";
+        return "b-outro";
+      };
+      const badgeClassBipado = (v) => {
+        const s = (v || "").toUpperCase();
+        if (s === "PRONTO") return "b-entregue";
+        if (s === "N\xc3O FINALIZADO" || s === "NAO FINALIZADO") return "b-enviado";
+        if (s === "CANCELADO") return "b-cancelado";
+        return "b-outro";
+      };
+      const badgeClassEtiquetas = (v) => {
+        const s = (v || "").toUpperCase();
+        if (s === "IMPRESSA") return "b-pago";
+        if (s === "PARA IMPRIMIR") return "b-pendente";
+        if (s === "CANCELADO") return "b-cancelado";
+        return "b-outro";
+      };
+
+      const kpiCards = (k) => {
+        const defs = [
+          { type:"ALL",               key:"total",              label:"Total",               hint:"Pedidos (IDs \xfanicos)", view:"STATUS" },
+          { type:"STATUS:PENDENTE",   key:"pendentes",          label:"Pendentes",           hint:"Pedidos pendentes", view:"STATUS" },
+          { type:"FALTAM",            key:"faltam",             label:"Faltam",              hint:"Soma de Quantidade", view:"FALTAM_VIEW" },
+          { type:"STATUS:CONFIRMADO", key:"confirmados",        label:"Confirmados",         hint:"Pedidos confirmados", view:"STATUS", hideInTodos: true },
+          { type:"FALTANV",           key:"faltaNaoVerificado", label:"Falta/Não Verificado", hint:"Qtd não verificada",  view:"FALTANV_VIEW", todosOnly: true },
+          { type:"TENHO", key:"tenho", label:"Tenho", hint:"Qtd confirmada como Tenho", view:"TENHO_VIEW", todosOnly: true },
+          { type:"VIEW:ETIQUETAS",    key:"etiquetasImpressas", label:"Etiquetas Impressas", hint:'IDs com "Impressa"', view:"ETIQUETAS", hideInTodos: true },
+          { type:"PARCIAIS",          key:"parciais",            label:"Produtos Parciais",   hint:"Componentes kit pendentes", view:"PARCIAIS_VIEW", todosOnly: true },
+          { type:"STATUS:CANCELADO",  key:"cancelados",         label:"Cancelados",          hint:"Pedidos cancelados", view:"STATUS", hideInTodos: true },
+        ];
+
+        return defs
+          .filter(d =>
+            (!d.todosOnly   || ACTIVE_SOURCE === "TODOS") &&
+            (!d.hideInTodos || ACTIVE_SOURCE !== "TODOS")
+          )
+          .map(d => `
+          <div class="card${isActive(d.type) ? ' kpi-active' : ''}"
+               role="button"
+               tabindex="0"
+               data-filter="${d.type}"
+               data-view="${d.view}"
+               style="cursor:pointer; outline:none;">
+            <div class="kpi">
+              <div class="label">${d.label}</div>
+              <div class="value">${(k && typeof k[d.key] !== "undefined") ? k[d.key] : 0}</div>
+              <div class="hint">${d.hint}</div>
+            </div>
+          </div>
+        `).join("");
+      };
+
+      const showTodos = () => ACTIVE_SOURCE === "TODOS" && ACTIVE.view !== "FALTAM_VIEW" && ACTIVE.view !== "FALTANV_VIEW" && ACTIVE.view !== "TENHO_VIEW";
+
+      const DIAS_ABAS = ["Shopee","Magalu","Essência do Brasil","Amazon"];
+
+      const setThead = () => {
+        if (ACTIVE.view === "FALTAM_VIEW") {
+          $("thead").innerHTML = `
+            <tr>
+              <th data-sort="produtoPendentes">Produtos Pendentes <span class="sort-icon">↕</span></th>
+              <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
+            </tr>
+          `;
+          return;
+        }
+
+        if (ACTIVE.view === "TENHO_VIEW") {
+          $("thead").innerHTML = `
+            <tr>
+              <th data-sort="produtoPendentes">Produtos com Tenho <span class="sort-icon">↕</span></th>
+              <th data-sort="quantidade" style="width:140px;">Quantidade <span class="sort-icon">↕</span></th>
+            </tr>
+          `;
+          return;
+        }
+
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
+          $("thead").innerHTML = `
+            <tr>
+              <th class="chk-col"><input type="checkbox" id="chkAllParciais" title="Marcar todos"></th>
+              <th>Componente Pendente</th>
+              <th style="width:70px;">Pedidos</th>
+            </tr>
+          `;
+          return;
+        }
+
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          if (FALTANV_FILTER === "nao_marcado") {
+            $("thead").innerHTML = `
+              <tr>
+                <th style="width:42px; text-align:center; background-color:rgba(220,50,50,0.30);">Falta</th>
+                <th style="width:42px; text-align:center; background-color:rgba(40,180,40,0.30);">Tenho</th>
+                <th style="width:64px; text-align:center;">Qty</th>
+                <th data-sort="quantidade" style="width:70px;">Quantidade <span class="sort-icon">↕</span></th>
+                <th data-sort="produtoPendentes">Produto <span class="sort-icon">↕</span></th>
+                <th>Fonte</th>
+              </tr>
+            `;
+          } else {
+            $("thead").innerHTML = `
+              <tr>
+                <th>Produto</th>
+                <th style="width:70px;">Quantidade</th>
+              </tr>
+            `;
+          }
+          return;
+        }
+
+        const fonteCol = showTodos()
+          ? `<th data-sort="sheet" style="width:110px;">Fonte <span class="sort-icon">↕</span></th>`
+          : "";
+
+        if (ACTIVE.view === "STATUS") {
+          const andamentoCol = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<th data-sort="andamento" style="width:160px;">Andamento <span class="sort-icon">↕</span></th>`
+            : "";
+          const chkCol = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<th class="chk-col"><input type="checkbox" id="chkAll" class="chk-row" title="Marcar todos"></th>`
+            : "";
+          const diasCol = (DIAS_ABAS.includes(ACTIVE_SOURCE))
+            ? `<th data-sort="diasPendente" style="width:55px;">Dias <span class="sort-icon">↕</span></th>`
+            : "";
+          const marketplaceCol = (ACTIVE_SOURCE === "Próximos Dias")
+            ? `<th data-sort="marketplace" style="width:80px;">Fonte <span class="sort-icon">↕</span></th>`
+            : "";
+          $("thead").innerHTML = `
+            <tr>
+              ${chkCol}
+              <th data-sort="id">ID <span class="sort-icon">↕</span></th>
+              <th data-sort="cliente">Cliente <span class="sort-icon">↕</span></th>
+              <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
+              <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
+              <th data-sort="status" style="width:180px;">Status <span class="sort-icon">↕</span></th>
+              ${marketplaceCol}
+              ${diasCol}
+              ${andamentoCol}
+              ${fonteCol}
+            </tr>
+          `;
+          return;
+        }
+
+        if (ACTIVE.view === "BIPADO") {
+          $("thead").innerHTML = `
+            <tr>
+              <th data-sort="id">ID <span class="sort-icon">↕</span></th>
+              <th data-sort="cliente">Cliente <span class="sort-icon">↕</span></th>
+              <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
+              <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
+              <th data-sort="bipado" style="width:220px;">Bipado <span class="sort-icon">↕</span></th>
+              ${fonteCol}
+            </tr>
+          `;
+          return;
+        }
+
+        $("thead").innerHTML = `
+          <tr>
+            <th data-sort="id">ID <span class="sort-icon">↕</span></th>
+            <th data-sort="cliente">Cliente <span class="sort-icon">↕</span></th>
+            <th data-sort="produto">Produto <span class="sort-icon">↕</span></th>
+            <th data-sort="qtd" style="width:70px;">Qtd <span class="sort-icon">↕</span></th>
+            <th data-sort="etiquetas" style="width:220px;">Etiquetas <span class="sort-icon">↕</span></th>
+            ${fonteCol}
+          </tr>
+        `;
+      };
+
+      const rowHtml = (p) => {
+        if (ACTIVE.view === "FALTAM_VIEW") {
+          const isTodosTab = ACTIVE_SOURCE === "TODOS";
+          return `
+            <tr data-produto="${safe(p.produtoPendentes)}"
+              ${isTodosTab ? 'style="cursor:pointer" onclick="openFaltaItemModal_(this.dataset.produto)"' : ''}>
+              <td>${safe(p.produtoPendentes)}</td>
+              <td>${safe(p.quantidade)}</td>
+            </tr>
+          `;
+        }
+
+        if (ACTIVE.view === "TENHO_VIEW") {
+          return `<tr><td>${safe(p.produtoPendentes)}</td><td>${safe(p.quantidade)}</td></tr>`;
+        }
+
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
+          const stBadge = p.componentStatus === "FALTA"
+            ? "b-cancelado"
+            : "b-pending";
+          return `
+            <tr>
+              <td class="chk-col"><input type="checkbox" class="chk-parcial"
+                data-orderid="${safe(p.orderId)}"
+                data-kit="${safe(p.kitProduct)}"
+                data-comp="${safe(p.componentName)}"></td>
+              <td>${safe(p.kitProduct)}</td>
+              <td>${safe(p.componentName)}</td>
+              <td><span class="badge ${stBadge}">${safe(p.componentStatus)}</span></td>
+              <td>${safe(p.qty)}</td>
+              <td>${safe(p.orderId)}</td>
+              <td><span class="badge b-outro" style="font-size:10px;">${safe(p.source || "—")}</span></td>
+            </tr>
+          `;
+        }
+
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          if (p._tipo === "nao_marcado" && FALTANV_FILTER === "nao_marcado") {
+            const key    = p.produtoPendentes;
+            const sel    = NAO_MARCADO_SELS.get(key) || {};
+            const faltaChk = sel.falta ? "checked" : "";
+            const tenhoChk = sel.tenho ? "checked" : "";
+            const tenhoQty = sel.tenhoQty || "";
+            const maxQty   = Number(p.quantidade) || 1;
+            const showQty  = (sel.tenho && maxQty > 1) ? "" : "none";
+            return `
+              <tr>
+                <td style="text-align:center; background-color:rgba(220,50,50,0.18);">
+                  <input type="checkbox" class="chk-falta-nm" data-prod="${safe(key)}" ${faltaChk}
+                    onchange="nmFaltaChange_(this)">
+                </td>
+                <td style="text-align:center; background-color:rgba(40,180,40,0.18);">
+                  <input type="checkbox" class="chk-tenho-nm" data-prod="${safe(key)}" ${tenhoChk}
+                    onchange="nmTenhoChange_(this)">
+                </td>
+                <td style="text-align:center;">
+                  <input type="number" class="qty-nm" data-prod="${safe(key)}"
+                    min="1" max="${maxQty - 1}" value="${tenhoQty}"
+                    style="width:52px; display:${showQty};"
+                    onchange="nmQtyChange_(this)">
+                </td>
+                <td>${safe(p.quantidade)}</td>
+                <td>${safe(p.produtoPendentes)}</td>
+                <td>${safe([...p._sources||[]].join(" - "))}</td>
+              </tr>
+            `;
+          }
+          // _tipo === "falta" ou "todos": mantém clique para abrir modal
+          const ignoreStatus = p._tipo === "falta" ? "true" : "false";
+          return `
+            <tr style="cursor:pointer;"
+              onclick="openFaltaItemModal_(${JSON.stringify(p.produtoPendentes)}, ${ignoreStatus})">
+              <td>${safe(p.produtoPendentes)}</td>
+              <td>${safe(p.quantidade)}</td>
+            </tr>
+          `;
+        }
+
+        const isMulti = MULTI_IDS.has(String(p.id));
+        const trClass = isMulti ? "row-multi" : "";
+        const fonteCell = showTodos()
+          ? `<td><span class="badge b-outro" style="font-size:10px;">${safe(p.sheet != null ? p.sheet : "—")}</span></td>`
+          : "";
+
+        const base = `
+          <td>${safe(p.id)}</td>
+          <td>${safe(p.cliente)}</td>
+          <td>${safe(p.produto)}</td>
+          <td>${safe(p.qtd || "—")}</td>
+        `;
+
+        if (ACTIVE.view === "STATUS") {
+          const andamentoCell = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<td style="white-space:normal;">${formatAndamento(p.andamento)}</td>`
+            : "";
+          const chkCell = (ACTIVE.type === "STATUS:PENDENTE")
+            ? `<td class="chk-col"><input type="checkbox" class="chk-row chk-pedido" data-id="${safe(p.id)}"></td>`
+            : "";
+          const marketplaceCell = (ACTIVE_SOURCE === "Próximos Dias")
+            ? `<td>${safe(p.marketplace || "—")}</td>`
+            : "";
+          const diasCell = (DIAS_ABAS.includes(ACTIVE_SOURCE) && p.diasPendente != null)
+            ? `<td style="text-align:center; font-size:12px; font-weight:600; color:${p.diasPendente >= 3 ? '#DC2626' : 'var(--text-muted)'};">${p.diasPendente}d</td>`
+            : (DIAS_ABAS.includes(ACTIVE_SOURCE) ? `<td>—</td>` : "");
+          return `
+            <tr class="${trClass}">
+              ${chkCell}
+              ${base}
+              <td><span class="badge ${badgeClassStatus(p.status)}">${safe(p.status)}</span></td>
+              ${marketplaceCell}
+              ${diasCell}
+              ${andamentoCell}
+              ${fonteCell}
+            </tr>
+          `;
+        }
+
+        if (ACTIVE.view === "BIPADO") {
+          return `
+            <tr class="${trClass}">
+              ${base}
+              <td><span class="badge ${badgeClassBipado(p.bipado)}">${safe(p.bipado || "—")}</span></td>
+              ${fonteCell}
+            </tr>
+          `;
+        }
+
+        return `
+          <tr class="${trClass}">
+            ${base}
+            <td><span class="badge ${badgeClassEtiquetas(p.etiquetas)}">${safe(p.etiquetas || "—")}</span></td>
+            ${fonteCell}
+          </tr>
+        `;
+      };
+
+      const emptyColspan = () => {
+        if (ACTIVE.view === "FALTAM_VIEW") return 2;
+        if (ACTIVE.view === "TENHO_VIEW") return 2;
+        if (ACTIVE.view === "PARCIAIS_VIEW") return 3;
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          return FALTANV_FILTER === "nao_marcado" ? 5 : 2;
+        }
+        let cols = 5;
+        if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // andamento
+        if (ACTIVE.type === "STATUS:PENDENTE") cols += 1; // checkbox
+        if (showTodos()) cols += 1; // fonte
+        if (ACTIVE_SOURCE === "Próximos Dias") cols += 1;
+        return cols;
+      };
+
+      const applySortClasses = () => {
+        if (!SORT.col) return;
+        $("thead").querySelectorAll("th[data-sort]").forEach(th => {
+          th.classList.remove("sort-asc", "sort-desc");
+          if (th.getAttribute("data-sort") === SORT.col) {
+            th.classList.add(SORT.dir === 1 ? "sort-asc" : "sort-desc");
+            th.querySelector(".sort-icon").textContent = SORT.dir === 1 ? "↑" : "↓";
+          }
+        });
+      };
+
+      const bindTheadSort = () => {
+        $("thead").addEventListener("click", (e) => {
+          const th = e.target.closest("th[data-sort]");
+          if (!th) return;
+          const col = th.getAttribute("data-sort");
+          SORT.dir = (SORT.col === col) ? -SORT.dir : 1;
+          SORT.col = col;
+          applyAllFilters();
+        }, { once: true });
+      };
+
+      const renderTable = (list) => {
+        setThead();
+        $("tbody").innerHTML = list.map(rowHtml).join("") || `
+          <tr><td colspan="${emptyColspan()}" style="padding:16px;color:var(--text-muted)">
+            Nenhum registro encontrado.
+          </td></tr>
+        `;
+        applySortClasses();
+        bindTheadSort();
+        const chkAll = $("chkAll");
+        if (chkAll) {
+          chkAll.addEventListener("change", () => {
+            document.querySelectorAll(".chk-pedido").forEach(c => c.checked = chkAll.checked);
+          });
+        }
+        const chkAllFv = $("chkAllFaltanv");
+        if (chkAllFv) {
+          chkAllFv.addEventListener("change", () => {
+            document.querySelectorAll(".chk-faltanv").forEach(c => c.checked = chkAllFv.checked);
+            updateFaltanvActionState_();
+          });
+        }
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          $("tbody").querySelectorAll(".chk-faltanv").forEach(c =>
+            c.addEventListener("change", updateFaltanvActionState_));
+        }
+        const chkAllP = $("chkAllParciais");
+        if (chkAllP) {
+          chkAllP.addEventListener("change", () => {
+            document.querySelectorAll(".chk-parcial").forEach(c => c.checked = chkAllP.checked);
+            updateParcialActionState_();
+          });
+        }
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
+          $("tbody").querySelectorAll(".chk-parcial").forEach(c =>
+            c.addEventListener("change", updateParcialActionState_));
+        }
+      };
+
+      const renderMeta = () => {
+        if (!META) { $("meta").textContent = "—"; return; }
+        const perSheet = META.perSheet ? JSON.stringify(META.perSheet).replaceAll('"','') : "";
+        $("meta").textContent = `Pedidos(linhas): ${META.pedidosRows} • Faltam(itens): ${META.faltamRows} • ${perSheet}`;
+      };
+
+      const renderStatusline = (shownCount) => {
+        $("statusline").innerHTML = `
+          <span class="pill"><strong>Fonte:</strong> ${safe(ACTIVE_SOURCE)}</span>
+          <span class="pill"><strong>Filtro:</strong> ${safe(ACTIVE.label || "Total")}</span>
+          <span class="pill"><strong>Vis\xedveis:</strong> ${shownCount}</span>
+          <span class="pill"><strong>Modo:</strong> ${safe(ACTIVE.view)}</span>
+        `;
+      };
+
+      const rebuildMultiIds = (listPedidosVisiveis) => {
+        const counts = new Map();
+        for (const p of listPedidosVisiveis) {
+          const id = String(p.id);
+          counts.set(id, (counts.get(id) || 0) + 1);
+        }
+        MULTI_IDS = new Set([...counts.entries()].filter(([,c]) => c > 1).map(([id]) => id));
+      };
+
+      const applyAllFilters = () => {
+        const q = $("q").value.trim().toLowerCase();
+
+        if (ACTIVE.view === "FALTAM_VIEW") {
+          const barFv = $("faltanvBar"); if (barFv) barFv.classList.remove("visible");
+          const actFv = $("faltanvActions"); if (actFv) actFv.classList.remove("visible");
+          const parcActFv = $("parcActions"); if (parcActFv) parcActFv.classList.remove("visible");
+
+          let list = [...ALL_FALTAM];
+
+          if (q) {
+            list = list.filter(it => {
+              const hay = `${it.produtoPendentes} ${it.quantidade}`.toLowerCase();
+              return hay.includes(q);
+            });
+          }
+
+          const _aggMap = new Map();
+          for (const it of list) {
+            const key = normJs_(it.produtoPendentes);
+            if (!_aggMap.has(key)) {
+              _aggMap.set(key, { ...it, quantidade: 0 });
+            }
+            _aggMap.get(key).quantidade += Number(it.quantidade || 0);
+          }
+          list = [..._aggMap.values()];
+
+          if (SORT.col) {
+            list.sort((a, b) => {
+              const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
+              const bv = String(b[SORT.col] == null ? "" : b[SORT.col]).toLowerCase();
+              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+            });
+          }
+
+          updateBlueCellsWarning();
+          const cb = $("copyFaltamBtn");
+          if (cb) cb.style.display = "";
+          const cbPend = $("copyPendentesBtn");
+          if (cbPend) cbPend.style.display = "none";
+          const tt = $("tableTitle");
+          if (tt) tt.textContent = "Faltam";
+          $("reviewWarning").style.display = "none";
+
+          renderTable(list);
+          renderStatusline(list.length);
+          return;
+        }
+
+        if (ACTIVE.view === "TENHO_VIEW") {
+          const barFv = $("faltanvBar"); if (barFv) barFv.classList.remove("visible");
+          const actFv = $("faltanvActions"); if (actFv) actFv.classList.remove("visible");
+          const parcActFv = $("parcActions"); if (parcActFv) parcActFv.classList.remove("visible");
+
+          let list = [...ALL_TENHO];
+          if (q) {
+            list = list.filter(it =>
+              `${it.produtoPendentes} ${it.quantidade}`.toLowerCase().includes(q)
+            );
+          }
+          if (SORT.col) {
+            list.sort((a, b) => {
+              const av = String(a[SORT.col] ?? "").toLowerCase();
+              const bv = String(b[SORT.col] ?? "").toLowerCase();
+              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+            });
+          }
+          const cb = $("copyFaltamBtn");
+          if (cb) cb.style.display = "";
+          const tt = $("tableTitle");
+          if (tt) tt.textContent = "Tenho";
+          $("reviewWarning").style.display = "none";
+          renderTable(list);
+          renderStatusline(list.length);
+          return;
+        }
+
+        if (ACTIVE.view === "FALTANV_VIEW") {
+          let list;
+          if (FALTANV_FILTER === "falta") {
+            list = ALL_FALTAM.map(it => ({ ...it, _tipo: "falta" }));
+          } else if (FALTANV_FILTER === "nao_marcado") {
+            list = ALL_TODOS_NV.map(it => ({ ...it, _tipo: "nao_marcado" }));
+          } else {
+            list = [
+              ...ALL_FALTAM.map(it => ({ ...it, _tipo: "falta" })),
+              ...ALL_TODOS_NV.map(it => ({ ...it, _tipo: "nao_marcado" })),
+            ];
+          }
+
+          const _nvAggMap = new Map();
+          for (const it of list) {
+            const key = normJs_(it.produtoPendentes) + "||" + it._tipo;
+            if (!_nvAggMap.has(key)) {
+              _nvAggMap.set(key, { ...it, quantidade: 0, _sources: new Set() });
+            }
+            const agg = _nvAggMap.get(key);
+            agg.quantidade += Number(it.quantidade || 0);
+            if (it.sheet) agg._sources.add(it.sheet);
+          }
+          list = [..._nvAggMap.values()];
+
+          if (q) {
+            list = list.filter(it =>
+              `${it.produtoPendentes} ${it.quantidade}`.toLowerCase().includes(q)
+            );
+          }
+          if (SORT.col) {
+            list.sort((a, b) => {
+              const av = String(a[SORT.col] ?? "").toLowerCase();
+              const bv = String(b[SORT.col] ?? "").toLowerCase();
+              return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+            });
+          }
+
+          updateBlueCellsWarning();
+          const cb = $("copyFaltamBtn");
+          if (cb) cb.style.display = (FALTANV_FILTER === "todos") ? "" : "none";
+          const cbPend = $("copyPendentesBtn");
+          if (cbPend) cbPend.style.display = "none";
+          const tt = $("tableTitle");
+          if (tt) tt.textContent = "Falta/Não Verificado";
+          $("reviewWarning").style.display = "none";
+
+          const bar = $("faltanvBar");
+          if (bar) bar.classList.add("visible");
+          const actBar = $("faltanvActions");
+          if (actBar) actBar.classList.toggle("visible", FALTANV_FILTER === "nao_marcado");
+          const parcActFn = $("parcActions"); if (parcActFn) parcActFn.classList.remove("visible");
+          updateFaltanvActionState_();
+
+          renderTable(list);
+          const btnEI = $("btnEnviarInfo");
+          if (btnEI) btnEI.style.display = (FALTANV_FILTER === "nao_marcado") ? "" : "none";
+          renderStatusline(list.length);
+          return;
+        }
+
+        if (ACTIVE.view === "PARCIAIS_VIEW") {
+          updateBlueCellsWarning();
+          $("copyFaltamBtn").style.display = "none";
+          $("copyPendentesBtn").style.display = "none";
+          $("tableTitle").textContent = "Produtos Parciais";
+          $("reviewWarning").style.display = "none";
+          const bar_ = $("faltanvBar"); if (bar_) bar_.classList.remove("visible");
+          const parcActBar = $("parcActions");
+          if (parcActBar) parcActBar.classList.add("visible");
+
+          setThead();
+
+          const q = $("q").value.trim().toLowerCase();
+          const pendMap = {};
+          (ALL_PARCIAIS || [])
+            .filter(p => p.componentStatus === "PENDENTE")
+            .filter(p => !q || p.componentName.toLowerCase().includes(q))
+            .forEach(p => {
+              pendMap[p.componentName] = (pendMap[p.componentName] || 0) + 1;
+            });
+          const rows = Object.entries(pendMap);
+
+          if (!rows.length) {
+            $("tbody").innerHTML = `<tr><td colspan="3" style="padding:16px;color:var(--text-muted)">Nenhum componente pendente.</td></tr>`;
+          } else {
+            $("tbody").innerHTML = rows.map(([name, qty]) => `
+              <tr>
+                <td class="chk-col"><input type="checkbox" class="chk-parcial" value="${safe(name)}"></td>
+                <td>${safe(name)}</td>
+                <td>${qty}</td>
+              </tr>
+            `).join("");
+            const chkAllP = $("chkAllParciais");
+            if (chkAllP) {
+              chkAllP.addEventListener("change", () => {
+                document.querySelectorAll(".chk-parcial").forEach(c => c.checked = chkAllP.checked);
+                updateParcialActionState_();
+              });
+            }
+            document.querySelectorAll(".chk-parcial").forEach(c =>
+              c.addEventListener("change", updateParcialActionState_));
+          }
+
+          updateParcialActionState_();
+          renderStatusline(rows.length);
+          return;
+        }
+
+        const bar_ = $("faltanvBar"); if (bar_) bar_.classList.remove("visible");
+        const act_ = $("faltanvActions"); if (act_) act_.classList.remove("visible");
+        const parcAct = $("parcActions"); if (parcAct) parcAct.classList.remove("visible");
+
+        let list = [...ALL_PEDIDOS];
+        const ft = ACTIVE.type || "ALL";
+
+        if (ft.startsWith("STATUS:")) {
+          const wanted = ft.split(":")[1];
+          list = list.filter(p => (p.status || "").toUpperCase() === wanted);
+        }
+
+        if (q) {
+          list = list.filter(p => {
+            const hay = `${p.id} ${p.cliente} ${p.produto} ${p.qtd} ${p.status} ${p.bipado} ${p.etiquetas} ${p.andamento} ${p.sheet != null ? p.sheet : ""}`.toLowerCase();
+            return hay.includes(q);
+          });
+        }
+
+        // Filtro Andamento (qualquer fonte, somente Pendentes)
+        if (ACTIVE.type === "STATUS:PENDENTE" && FILTER_ANDAMENTO.size > 0) {
+          list = list.filter(p => {
+            const and = String(p.andamento || "").trim().toLowerCase();
+            const isEmpty = !and || and === "—";
+            if (FILTER_ANDAMENTO.has("falta")  && and.includes("falta"))  return true;
+            if (FILTER_ANDAMENTO.has("tenho")  && and.includes("tenho"))  return true;
+            if (FILTER_ANDAMENTO.has("vazio")  && isEmpty)                return true;
+            return false;
+          });
+        }
+
+        // Filtro Fonte (somente quando TODOS)
+        if (ACTIVE_SOURCE === "TODOS" && FILTER_FONTE.size > 0) {
+          list = list.filter(p => FILTER_FONTE.has(p.sheet));
+        }
+
+        if (SORT.col) {
+          list.sort((a, b) => {
+            const av = String(a[SORT.col] == null ? "" : a[SORT.col]).toLowerCase();
+            const bv = String(b[SORT.col] == null ? "" : b[SORT.col]).toLowerCase();
+            return av < bv ? -SORT.dir : av > bv ? SORT.dir : 0;
+          });
+        }
+
+        rebuildMultiIds(list);
+
+        const cb = $("copyFaltamBtn");
+        if (cb) cb.style.display = "none";
+        const cbPend = $("copyPendentesBtn");
+        if (cbPend) cbPend.style.display = (ACTIVE.type === "STATUS:PENDENTE") ? "" : "none";
+        const tt = $("tableTitle");
+        if (tt) tt.textContent = "Lista de pedidos";
+        updateBlueCellsWarning();
+
+        const showReview = HAS_REVIEW_CELLS
+          && ACTIVE.view === "STATUS"
+          && (ACTIVE.type === "ALL" || ACTIVE.type === "STATUS:PENDENTE");
+        $("reviewWarning").style.display = showReview ? "block" : "none";
+
+        CURRENT_FILTERED_LIST = list;
+        updateTodosFilters();
+        renderTable(list);
+        renderStatusline(list.length);
+      };
+
+      const bindKpiClicks = () => {
+        document.querySelectorAll("#kpis [data-filter]").forEach(el => {
+          el.addEventListener("click", () => {
+            const type = el.getAttribute("data-filter") || "ALL";
+            const view = el.getAttribute("data-view") || "STATUS";
+
+            const labelMap = {
+              "ALL": "Total",
+              "STATUS:PENDENTE": "Pendentes",
+              "FALTAM": "Faltam",
+              "STATUS:CONFIRMADO": "Confirmados",
+              "FALTANV": "Falta/Não Verificado",
+              "TENHO": "Tenho",
+              "VIEW:ETIQUETAS": "Etiquetas Impressas",
+              "PARCIAIS": "Produtos Parciais",
+              "STATUS:CANCELADO": "Cancelados",
+            };
+
+            ACTIVE = { type, label: labelMap[type] || "Total", view };
+            SORT = { col: null, dir: 1 };
+
+            if (type === "FALTANV") {
+              FALTANV_FILTER = "todos";
+              document.querySelectorAll(".faltanv-filter").forEach(b => {
+                b.classList.toggle("active", b.getAttribute("data-faltanv") === "todos");
+              });
+            }
+
+            $("kpis").innerHTML = kpiCards(KPIS);
+            bindKpiClicks();
+            applyAllFilters();
+            updateTodosFilters();
+          });
+        });
+      };
+
+      const updateSourceUI = () => {
+        document.querySelectorAll("#seg .segBtn").forEach(b => {
+          b.classList.toggle("active", (b.getAttribute("data-src") || "") === ACTIVE_SOURCE);
+        });
+
+        const hint = (ACTIVE_SOURCE === "TODOS")
+          ? "Mesclando ML Coleta + ML 1"
+          : `Usando apenas: ${ACTIVE_SOURCE}`;
+
+        $("sourceHint").textContent = hint;
+        const _btnPF = $("btnProcessarFotos");
+        if (_btnPF) _btnPF.style.display = (ACTIVE_SOURCE === "TODOS") ? "" : "none";
+        const _btnAM = $("btnAtualizarMarcacoes");
+        if (_btnAM) _btnAM.style.display = (ACTIVE_SOURCE === "TODOS") ? "" : "none";
+        const confBtns = $("confBtns");
+        if (confBtns) confBtns.style.display = (ACTIVE_SOURCE === "TODOS") ? "flex" : "none";
+      };
+
+      const applySourceTheme = (src) => {
+        const isDark = localStorage.getItem("theme") === "dark";
+        if (isDark) {
+          if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee-dark");
+          else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu-dark");
+          else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia-dark");
+          else if (src === "Amazon") document.documentElement.setAttribute("data-theme", "amazon-dark");
+          else document.documentElement.setAttribute("data-theme", "dark");
+        } else {
+          if (src === "Shopee") document.documentElement.setAttribute("data-theme", "shopee");
+          else if (src === "Magalu") document.documentElement.setAttribute("data-theme", "magalu");
+          else if (src === "Essência do Brasil") document.documentElement.setAttribute("data-theme", "essencia");
+          else if (src === "Amazon") document.documentElement.setAttribute("data-theme", "amazon");
+          else document.documentElement.removeAttribute("data-theme");
+        }
+        const titleMap = {
+          "Shopee":             "Pedidos — HUD Shopee",
+          "Magalu":             "Pedidos — HUD Magalu",
+          "Essência do Brasil": "Pedidos — HUD Essência do Brasil",
+          "Amazon":             "Pedidos — HUD Amazon",
+          "Flex/Vapt":          "Pedidos — HUD Flex/Vapt",
+        };
+        const h1 = document.querySelector("header h1");
+        if (h1) h1.textContent = titleMap[src] || "Pedidos — HUD Mercado Livre";
+      };
+
+      const bindSourceSelector = () => {
+        document.querySelectorAll("#seg .segBtn").forEach(b => {
+          b.addEventListener("click", () => {
+            ACTIVE_SOURCE = b.getAttribute("data-src") || "ML Coleta";
+            updateTodosFilters();
+            SORT = { col: null, dir: 1 };
+            updateSourceUI();
+            applySourceTheme(ACTIVE_SOURCE);
+
+            ACTIVE = { type: "ALL", label: "Total", view: "STATUS" };
+            $("q").value = "";
+
+            fetchPedidos();
+          });
+        });
+      };
+
+      const fetchPedidos = () => {
+        $("loadingOverlay").style.display = "flex";
+        $("tbody").innerHTML = "";
+        $("thead").innerHTML = "";
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            $("loadingOverlay").style.display = "none";
+
+            if (!res || !res.ok) {
+              showToast((res && res.error) || "Erro desconhecido.");
+              return;
+            }
+
+            ALL_PEDIDOS = res.pedidos || [];
+            ALL_FALTAM = res.faltamItems || [];
+            ALL_TODOS_NV = res.todosNvItems || [];
+            ALL_TENHO = res.tenhoItems || [];
+            KPIS = res.kpis || null;
+            google.script.run
+              .withSuccessHandler(pr => {
+                ALL_PARCIAIS = (pr.ok && pr.items) ? pr.items : [];
+                // Remove da lista Não Marcado componentes já resolvidos no Parciais
+                const resolvedInParciais = new Set(
+                  ALL_PARCIAIS
+                    .filter(p => p.componentStatus === "TENHO" || p.componentStatus === "FALTA")
+                    .map(p => normJs_(p.componentName))
+                );
+                if (resolvedInParciais.size > 0) {
+                  ALL_TODOS_NV = ALL_TODOS_NV.filter(
+                    it => !resolvedInParciais.has(normJs_(it.produtoPendentes))
+                  );
+                }
+                if (KPIS) KPIS.parciais = ALL_PARCIAIS.reduce((acc, it) => acc + (Number(it.qty) || 0), 0);
+                $("kpis").innerHTML = kpiCards(KPIS);
+                bindKpiClicks();
+                if (ACTIVE.view === "PARCIAIS_VIEW" || ACTIVE.view === "FALTANV_VIEW") applyAllFilters();
+              })
+              .withFailureHandler(err => {
+                showToast("Falha ao carregar parciais: " + (err && err.message ? err.message : err));
+              })
+              .getParciais();
+            META = res.meta || null;
+
+            if (res.collectionTimes) { COLLECTION_TIMES = res.collectionTimes; updateCtDisplay(); }
+
+            HAS_BLUE_CELLS   = res.hasBlueCells   || false;
+            HAS_REVIEW_CELLS = res.hasReviewCells  || false;
+            MONITOR_PAUSED   = res.monitorPaused   || MONITOR_PAUSED;
+            MONITOR_SNAPSHOT = res.monitorSnapshot || MONITOR_SNAPSHOT;
+            LAST_UPDATE_TIME = new Date();
+            updateAutoRefreshIndicator();
+            updateMarketStatus();
+            updatePauseButtons();
+            updateMonitorSnapshot();
+            if (res.importRunning) {
+              $("importIndicator").style.display = "inline";
+              $("importIndicator").textContent   = "⟳ " + res.importRunning;
+              startAutoRefresh(30 * 1000);
+            } else {
+              $("importIndicator").style.display = "none";
+              startAutoRefresh();
+            }
+
+            renderMeta();
+            applyAllFilters();
+          })
+          .withFailureHandler((err) => {
+            $("loadingOverlay").style.display = "none";
+            showToast("Falha ao carregar: " + (err && err.message ? err.message : err));
+          })
+          .getPedidos(ACTIVE_SOURCE);
+      };
+
+      $("q").addEventListener("input", () => {
+        window.clearTimeout(window.__t);
+        window.__t = window.setTimeout(applyAllFilters, 80);
+      });
+
+      $("btnReload").addEventListener("click", fetchPedidos);
+
+      const updateFaltanvActionState_ = () => {
+        const checked = document.querySelectorAll(".chk-faltanv:checked");
+        const count   = checked.length;
+        const btnF = $("btnMarcarFalta");
+        const btnP = $("btnFaltaParcial");
+        const sel  = $("faltanvSelCount");
+        if (btnF)  btnF.disabled  = count === 0;
+        if (btnP)  btnP.disabled  = count !== 1;
+        if (sel)   sel.textContent = count > 0 ? `${count} selecionado(s)` : "";
+      };
+
+      const getCheckedFaltanvItems_ = () => {
+        const checked = document.querySelectorAll(".chk-faltanv:checked");
+        return [...checked].map(c => ({
+          prodName: c.getAttribute("data-prod"),
+          sheet:    c.getAttribute("data-sheet"),
+          qty:      Number(c.getAttribute("data-qty") || 0),
+        }));
+      };
+
+      const bindFaltanvControls_ = () => {
+        document.querySelectorAll(".faltanv-filter").forEach(btn => {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".faltanv-filter").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            FALTANV_FILTER = btn.getAttribute("data-faltanv") || "todos";
+            NAO_MARCADO_SELS = new Map();
+            google.script.run.setUserSelecting(false);
+            applyAllFilters();
+          });
+        });
+
+        $("tbody").addEventListener("change", (e) => {
+          const chkAll = $("chkAllFaltanv");
+          if (e.target === chkAll) {
+            document.querySelectorAll(".chk-faltanv").forEach(c => c.checked = chkAll.checked);
+          }
+          updateFaltanvActionState_();
+        });
+
+        const btnF = $("btnMarcarFalta");
+        if (btnF) btnF.addEventListener("click", () => {
+          const items = getCheckedFaltanvItems_();
+          if (!items.length) return;
+          $("modalFaltaInput").value = "";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
+        });
+
+        const btnP = $("btnFaltaParcial");
+        if (btnP) btnP.addEventListener("click", () => {
+          const items = getCheckedFaltanvItems_();
+          if (items.length !== 1) return;
+          const prodName = items[0].prodName;
+          $("modalParcialTitle").textContent = "Falta Parcial — " + prodName;
+          $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
+          _modalOrders = null;
+          $("modalParcialOk").disabled = true;
+          $("modalParcial").classList.add("open");
+
+          google.script.run
+            .withSuccessHandler(res => {
+              if (!res.ok) {
+                $("modalParcialList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
+                return;
+              }
+              _modalOrders = res.orders;
+              $("modalParcialOk").disabled = false;
+              if (!res.orders.length) {
+                $("modalParcialList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
+                return;
+              }
+              $("modalParcialList").innerHTML = res.orders.map(o => `
+                <label class="modal-order-row">
+                  <input type="checkbox" class="chk-modal-order" data-id="${safe(o.orderId)}">
+                  <span>${safe(o.orderId)}</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">${safe(o.source)}</span>
+                </label>
+              `).join("");
+            })
+            .withFailureHandler(err => {
+              $("modalParcialList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
+            })
+            .getOrdersByComponent(prodName);
+        });
+
+        const inp = $("modalFaltaInput");
+        if (inp) inp.addEventListener("input", () => {
+          $("modalFaltaOk").disabled = !(
+            inp.value.trim() === "/Falta" ||
+            (inp.value.trim() === "/Tenho" && _faltaParcialPendente !== null) ||
+            (inp.value.trim() === "/Tenho" && _parcialTenhoPending !== null)
+          );
+        });
+
+        $("modalFaltaCancel")?.addEventListener("click", () => {
+          _parcialFaltaPending = null;
+          _faltaParcialPendente = null;
+          _parcialTenhoPending = null;
+          $("modalFalta").classList.remove("open");
+        });
+
+        $("modalFaltaOk")?.addEventListener("click", () => {
+          if (_parcialTenhoPending) {
+            if ($("modalFaltaInput").value.trim() !== "/Tenho") return;
+            $("modalFalta").classList.remove("open");
+            const { items, tenhoIds } = _parcialTenhoPending;
+            _parcialTenhoPending = null;
+            $("loadingOverlay").style.display = "flex";
+            google.script.run
+              .withSuccessHandler(res => {
+                $("loadingOverlay").style.display = "none";
+                if (res.ok) { fetchPedidos(); showToast("Tenho registrado."); }
+                else showToast("Erro: " + res.error);
+              })
+              .withFailureHandler(err => {
+                $("loadingOverlay").style.display = "none";
+                showToast("Falha: " + (err?.message || err));
+              })
+              .resolverParcialComTenho(items, tenhoIds);
+            return;
+          }
+          if (_faltaParcialPendente) {
+            if ($("modalFaltaInput").value.trim() !== "/Tenho") return;
+            $("modalFalta").classList.remove("open");
+            const { prodName, tenhoIds, allModalIds } = _faltaParcialPendente;
+            _faltaParcialPendente = null;
+            $("loadingOverlay").style.display = "flex";
+            google.script.run
+              .withSuccessHandler(res => {
+                $("loadingOverlay").style.display = "none";
+                if (res.ok) { fetchPedidos(); showToast("Falta Parcial registrada."); }
+                else showToast("Erro: " + res.error);
+              })
+              .withFailureHandler(err => {
+                $("loadingOverlay").style.display = "none";
+                showToast("Falha: " + (err?.message || err));
+              })
+              .marcarFaltaParcial(prodName, tenhoIds, allModalIds);
+            return;
+          }
+          if ($("modalFaltaInput").value.trim() !== "/Falta") return;
+          $("modalFalta").classList.remove("open");
+          if (_parcialFaltaPending) {
+            const items = _parcialFaltaPending;
+            _parcialFaltaPending = null;
+            $("loadingOverlay").style.display = "flex";
+            google.script.run
+              .withSuccessHandler(res => {
+                $("loadingOverlay").style.display = "none";
+                if (res.ok) { fetchPedidos(); showToast("Itens marcados como /Falta."); }
+                else showToast("Erro: " + res.error);
+              })
+              .withFailureHandler(err => {
+                $("loadingOverlay").style.display = "none";
+                showToast("Falha: " + (err && err.message ? err.message : err));
+              })
+              .resolverParcialComoFalta(items);
+            return;
+          }
+          const items = getCheckedFaltanvItems_();
+          $("loadingOverlay").style.display = "flex";
+          google.script.run
+            .withSuccessHandler(res => {
+              $("loadingOverlay").style.display = "none";
+              if (res.ok) fetchPedidos();
+              else showToast("Erro: " + res.error);
+            })
+            .withFailureHandler(err => {
+              $("loadingOverlay").style.display = "none";
+              showToast("Falha ao marcar: " + (err && err.message ? err.message : err));
+            })
+            .marcarProdutosComoFalta(items.map(it => ({ prodName: it.prodName, qty: it.qty, sheet: it.sheet })));
+        });
+
+        $("modalParcialCancel")?.addEventListener("click", () => {
+          _modalOrders = null;
+          $("modalParcial").classList.remove("open");
+        });
+
+        $("modalParcialOk")?.addEventListener("click", () => {
+          if (!_modalOrders) { showToast("Aguarde o carregamento dos pedidos."); return; }
+          const items = getCheckedFaltanvItems_();
+          if (items.length !== 1) return;
+          const prodName = items[0].prodName;
+          const tenhoIds = [...document.querySelectorAll(".chk-modal-order:checked")].map(c => c.getAttribute("data-id"));
+          const allModalIds = (_modalOrders || []).map(o => o.orderId);
+          _modalOrders = null;
+          $("modalParcial").classList.remove("open");
+          _faltaParcialPendente = { prodName, tenhoIds, allModalIds };
+          $("modalFaltaInput").value = "";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
+        });
+      };
+
+      const updateParcialActionState_ = () => {
+        const checked = document.querySelectorAll(".chk-parcial:checked");
+        const count   = checked.length;
+        const btnF = $("btnParcialFalta");
+        const btnT = $("btnParcialTenho");
+        const sel  = $("parcSelCount");
+        if (btnF) btnF.disabled = count === 0;
+        if (btnT) btnT.disabled = count !== 1;
+        if (sel)  sel.textContent = count > 0 ? `${count} selecionado(s)` : "";
+      };
+
+      const getCheckedParcialItems_ = () => {
+        const checked = new Set([...document.querySelectorAll(".chk-parcial:checked")].map(cb => cb.value));
+        if (!checked.size) return [];
+        return (ALL_PARCIAIS || []).filter(p =>
+          checked.has(p.componentName) && p.componentStatus === "PENDENTE"
+        );
+      };
+
+      function normJs_(s) {
+        return String(s ?? "").trim().toUpperCase()
+          .normalize("NFD").replace(/[̀-ͯ]/g, "")
+          .replace(/\s+/g, " ");
+      }
+
+      function openFaltaItemModal_(productName, ignoreStatus = true) {
+        $("modalFaltaItemTitle").textContent = productName;
+        $("modalFaltaItem").style.display = "flex";
+        $("modalFaltaItemList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Carregando...</div>';
+        $("btnFaltaItemCopy").disabled = true;
+        _faltaItemOrders = null;
+
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.ok) {
+              $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Erro: ' + safe(res.error) + '</div>';
+              return;
+            }
+            _faltaItemOrders = res.orders;
+            $("btnFaltaItemCopy").disabled = false;
+            if (!res.orders.length) {
+              $("modalFaltaItemList").innerHTML = '<div style="padding:8px;font-size:13px;color:var(--text-muted)">Nenhum pedido encontrado.</div>';
+              return;
+            }
+            $("modalFaltaItemList").innerHTML =
+              `<label class="modal-order-row" style="font-weight:600;border-bottom:1px solid var(--border,#ddd);padding-bottom:6px;margin-bottom:4px;">
+                <input type="checkbox" id="chkAllFaltaItem">
+                <span>Selecionar tudo</span>
+              </label>` +
+              res.orders.map(o => `
+              <label class="modal-order-row">
+                <input type="checkbox" class="chk-falta-item" data-id="${safe(o.orderId)}">
+                <span>${safe(o.orderId)} — ${safe(o.source)}</span>
+              </label>`).join("");
+            const _chkAllFI = document.getElementById("chkAllFaltaItem");
+            if (_chkAllFI) _chkAllFI.addEventListener("change", () => {
+              document.querySelectorAll(".chk-falta-item").forEach(c => c.checked = _chkAllFI.checked);
+            });
+          })
+          .withFailureHandler(err => {
+            $("modalFaltaItemList").innerHTML = '<div style="padding:8px;color:red">Falha: ' + safe(err && err.message ? err.message : String(err)) + '</div>';
+          })
+          .getOrdersByComponent(productName, ignoreStatus);
+      }
+
+      function closeFaltaItemModal_() {
+        $("modalFaltaItem").style.display = "none";
+        _faltaItemOrders = null;
+      }
+
+      function copyFaltaItemIds_() {
+        if (!_faltaItemOrders) { showToast("Aguarde o carregamento."); return; }
+        const checked = [...document.querySelectorAll(".chk-falta-item:checked")].map(c => c.dataset.id);
+        if (!checked.length) { showToast("Selecione ao menos um pedido."); return; }
+        const seen = new Set();
+        const parts = [];
+        for (const id of checked) {
+          if (!seen.has(id)) { seen.add(id); parts.push(id.slice(-5)); }
+        }
+        const text = parts.join("/");
+        navigator.clipboard.writeText(text)
+          .then(() => showToast("IDs copiados!", 2500, "success"))
+          .catch(() => {
+            const ta = document.createElement("textarea");
+            ta.value = text; document.body.appendChild(ta);
+            ta.select(); document.execCommand("copy");
+            document.body.removeChild(ta);
+          });
+      }
+
+      const bindParcialControls_ = () => {
+        $("tbody").addEventListener("change", (e) => {
+          const chkAll = $("chkAllParciais");
+          if (e.target === chkAll) {
+            document.querySelectorAll(".chk-parcial").forEach(c => c.checked = chkAll.checked);
+          }
+          updateParcialActionState_();
+        });
+
+        $("btnParcialFalta")?.addEventListener("click", () => {
+          const items = getCheckedParcialItems_();
+          if (!items.length) return;
+          _parcialFaltaPending = items;
+          $("modalFaltaInput").value = "";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
+        });
+
+        $("btnParcialTenho")?.addEventListener("click", () => {
+          const items = getCheckedParcialItems_();
+          if (!items.length) return;
+          const compName = items[0].componentName;
+          $("modalTenhoTitle").textContent = "Tenho — " + compName;
+          const orderIds = [...new Set(items.map(it => it.orderId))];
+          const sourceMap = new Map(ALL_PARCIAIS.map(it => [it.orderId, it.source]));
+          $("modalTenhoList").innerHTML = orderIds.map(id => `
+            <label class="modal-order-row">
+              <input type="checkbox" class="chk-modal-tenho" data-id="${safe(id)}">
+              <span>${safe(id)} — ${safe(sourceMap.get(id) || "")}</span>
+            </label>
+          `).join("");
+          $("modalTenho").classList.add("open");
+        });
+
+        $("modalTenhoCancel")?.addEventListener("click", () => $("modalTenho").classList.remove("open"));
+
+        $("modalTenhoOk")?.addEventListener("click", () => {
+          const items    = getCheckedParcialItems_();
+          const tenhoIds = [...document.querySelectorAll(".chk-modal-tenho:checked")].map(c => c.getAttribute("data-id"));
+          $("modalTenho").classList.remove("open");
+          _parcialTenhoPending = { items, tenhoIds };
+          $("modalFaltaInput").value = "";
+          $("modalFaltaOk").disabled = true;
+          $("modalFalta").classList.add("open");
+        });
+      };
+
+      // Boot
+      initTheme();
+      bindCtEdit();
+      bindCtSend();
+      bindPauseButtons();
+      $("copyFaltamBtn").addEventListener("click", copyFaltamList);
+      $("copyPendentesBtn").addEventListener("click", copyPendentesIds);
+      setInterval(updateMarketStatus, 60 * 1000);
+      bindSourceSelector();
+      bindTodosFilters();
+      bindFaltanvControls_();
+      bindParcialControls_();
+      updateSourceUI();
+
+      $("btnAtualizarMarcacoes")?.addEventListener("click", () => {
+        $("btnAtualizarMarcacoes").disabled = true;
+        $("btnAtualizarMarcacoes").textContent = "⏳ Atualizando...";
+        google.script.run
+          .withSuccessHandler(res => {
+            $("btnAtualizarMarcacoes").disabled = false;
+            $("btnAtualizarMarcacoes").textContent = "⚡ Atualizar Marcações";
+            if (!res.ok) { alert("Erro ao atualizar: " + res.error); return; }
+            fetchPedidos();
+          })
+          .withFailureHandler(err => {
+            $("btnAtualizarMarcacoes").disabled = false;
+            $("btnAtualizarMarcacoes").textContent = "⚡ Atualizar Marcações";
+            alert("Erro: " + err);
+          })
+          .atualizarMarcacoesRapido();
+      });
+
+      $("btnProcessarFotos")?.addEventListener("click", () => {
+        $("loadingOverlay").style.display = "flex";
+        google.script.run
+          .withSuccessHandler(res => {
+            $("loadingOverlay").style.display = "none";
+            if (res.ok) {
+              showToast(
+                "Fotos processadas: " + res.total +
+                " | Sucesso: " + res.success +
+                " | Falhas: " + res.failed +
+                (res.skipped ? " | Puladas: " + res.skipped : "") +
+                ". Resumo enviado por e-mail."
+              );
+              fetchPedidos();
+            } else {
+              showToast("Erro: " + res.error);
+            }
+          })
+          .withFailureHandler(err => {
+            $("loadingOverlay").style.display = "none";
+            showToast("Falha: " + (err && err.message ? err.message : String(err)));
+          })
+          .processarFotosPedidos();
+      });
+
+      fetchPedidos();
+
+      (function() {
+        function checkBanner() {
+          google.script.run
+            .withSuccessHandler(function(alerts) {
+              var el = $("alertaBanner");
+              if (!el) return;
+              var hdr = document.querySelector("header");
+              if (!alerts || alerts.length === 0) {
+                el.style.display = "none";
+                document.body.style.paddingTop = "0px";
+                if (hdr) hdr.style.top = "0px";
+                return;
+              }
+              el.style.display = "block";
+              el.innerHTML = alerts.map(function(name) {
+                return "⚠ Ainda não foi adicionada a última tabela do dia do <strong>" + name + "</strong>";
+              }).join("<br>");
+              var bannerH = el.offsetHeight;
+              document.body.style.paddingTop = bannerH + "px";
+              if (hdr) hdr.style.top = bannerH + "px";
+            })
+            .withFailureHandler(function() {})
+            .getAlertaBanner();
+        }
+        checkBanner();
+        setInterval(checkBanner, 2 * 60 * 1000);
+      })();
+
+      (function() {
+        setInterval(function() {
+          google.script.run
+            .withSuccessHandler(function(status) {
+              var el = $("importIndicator");
+              if (!el) return;
+              el.style.display = status ? "inline" : "none";
+              if (status) el.textContent = "⟳ " + status;
+            })
+            .withFailureHandler(function() {})
+            .getImportStatus();
+        }, 20 * 1000);
+      })();
+
+      function nmFaltaChange_(el) {
+        google.script.run.setUserSelecting(true);
+        const key = el.getAttribute("data-prod");
+        const sel = NAO_MARCADO_SELS.get(key) || {};
+        sel.falta = el.checked;
+        if (el.checked) { sel.tenho = false; sel.tenhoQty = 0; }
+        NAO_MARCADO_SELS.set(key, sel);
+        const row = el.closest("tr");
+        if (row) {
+          const tenhoEl = row.querySelector(".chk-tenho-nm");
+          if (tenhoEl) tenhoEl.checked = false;
+          const qtyEl = row.querySelector(".qty-nm");
+          if (qtyEl) qtyEl.style.display = "none";
+        }
+        nmAtualizarBotaoEnviar_();
+      }
+
+      function nmTenhoChange_(el) {
+        google.script.run.setUserSelecting(true);
+        const key  = el.getAttribute("data-prod");
+        const row  = el.closest("tr");
+        const qtyEl = row ? row.querySelector(".qty-nm") : null;
+        const maxQty = qtyEl ? (Number(qtyEl.getAttribute("max")) + 1) : 1;
+        const sel  = NAO_MARCADO_SELS.get(key) || {};
+        sel.tenho  = el.checked;
+        if (el.checked) { sel.falta = false; }
+        else { sel.tenhoQty = 0; }
+        NAO_MARCADO_SELS.set(key, sel);
+        if (row) {
+          const faltaEl = row.querySelector(".chk-falta-nm");
+          if (faltaEl) faltaEl.checked = false;
+          if (qtyEl) qtyEl.style.display = (el.checked && maxQty > 1) ? "" : "none";
+        }
+        nmAtualizarBotaoEnviar_();
+      }
+
+      function nmQtyChange_(el) {
+        const key = el.getAttribute("data-prod");
+        const sel = NAO_MARCADO_SELS.get(key) || {};
+        sel.tenhoQty = parseInt(el.value, 10) || 0;
+        NAO_MARCADO_SELS.set(key, sel);
+      }
+
+      function nmAtualizarBotaoEnviar_() {
+        const btn = $("btnEnviarInfo");
+        if (!btn) return;
+        const hasAny = [...NAO_MARCADO_SELS.values()].some(s => s.falta || s.tenho);
+        btn.style.opacity       = hasAny ? "1" : "0.5";
+        btn.style.pointerEvents = hasAny ? "" : "none";
+      }
+
+      function abrirModalEnviarInfo_() {
+        const hasAny = [...NAO_MARCADO_SELS.values()].some(s => s.falta || s.tenho);
+        if (!hasAny) { showToast("Marque ao menos um item antes de enviar."); return; }
+        const input = document.getElementById("inputEnviarConfirm");
+        if (input) input.value = "";
+        const btn = document.getElementById("btnEnviarNM");
+        if (btn) btn.disabled = true;
+        document.getElementById("modalEnviarInfo").style.display = "flex";
+      }
+
+      function confirmarEnviarInformacoes_() {
+        google.script.run.setUserSelecting(false);
+        document.getElementById("modalEnviarInfo").style.display = "none";
+
+        const aggMap = new Map();
+        for (const it of ALL_TODOS_NV) {
+          const k = normJs_(it.produtoPendentes);
+          if (!aggMap.has(k)) aggMap.set(k, { ...it, quantidade: 0 });
+          aggMap.get(k).quantidade += Number(it.quantidade || 0);
+        }
+
+        const selections = [];
+        for (const [, item] of aggMap) {
+          const key = item.produtoPendentes;
+          const sel = NAO_MARCADO_SELS.get(key);
+          if (!sel || (!sel.falta && !sel.tenho)) continue;
+          selections.push({
+            prodName: key,
+            totalQty: item.quantidade,
+            falta:    !!sel.falta,
+            tenho:    !!sel.tenho,
+            tenhoQty: sel.tenhoQty || 0,
+          });
+        }
+
+        if (!selections.length) { showToast("Nenhum item marcado."); return; }
+
+        $("loadingOverlay").style.display = "flex";
+
+        setTimeout(() => {
+          google.script.run
+            .withSuccessHandler(res => {
+              $("loadingOverlay").style.display = "none";
+              if (!res.ok) { showToast("Erro: " + (res.error || "desconhecido")); return; }
+              const sentKeys = new Set(selections.map(s => normJs_(s.prodName)));
+              ALL_TODOS_NV = ALL_TODOS_NV.filter(it => !sentKeys.has(normJs_(it.produtoPendentes)));
+              NAO_MARCADO_SELS = new Map();
+              const msg = "✅ " + res.updated + " marcação(ões) • " +
+                          res.labels + " etiqueta(s)" +
+                          (res.pdfUrl ? " • PDF gerado" : "");
+              showToast(msg, 5000);
+              fetchPedidos();
+            })
+            .withFailureHandler(err => {
+              $("loadingOverlay").style.display = "none";
+              showToast("Falha: " + (err.message || err));
+            })
+            .enviarInformacoesNaoMarcado(selections);
+        }, 0);
+      }
+
+      // ── Conferencia ──────────────────────────────────────────────────────────────
+
+      var _procuraMarcacoes = {}; // itemKey → {status}
+
+      function importarConf() {
+        var msg = $("confBtnMsg");
+        msg.textContent = "Importando...";
+        google.script.run
+          .withSuccessHandler(function(r) {
+            msg.textContent = r.ok ? ("✅ " + r.importados + " itens importados (" + r.importId + ")") : ("❌ " + r.error);
+            if (r.ok) fetchPedidos();
+          })
+          .withFailureHandler(function(e) { msg.textContent = "❌ " + e.message; })
+          .importarConferencia();
+      }
+
+      function limparConf() {
+        if (!confirm("Apagar TODOS os dados da Conferencia? Esta ação não pode ser desfeita.")) return;
+        var msg = $("confBtnMsg");
+        msg.textContent = "Limpando...";
+        google.script.run
+          .withSuccessHandler(function(r) {
+            msg.textContent = r.ok ? ("✅ " + r.linhasApagadas + " linhas apagadas.") : ("❌ " + r.error);
+          })
+          .withFailureHandler(function(e) { msg.textContent = "❌ " + e.message; })
+          .limparConferencia();
+      }
+
+      function buscarConf() {
+        var q = ($("procuraInput") && $("procuraInput").value || "").trim();
+        if (!q) return;
+        _procuraMarcacoes = {};
+        var res = $("procuraResultados");
+        res.innerHTML = "Buscando...";
+        $("procuraEnviarArea").style.display = "none";
+        google.script.run
+          .withSuccessHandler(function(data) { renderProcuraResultados(data); })
+          .withFailureHandler(function(e) { res.innerHTML = "❌ " + e.message; })
+          .buscarPedidosConferencia(q);
+      }
+
+      function renderProcuraResultados(data) {
+        var res = $("procuraResultados");
+        if (!data || !data.pedidos || !data.pedidos.length) { res.innerHTML = "<em>Nenhum pedido encontrado.</em>"; return; }
+        var html = "";
+        data.pedidos.forEach(function(ped) {
+          html += '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:10px;margin-bottom:10px;">';
+          html += '<div style="font-weight:700;font-size:15px;">Pedido: ' + ped.pedido + '</div>';
+          html += '<div style="color:#555;font-size:13px;">' + ped.marketplace + ' — ' + ped.cliente + '</div>';
+          ped.items.forEach(function(it) {
+            var statusBadge = it.status
+              ? ('<span style="font-size:12px;padding:2px 6px;border-radius:4px;background:' + (it.status==='TENHO'?'#dcfce7':it.status.startsWith('FALTA')?'#fee2e2':'#f3f4f6') + ';color:#333;">'+it.status+'</span>')
+              : '<em style="color:#aaa;font-size:12px;">não marcado</em>';
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">';
+            html += '<span style="flex:1;min-width:120px;font-size:14px;">' + it.produto + ' <span style="color:#888;">(x' + it.qtd + ')</span></span>';
+            html += statusBadge;
+            if (!it.status) {
+              var safeKey = it.itemKey.replace(/'/g, "\'");
+              var safeProd = it.produto.replace(/'/g, "");
+              html += '<button onclick="setProcuraStatus(\'' + safeKey + '\', \'TENHO\')" style="padding:4px 10px;background:#16A34A;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;">TENHO</button>';
+              html += '<button onclick="setProcuraFalta(\'' + safeKey + '\', \'' + safeProd + '\')" style="padding:4px 10px;background:#DC2626;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:13px;">FALTA</button>';
+              html += '<div id="faltaArea_' + it.itemKey + '" style="display:none;width:100%;margin-top:4px;">';
+              html += '<input type="text" id="faltaInput_' + it.itemKey + '" placeholder="Deixe vazio = falta tudo. Ou: item1; item2" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:5px;font-size:13px;" oninput="atualizarFalta(\'' + safeKey + '\')">';
+              html += '</div>';
+            }
+            html += '</div>';
+          });
+          html += '</div>';
+        });
+        res.innerHTML = html;
+      }
+
+      function setProcuraStatus(itemKey, status) {
+        _procuraMarcacoes[itemKey] = { status: status };
+        $("procuraEnviarArea").style.display = "block";
+        var faltaArea = $("faltaArea_" + itemKey);
+        if (faltaArea) faltaArea.style.display = "none";
+      }
+
+      function setProcuraFalta(itemKey, produto) {
+        var faltaArea = $("faltaArea_" + itemKey);
+        if (faltaArea) faltaArea.style.display = "block";
+        _procuraMarcacoes[itemKey] = { status: "FALTA" };
+        $("procuraEnviarArea").style.display = "block";
+      }
+
+      function atualizarFalta(itemKey) {
+        var inp = $("faltaInput_" + itemKey);
+        var val = inp ? inp.value.trim() : "";
+        _procuraMarcacoes[itemKey] = { status: val ? ("FALTA - " + val) : "FALTA" };
+      }
+
+      function enviarProcura() {
+        var items = Object.keys(_procuraMarcacoes).map(function(k) {
+          return { itemKey: k, status: _procuraMarcacoes[k].status };
+        });
+        if (!items.length) { $("procuraEnviarMsg").textContent = "Nenhuma marcação feita."; return; }
+        $("procuraEnviarMsg").textContent = "Enviando...";
+        google.script.run
+          .withSuccessHandler(function(r) {
+            $("procuraEnviarMsg").textContent = r.ok ? ("✅ " + r.marcados + " itens marcados.") : ("❌ " + r.error);
+            if (r.ok) { _procuraMarcacoes = {}; buscarConf(); }
+          })
+          .withFailureHandler(function(e) { $("procuraEnviarMsg").textContent = "❌ " + e.message; })
+          .marcarItensConferencia(items);
+      }
+
+      function mostrarProcura() {
+        $("cardProcura").style.display = "block";
+      }
+
+      function esconderProcura() {
+        $("cardProcura").style.display = "none";
+      }
+
+    </script>
+
+    <div id="cardProcura" class="card" style="display:none; padding:16px; margin:0 16px 16px;">
+      <h3 style="margin-top:0;">&#x1F50D; Procura</h3>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input id="procuraInput" type="text" placeholder="Número do pedido..." style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:14px;" onkeydown="if(event.key==='Enter')buscarConf()">
+        <button onclick="buscarConf()" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Buscar</button>
+      </div>
+      <div id="procuraResultados" style="font-size:14px;"></div>
+      <div id="procuraEnviarArea" style="display:none;margin-top:12px;">
+        <button onclick="enviarProcura()" style="padding:10px 20px;background:#16A34A;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;width:100%;">Enviar Marcações</button>
+        <p id="procuraEnviarMsg" style="font-size:13px;color:#555;margin-top:6px;"></p>
+      </div>
+    </div>
+
+    <!-- Modal Enviar Informações Não Marcado -->
+    <div id="modalEnviarInfo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:12px; padding:28px 32px; max-width:380px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,.25);">
+        <h3 style="margin:0 0 16px; font-size:1.1rem;">Confirmar Envio</h3>
+        <input id="inputEnviarConfirm" type="text"
+          style="width:100%; box-sizing:border-box; padding:8px 10px; border:1.5px solid #ccc; border-radius:7px; font-size:1rem; margin-bottom:14px;"
+          oninput="document.getElementById('btnEnviarNM').disabled = this.value.trim() !== '/enviar';">
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onclick="document.getElementById('modalEnviarInfo').style.display='none';"
+            style="padding:7px 18px; border:1.5px solid #ccc; background:#fff; border-radius:7px; cursor:pointer;">Cancelar</button>
+          <button id="btnEnviarNM" disabled
+            onclick="confirmarEnviarInformacoes_()"
+            style="padding:7px 18px; background:#F5C518; border:none; border-radius:7px; font-weight:600; cursor:pointer;">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
