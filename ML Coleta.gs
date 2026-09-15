@@ -6,9 +6,9 @@ const ML_IMPORT_CONFIG = {
     { folderId: "1TxvlZusR0ilCNjyUmMV_yZsomjDZ7y8d", targetSheetName: "ML 1" }
   ],
 
-  // Planilha STATUS (Març/Fev)
+  // Planilha STATUS (Agosto/Setembro)
   STATUS_SOURCE_SPREADSHEET_ID: "1RHTxClkkFamZUE4hM8romnZfWWTecNwvkvI4SO7rYmU",
-  STATUS_SOURCE_SHEETS: ["Abril", "Março"],
+  STATUS_SOURCE_SHEETS: ["Agosto", "Setembro"],
 
   // Planilha ponte ML1 -> ID do STATUS / ANDAMENTO (via Código+Cliente)
   ML1_LOOKUP_SPREADSHEET_ID: "1KCTrbN6Jx9sg1H-ho6eIZ4we1rm5HL0mjd6OtlpWMMA",
@@ -955,7 +955,7 @@ function importarShopeeMagalu() {
     const rowsAmazon   = [];
     const rowsFlexVapt = [];
 
-    for (const sheetName of ["Maio", "Abril"]) {
+    for (const sheetName of ["Setembro", "Agosto"]) {
       const sh = ssSrc.getSheetByName(sheetName);
       if (!sh) { Logger.log("importarShopeeMagalu: aba '" + sheetName + "' não encontrada na fonte."); continue; }
 
@@ -1131,7 +1131,7 @@ function importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubs
   const rows4 = []; // cols A-D
   const rowsM = []; // col M (marketplace: ML ou ML 1)
 
-  for (const sheetName of ["Maio", "Abril"]) {
+  for (const sheetName of ["Setembro", "Agosto"]) {
     const sh = ssSrc.getSheetByName(sheetName);
     if (!sh || sh.getLastRow() < 2) continue;
 
