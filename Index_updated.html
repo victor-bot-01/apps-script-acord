@@ -1075,7 +1075,7 @@
             <div class="spinner"></div><span>Carregando dados...</span>
           </div>
 
-          <div style="width:100%; overflow:auto;">
+          <div id="tableContainer" style="width:100%; overflow:auto;">
             <table>
               <thead id="thead"></thead>
               <tbody id="tbody"></tbody>
@@ -1909,7 +1909,7 @@
 
         // Mostra/esconde o card Procura baseado na view ativa
         const _cp = $("cardProcura");
-        const _tableArea = document.querySelector(".tableWrap > div[style*='overflow:auto']");
+        const _tableArea = $("tableContainer");
         if (ACTIVE.view === "PROCURA_VIEW") {
           if (_cp) _cp.style.display = "block";
           if (_tableArea) _tableArea.style.display = "none";
