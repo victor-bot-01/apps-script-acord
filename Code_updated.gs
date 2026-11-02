@@ -1562,7 +1562,7 @@ function enviarInformacoesNaoMarcado(selections) {
     console.log("enviarInformacoesNaoMarcado: início — selections recebidas: " + (selections ? selections.length : 0));
     if (!selections?.length) return { ok: true, updated: 0, labels: 0 };
     const PRIORITY = ["ML 1","Flex/Vapt","ML Coleta","Magalu","Shopee","Amazon","Essência do Brasil","Próximos Dias"];
-    const PDF_FOLDER = "1uhmWR9BRt09Ycwagd6g-jyEsulgtZiru";
+    const PDF_FOLDER = "13ksFKMJ4DPLiFTNOvTMrVzVN41aUeguI";
 
     const mapSubseq = pend_buildDadosMapSubseq_();
     const rev = bm_buildReverseMap_(mapSubseq);
