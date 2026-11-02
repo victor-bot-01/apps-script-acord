@@ -8,7 +8,7 @@ const ML_IMPORT_CONFIG = {
 
   // Planilha STATUS (Març/Fev)
   STATUS_SOURCE_SPREADSHEET_ID: "1RHTxClkkFamZUE4hM8romnZfWWTecNwvkvI4SO7rYmU",
-  STATUS_SOURCE_SHEETS: ["Abril", "Março"],
+  STATUS_SOURCE_SHEETS: ["Outubro", "Setembro"],
 
   // Planilha ponte ML1 -> ID do STATUS / ANDAMENTO (via Código+Cliente)
   ML1_LOOKUP_SPREADSHEET_ID: "1KCTrbN6Jx9sg1H-ho6eIZ4we1rm5HL0mjd6OtlpWMMA",
@@ -961,7 +961,7 @@ function importarShopeeMagalu() {
     const rowsAmazon   = [];
     const rowsFlexVapt = [];
 
-    for (const sheetName of ["Maio", "Abril"]) {
+    for (const sheetName of ["Outubro", "Setembro"]) {
       const sh = ssSrc.getSheetByName(sheetName);
       if (!sh) { Logger.log("importarShopeeMagalu: aba '" + sheetName + "' não encontrada na fonte."); continue; }
 
@@ -1074,7 +1074,7 @@ function importarShopeeMagalu() {
     pend_process_nv_porId_(shFlexVapt, confTodosById, mapSubseq);
 
     // Localização (col O / col P para Próximos Dias)
-    const locByIdSh = construirLocalizacaoById_(["Maio", "Abril"]);
+    const locByIdSh = construirLocalizacaoById_(["Outubro", "Setembro"]);
     aplicarLocalizacao_porAba_(locByIdSh, "Shopee",             ML_IMPORT_CONFIG.COL_LOCALIZACAO);
     aplicarLocalizacao_porAba_(locByIdSh, "Magalu",             ML_IMPORT_CONFIG.COL_LOCALIZACAO);
     aplicarLocalizacao_porAba_(locByIdSh, "Essência do Brasil", ML_IMPORT_CONFIG.COL_LOCALIZACAO);
@@ -1146,7 +1146,7 @@ function importarProximosDias_(statusById, andamentoByIdQueue, confById, mapSubs
   const rows4 = []; // cols A-D
   const rowsM = []; // col M (marketplace: ML ou ML 1)
 
-  for (const sheetName of ["Maio", "Abril"]) {
+  for (const sheetName of ["Outubro", "Setembro"]) {
     const sh = ssSrc.getSheetByName(sheetName);
     if (!sh || sh.getLastRow() < 2) continue;
 
